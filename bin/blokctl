@@ -1,0 +1,46 @@
+#!/usr/bin/env php
+<?php
+
+require __DIR__ . '/../vendor/autoload.php';
+
+use Blokctl\Command\AppProvisionInstallCommand;
+use Blokctl\Command\AppProvisionListCommand;
+use Blokctl\Command\SpaceInfoCommand;
+use Blokctl\Command\SpacePreviewListCommand;
+use Blokctl\Command\SpacePreviewSetCommand;
+use Blokctl\Command\SpacePreviewAddCommand;
+use Blokctl\Command\SpaceDeleteCommand;
+use Blokctl\Command\SpaceDemoRemoveCommand;
+use Blokctl\Command\SpacesListCommand;
+use Blokctl\Command\StoriesWorkflowAssignCommand;
+use Blokctl\Command\ComponentFieldAddCommand;
+use Blokctl\Command\ComponentsListCommand;
+use Blokctl\Command\StoriesListCommand;
+use Blokctl\Command\StoriesTagsAssignCommand;
+use Blokctl\Command\StoryShowCommand;
+use Blokctl\Command\UserMeCommand;
+use Symfony\Component\Console\Application;
+
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
+$dotenv->safeLoad();
+
+$application = new Application('blokctl', '1.0.0');
+
+$application->add(new AppProvisionInstallCommand());
+$application->add(new AppProvisionListCommand());
+$application->add(new SpaceInfoCommand());
+$application->add(new SpacePreviewListCommand());
+$application->add(new SpacePreviewSetCommand());
+$application->add(new SpacePreviewAddCommand());
+$application->add(new SpaceDeleteCommand());
+$application->add(new SpaceDemoRemoveCommand());
+$application->add(new SpacesListCommand());
+$application->add(new StoriesWorkflowAssignCommand());
+$application->add(new ComponentFieldAddCommand());
+$application->add(new ComponentsListCommand());
+$application->add(new StoriesListCommand());
+$application->add(new StoriesTagsAssignCommand());
+$application->add(new StoryShowCommand());
+$application->add(new UserMeCommand());
+
+$application->run();

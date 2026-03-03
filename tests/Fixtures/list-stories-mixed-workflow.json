@@ -1,0 +1,73 @@
+{
+    "stories": [
+        {
+            "name": "Story With Stage",
+            "created_at": "2024-02-08T16:26:24.425Z",
+            "published_at": "2024-02-08T16:27:05.705Z",
+            "id": 100001,
+            "uuid": "aaaa-bbbb-cccc-0001",
+            "slug": "story-with-stage",
+            "full_slug": "story-with-stage",
+            "tag_list": [],
+            "is_startpage": false,
+            "parent_id": null,
+            "meta_data": null,
+            "group_id": "group-1",
+            "first_published_at": "2024-02-08T16:27:05.705Z",
+            "lang": "default",
+            "stage": {
+                "workflow_stage_id": 653554,
+                "workflow_id": 93606,
+                "workflow_stage_name": "Drafting",
+                "workflow_stage_color": "#babcb6",
+                "workflow_name": "Default"
+            }
+        },
+        {
+            "name": "Story Without Stage",
+            "created_at": "2024-02-08T16:26:24.425Z",
+            "published_at": null,
+            "id": 100002,
+            "uuid": "aaaa-bbbb-cccc-0002",
+            "slug": "story-without-stage",
+            "full_slug": "story-without-stage",
+            "tag_list": [],
+            "is_startpage": false,
+            "parent_id": null,
+            "meta_data": null,
+            "group_id": "group-2",
+            "first_published_at": null,
+            "lang": "default",
+            "stage": {
+                "workflow_stage_id": null,
+                "workflow_id": null,
+                "workflow_stage_name": null,
+                "workflow_stage_color": null,
+                "workflow_name": null
+            }
+        },
+        {
+            "name": "Another Without Stage",
+            "created_at": "2024-02-08T16:26:24.425Z",
+            "published_at": null,
+            "id": 100003,
+            "uuid": "aaaa-bbbb-cccc-0003",
+            "slug": "another-without-stage",
+            "full_slug": "another-without-stage",
+            "tag_list": [],
+            "is_startpage": false,
+            "parent_id": null,
+            "meta_data": null,
+            "group_id": "group-3",
+            "first_published_at": null,
+            "lang": "default",
+            "stage": {
+                "workflow_stage_id": null,
+                "workflow_id": null,
+                "workflow_stage_name": null,
+                "workflow_stage_color": null,
+                "workflow_name": null
+            }
+        }
+    ]
+}
