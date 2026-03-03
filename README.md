@@ -48,6 +48,7 @@ Most commands accept the following option:
 | Option | Short | Description |
 |---|---|---|
 | `--space-id` | `-S` | The Storyblok Space ID |
+| `--region` | `-R` | The Storyblok region (`EU`, `US`, `AP`, `CA`, `CN`). Defaults to `EU` |
 | `--no-interaction` | `-n` | Run without interactive prompts (requires all options to be provided) |
 
 If `--space-id` is omitted, the command will prompt for it interactively.
@@ -378,8 +379,12 @@ Every CLI command is backed by a reusable **Action** class that contains the bus
 
 ```php
 use Storyblok\ManagementApi\ManagementApiClient;
+use Storyblok\ManagementApi\Data\Enum\Region;
 
 $client = new ManagementApiClient('your-personal-access-token', shouldRetry: true);
+
+// For non-EU regions:
+$client = new ManagementApiClient('your-personal-access-token', region: Region::US, shouldRetry: true);
 ```
 
 ### Spaces
