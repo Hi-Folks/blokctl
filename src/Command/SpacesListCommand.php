@@ -6,6 +6,7 @@ namespace Blokctl\Command;
 
 use Blokctl\Action\Space\SpacesListAction;
 use Blokctl\Render;
+use Storyblok\ManagementApi\Data\Enum\Region;
 use Storyblok\ManagementApi\ManagementApiClient;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -45,6 +46,12 @@ class SpacesListCommand extends Command
             InputOption::VALUE_NONE,
             "Only show spaces where the authenticated user is the only collaborator (implies --owned-only)",
         );
+        $this->addOption(
+            'region',
+            'R',
+            InputOption::VALUE_REQUIRED,
+            'The Storyblok region (' . implode(', ', Region::values()) . ')',
+        );
     }
 
     protected function execute(
@@ -76,7 +83,20 @@ class SpacesListCommand extends Command
         /** @var string|null $search */
         $search = $input->getOption("search");
 
-        $client = new ManagementApiClient($token, shouldRetry: true);
+        /** @var string|null $regionValue */
+        $regionValue = $input->getOption("region");
+        $region = Region::EU;
+        if ($regionValue !== null) {
+            $region = Region::tryFrom(strtoupper($regionValue));
+            if ($region === null) {
+                Render::error(
+                    'Invalid region "' . $regionValue . '". Valid regions: ' . implode(', ', Region::values()),
+                );
+                return self::FAILURE;
+            }
+        }
+
+        $client = new ManagementApiClient($token, region: $region, shouldRetry: true);
         $action = new SpacesListAction($client);
 
         $result = $action->execute(

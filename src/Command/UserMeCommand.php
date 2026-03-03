@@ -6,10 +6,12 @@ namespace Blokctl\Command;
 
 use Blokctl\Action\User\UserMeAction;
 use Blokctl\Render;
+use Storyblok\ManagementApi\Data\Enum\Region;
 use Storyblok\ManagementApi\ManagementApiClient;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(
@@ -18,6 +20,16 @@ use Symfony\Component\Console\Output\OutputInterface;
 )]
 class UserMeCommand extends Command
 {
+    protected function configure(): void
+    {
+        $this->addOption(
+            'region',
+            'R',
+            InputOption::VALUE_REQUIRED,
+            'The Storyblok region (' . implode(', ', Region::values()) . ')',
+        );
+    }
+
     protected function execute(
         InputInterface $input,
         OutputInterface $output,
@@ -29,7 +41,20 @@ class UserMeCommand extends Command
             );
         }
 
-        $client = new ManagementApiClient($token, shouldRetry: true);
+        /** @var string|null $regionValue */
+        $regionValue = $input->getOption('region');
+        $region = Region::EU;
+        if ($regionValue !== null) {
+            $region = Region::tryFrom(strtoupper($regionValue));
+            if ($region === null) {
+                Render::error(
+                    'Invalid region "' . $regionValue . '". Valid regions: ' . implode(', ', Region::values()),
+                );
+                return self::FAILURE;
+            }
+        }
+
+        $client = new ManagementApiClient($token, region: $region, shouldRetry: true);
         $result = (new UserMeAction($client))->execute();
         $user = $result->user;
 

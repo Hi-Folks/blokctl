@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Blokctl\Command;
 
+use Storyblok\ManagementApi\Data\Enum\Region;
 use Storyblok\ManagementApi\ManagementApiClient;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -26,6 +27,12 @@ abstract class AbstractCommand extends Command
             InputOption::VALUE_REQUIRED,
             'The Storyblok Space ID',
         );
+        $this->addOption(
+            'region',
+            'R',
+            InputOption::VALUE_REQUIRED,
+            'The Storyblok region (' . implode(', ', Region::values()) . ')',
+        );
     }
 
     protected function initialize(
@@ -39,8 +46,21 @@ abstract class AbstractCommand extends Command
             );
         }
 
+        /** @var string|null $regionValue */
+        $regionValue = $input->getOption('region');
+        $region = Region::EU;
+        if ($regionValue !== null) {
+            $region = Region::tryFrom(strtoupper($regionValue));
+            if ($region === null) {
+                throw new \RuntimeException(
+                    'Invalid region "' . $regionValue . '". Valid regions: ' . implode(', ', Region::values()),
+                );
+            }
+        }
+
         $this->client = new ManagementApiClient(
             $token,
+            region: $region,
             shouldRetry: true,
         );
 
