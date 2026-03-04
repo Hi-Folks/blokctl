@@ -53,6 +53,21 @@ Most commands accept the following option:
 
 If `--space-id` is omitted, the command will prompt for it interactively.
 
+By default, commands connect to the **EU** region. Use `--region` (`-R`) to target a different Storyblok region:
+
+```bash
+# US region
+php bin/blokctl space:info -S 290817118944379 -R US
+
+# Asia-Pacific region
+php bin/blokctl spaces:list -R AP
+
+# Canada region
+php bin/blokctl stories:list -S 290817118944379 -R CA
+```
+
+Available regions: `EU` (default), `US`, `AP`, `CA`, `CN`.
+
 ---
 
 ## Commands
@@ -351,6 +366,9 @@ php bin/blokctl app:provision-install -S 290817118944379 --by-slug=my-app
 
 ```bash
 php bin/blokctl user:me
+
+# With a specific region
+php bin/blokctl user:me -R US
 ```
 
 Shows details about the currently authenticated user (ID, name, email, timezone, login strategy, and more).
