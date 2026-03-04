@@ -1,5 +1,13 @@
 # blokctl
 
+> **0.x — Early testing phase**
+>
+> This package is currently at version **0.x**, which means it is under active development and testing. APIs and commands may change without notice.
+>
+> If you'd like to participate in testing, feel free to use it and share your feedback, bug reports, and feature requests via [GitHub Issues](https://github.com/hi-folks/blokctl/issues).
+>
+> **Important:** Since this is a testing phase, please use a **test user** with a **test Personal Access Token** that only has access to a **test space**. Do not use your production credentials or spaces.
+
 **Your Storyblok space, under your control.**
 
 An opinionated, unofficial CLI tool for managing [Storyblok](https://www.storyblok.com/) spaces, built with PHP. Configure spaces, shape components, manage stories, set preview URLs, install apps, assign workflows and tags — all from the command line.
