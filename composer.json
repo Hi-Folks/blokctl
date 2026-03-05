@@ -39,7 +39,9 @@
     "test-code-ci": "vendor/bin/phpunit --cache-directory ./tmp",
     "refactor-check-code": "vendor/bin/rector --dry-run",
     "test-coverage": "vendor/bin/phpunit --coverage-html .build/html",
+    "lint-code": "find src tests -type f -name '*.php' -print0 | xargs -0 -P 4 -n1 php -l",
     "all-checks": [
+      "@lint-code",
       "@style-check-code",
       "@static-code",
       "@refactor-check-code",
