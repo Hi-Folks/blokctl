@@ -12,9 +12,9 @@
 
 An opinionated, unofficial CLI tool for managing [Storyblok](https://www.storyblok.com/) spaces, built with PHP. Configure spaces, shape components, manage stories, set preview URLs, install apps, assign workflows and tags — all from the command line.
 
-## How is blokctl different from the Storyblok CLI?
+## How is `blokctl` different from the Official Storyblok CLI?
 
-The official [Storyblok CLI](https://www.storyblok.com/docs/Tooling/storyblok-cli) scaffolds Storyblok projects and facilitates Management API requests, such as pushing and pulling content and schemas.
+The official [Storyblok CLI](https://www.storyblok.com/docs/libraries/storyblok-cli) scaffolds Storyblok projects and facilitates Management API requests, such as pushing and pulling content and schemas.
 
 **blokctl** is a different kind of tool. It focuses on **crafting and auto-setup**: fine-tuning and adapting your Storyblok space programmatically. Use it to configure preview URLs, install apps, assign workflow stages, manage tags, add component fields, and orchestrate demo setups — all from the command line or from your own PHP code.
 
@@ -25,9 +25,19 @@ The official [Storyblok CLI](https://www.storyblok.com/docs/Tooling/storyblok-cl
 
 ## Installation
 
+To install the `blokctl` as a project you can run:
+
+```bash
+composer create-project hi-folks/blokctl
+# enter into the new directory created
+cd blokctl
+```
+
+If you want to use the `blokctl` functions and functionalities in your PHP project (Laravel or Symfony also) you can install it as package:
 ```bash
 composer require hi-folks/blokctl
 ```
+
 
 ## Setup
 
