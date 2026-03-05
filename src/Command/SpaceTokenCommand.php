@@ -17,6 +17,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 )]
 class SpaceTokenCommand extends AbstractCommand
 {
+    #[\Override]
     protected function configure(): void
     {
         parent::configure();
