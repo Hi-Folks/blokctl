@@ -12,6 +12,12 @@
 
 An opinionated, unofficial CLI tool for managing [Storyblok](https://www.storyblok.com/) spaces, built with PHP. Configure spaces, shape components, manage stories, set preview URLs, install apps, assign workflows and tags — all from the command line.
 
+## How is blokctl different from the Storyblok CLI?
+
+The official [Storyblok CLI](https://www.storyblok.com/docs/Tooling/storyblok-cli) scaffolds Storyblok projects and facilitates Management API requests, such as pushing and pulling content and schemas.
+
+**blokctl** is a different kind of tool. It focuses on **crafting and auto-setup**: fine-tuning and adapting your Storyblok space programmatically. Use it to configure preview URLs, install apps, assign workflow stages, manage tags, add component fields, and orchestrate demo setups — all from the command line or from your own PHP code.
+
 ## Requirements
 
 - PHP 8.2 or higher
