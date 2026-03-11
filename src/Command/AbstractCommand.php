@@ -19,6 +19,8 @@ abstract class AbstractCommand extends Command
 
     protected string $spaceId;
 
+    protected string $region = 'EU';
+
     protected function configure(): void
     {
         $this->addOption(
@@ -58,6 +60,7 @@ abstract class AbstractCommand extends Command
             }
         }
 
+        $this->region = $region->value;
         $this->client = new ManagementApiClient(
             $token,
             region: $region,

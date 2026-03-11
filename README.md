@@ -317,6 +317,23 @@ php bin/blokctl components:list -S 290817118944379 --in-group=<group-uuid>
 | `--root-only` | Only show root components (content types) |
 | `--in-group` | Filter by component group UUID |
 
+#### `components:usage` — Analyze component usage across stories
+
+```bash
+# Analyze all stories
+php bin/blokctl components:usage -S 290817118944379
+
+# Only stories under a slug prefix
+php bin/blokctl components:usage -S 290817118944379 --starts-with=articles/
+```
+
+| Option | Short | Description |
+|---|---|---|
+| `--starts-with` | `-s` | Filter by slug prefix (e.g. `articles/`) |
+| `--per-page` | | Results per page for API pagination (default: `25`, max: `100`) |
+
+Fetches all stories via the Content Delivery API, recursively walks each story's content tree, and reports how many stories each component appears in and how many total times it is used. Results are sorted by total occurrences (descending).
+
 #### `component:field-add` — Add a field to a component
 
 ```bash
@@ -628,6 +645,23 @@ $result = (new ComponentsListAction($client))->execute(
 
 $result->components; // Components collection
 $result->count();    // int
+```
+
+#### Analyze component usage
+
+```php
+use Blokctl\Action\Component\ComponentsUsageAction;
+
+$result = (new ComponentsUsageAction($client))->execute(
+    spaceId: $spaceId,
+    region: 'EU',
+    startsWith: 'articles/',
+    perPage: 25,
+);
+
+$result->usage;           // array<string, array{stories: int, total: int}>
+$result->storiesAnalyzed; // int
+$result->count();         // int (number of distinct components found)
 ```
 
 #### Add a field to a component

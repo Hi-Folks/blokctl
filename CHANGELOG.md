@@ -2,6 +2,13 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
+## 0.2.0 - 2026-03-11
+
+### Added
+
+- `components:usage` - Analyze component usage across all stories (shows how many stories each component appears in and total occurrences)
+- New dependency: `storyblok/php-content-api-client` for Content Delivery API access (stories list with full content)
+
 ## 0.1.0 - 2026-03-05
 
 Initial release of `blokctl`, a CLI tool for managing Storyblok spaces.
