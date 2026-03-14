@@ -1,0 +1,28 @@
+{
+    "stories": [
+        {
+            "name": "Archived Authors",
+            "created_at": "2024-02-08T16:26:24.425Z",
+            "published_at": null,
+            "id": 789012,
+            "uuid": "folder-uuid-0001",
+            "slug": "archived-authors",
+            "full_slug": "archived/authors",
+            "sort_by_date": null,
+            "position": 0,
+            "tag_list": [],
+            "is_startpage": false,
+            "is_folder": true,
+            "parent_id": 789000,
+            "meta_data": null,
+            "group_id": null,
+            "first_published_at": null,
+            "release_id": null,
+            "lang": "default",
+            "path": null,
+            "alternates": [],
+            "default_full_slug": "archived/authors",
+            "translated_slugs": []
+        }
+    ]
+}

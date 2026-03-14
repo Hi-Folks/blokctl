@@ -1,0 +1,27 @@
+{
+    "stories": [
+        {
+            "name": "My third post",
+            "created_at": "2024-02-08T16:26:24.425Z",
+            "published_at": "2024-02-08T16:27:05.705Z",
+            "id": 440448565,
+            "uuid": "e656e146-f4ed-44a2-8017-013e5a9d9395",
+            "slug": "my-third-post",
+            "full_slug": "posts/my-third-post",
+            "sort_by_date": null,
+            "position": 0,
+            "tag_list": [],
+            "is_startpage": false,
+            "parent_id": 440448337,
+            "meta_data": null,
+            "group_id": "b913a671-f1e9-436a-bc5d-2795d2740198",
+            "first_published_at": "2024-02-08T16:27:05.705Z",
+            "release_id": null,
+            "lang": "default",
+            "path": null,
+            "alternates": [],
+            "default_full_slug": "posts/my-third-post",
+            "translated_slugs": []
+        }
+    ]
+}

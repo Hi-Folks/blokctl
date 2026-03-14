@@ -282,6 +282,46 @@ php bin/blokctl story:move -S 290817118944379
 | `--to-folder-slug` | Target folder slug (e.g. `archived/authors`) |
 | `--to-folder-id` | Target folder numeric ID (use `0` to move to root) |
 
+#### `story:workflow-change` — Change the workflow stage of a story
+
+```bash
+# By stage name (uses default workflow)
+php bin/blokctl story:workflow-change -S 290817118944379 --by-slug=articles/my-post --stage=Review
+
+# By stage ID
+php bin/blokctl story:workflow-change -S 290817118944379 --by-id=123456 --stage-id=67890
+
+# Specify a non-default workflow by name
+php bin/blokctl story:workflow-change -S 290817118944379 --by-slug=articles/my-post --stage=Review --workflow-name="Custom Workflow"
+
+# Specify a non-default workflow by ID
+php bin/blokctl story:workflow-change -S 290817118944379 --by-slug=articles/my-post --stage=Review --workflow-id=99999
+
+# Interactive: prompts for story and stage
+php bin/blokctl story:workflow-change -S 290817118944379
+```
+
+**Story lookup options** (mutually exclusive — prompted interactively if omitted):
+
+| Option | Description |
+|---|---|
+| `--by-slug` | Find story by full slug (e.g. `articles/my-post`) |
+| `--by-id` | Find story by numeric ID |
+
+**Stage options** (mutually exclusive — prompted interactively if omitted):
+
+| Option | Description |
+|---|---|
+| `--stage` | Workflow stage name to assign (case-insensitive match) |
+| `--stage-id` | Workflow stage numeric ID to assign |
+
+**Workflow options** (optional, mutually exclusive — uses default workflow if omitted):
+
+| Option | Description |
+|---|---|
+| `--workflow-name` | Workflow name |
+| `--workflow-id` | Workflow numeric ID |
+
 #### `stories:tags-assign` — Assign tags to stories
 
 ```bash
@@ -646,6 +686,37 @@ $result->story;              // Story object (updated)
 $result->previousFolderId;   // int
 $result->newFolderId;        // int
 $result->previousFullSlug;   // string (full slug before the move)
+```
+
+#### Change the workflow stage of a story
+
+```php
+use Blokctl\Action\Story\StoryWorkflowChangeAction;
+
+$action = new StoryWorkflowChangeAction($client);
+
+// Resolve stage by name (uses default workflow)
+$resolved = $action->resolveWorkflowStage($spaceId, stageName: 'Review');
+$stageId = $resolved['stageId'];
+$stageName = $resolved['stageName'];
+
+// Resolve stage from a specific workflow by name
+$resolved = $action->resolveWorkflowStage($spaceId, stageName: 'Review', workflowName: 'Custom Workflow');
+
+// List available stages for interactive selection (no stage name)
+$resolved = $action->resolveWorkflowStage($spaceId);
+$resolved['workflowStages']; // array [id => name]
+
+// Change workflow stage by story slug
+$result = $action->execute($spaceId, $stageId, $stageName, storySlug: 'articles/my-post');
+
+// Change workflow stage by story ID
+$result = $action->execute($spaceId, $stageId, $stageName, storyId: '123456');
+
+$result->story;                   // Story object
+$result->workflowStageName;      // string
+$result->workflowStageId;        // int
+$result->previousWorkflowStageId; // int|null
 ```
 
 #### Assign tags to stories
