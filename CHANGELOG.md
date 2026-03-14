@@ -2,11 +2,13 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
+## 0.2.1 - 2026-03-14
+
+-  Adding`story:move` — Move a story to a different folder
+
 ## 0.2.0 - 2026-03-11
 
-### Added
-
-- `components:usage` - Analyze component usage across all stories (shows how many stories each component appears in and total occurrences)
+- Adding `components:usage` - Analyze component usage across all stories (shows how many stories each component appears in and total occurrences)
 - New dependency: `storyblok/php-content-api-client` for Content Delivery API access (stories list with full content)
 
 ## 0.1.0 - 2026-03-05

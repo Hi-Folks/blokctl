@@ -252,6 +252,36 @@ php bin/blokctl story:show -S 290817118944379 --by-slug=about --only-story
 |---|---|
 | `--only-story` | Output only the `story` property instead of the full API response |
 
+#### `story:move` — Move a story to a different folder
+
+```bash
+# Move by slugs
+php bin/blokctl story:move -S 290817118944379 --by-slug=authors/john-doe --to-folder-slug=archived/authors
+
+# Move by IDs
+php bin/blokctl story:move -S 290817118944379 --by-id=123456 --to-folder-id=789012
+
+# Move to root (no folder)
+php bin/blokctl story:move -S 290817118944379 --by-slug=authors/john-doe --to-folder-id=0
+
+# Interactive: prompts for story and folder
+php bin/blokctl story:move -S 290817118944379
+```
+
+**Story lookup options** (mutually exclusive — prompted interactively if omitted):
+
+| Option | Description |
+|---|---|
+| `--by-slug` | Find story by full slug (e.g. `authors/john-doe`) |
+| `--by-id` | Find story by numeric ID |
+
+**Target folder options** (mutually exclusive — prompted interactively if omitted):
+
+| Option | Description |
+|---|---|
+| `--to-folder-slug` | Target folder slug (e.g. `archived/authors`) |
+| `--to-folder-id` | Target folder numeric ID (use `0` to move to root) |
+
 #### `stories:tags-assign` — Assign tags to stories
 
 ```bash
@@ -591,6 +621,31 @@ $result = (new StoryShowAction($client))->execute($spaceId, uuid: 'abc-def-123')
 
 $result->story;        // Story object
 $result->fullResponse; // array (full API response)
+```
+
+#### Move a story to a different folder
+
+```php
+use Blokctl\Action\Story\StoryMoveAction;
+
+$action = new StoryMoveAction($client);
+
+// Resolve folder by slug
+$folderId = $action->resolveFolderBySlug($spaceId, 'archived/authors');
+
+// Move by story slug
+$result = $action->execute($spaceId, folderId: $folderId, storySlug: 'authors/john-doe');
+
+// Move by story ID
+$result = $action->execute($spaceId, folderId: $folderId, storyId: '123456');
+
+// Move to root (no folder)
+$result = $action->execute($spaceId, folderId: 0, storySlug: 'authors/john-doe');
+
+$result->story;              // Story object (updated)
+$result->previousFolderId;   // int
+$result->newFolderId;        // int
+$result->previousFullSlug;   // string (full slug before the move)
 ```
 
 #### Assign tags to stories

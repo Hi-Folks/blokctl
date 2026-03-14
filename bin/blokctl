@@ -19,6 +19,7 @@ use Blokctl\Command\ComponentsUsageCommand;
 use Blokctl\Command\StoriesListCommand;
 use Blokctl\Command\StoriesTagsAssignCommand;
 use Blokctl\Command\SpaceTokenCommand;
+use Blokctl\Command\StoryMoveCommand;
 use Blokctl\Command\StoryShowCommand;
 use Blokctl\Command\UserMeCommand;
 use Symfony\Component\Console\Application;
@@ -44,6 +45,7 @@ $application->add(new ComponentsListCommand());
 $application->add(new ComponentsUsageCommand());
 $application->add(new StoriesListCommand());
 $application->add(new StoriesTagsAssignCommand());
+$application->add(new StoryMoveCommand());
 $application->add(new StoryShowCommand());
 $application->add(new UserMeCommand());
 
