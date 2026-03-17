@@ -219,6 +219,83 @@ php bin/blokctl folder:create -S 290817118944379
 
 ### Stories
 
+#### `story:create` — Create a story with content from JSON
+
+```bash
+# Create from a JSON file
+php bin/blokctl story:create -S 290817118944379 'My Article' --content-file=content.json
+
+# Create with inline JSON
+php bin/blokctl story:create -S 290817118944379 'My Article' \
+  --content='{"component": "page", "title": "Hello World", "body": "Some text"}'
+
+# With custom slug
+php bin/blokctl story:create -S 290817118944379 'My Article' \
+  --slug=my-custom-slug --content='{"component": "page"}'
+
+# Inside a folder (by slug or ID)
+php bin/blokctl story:create -S 290817118944379 'My Article' \
+  --content='{"component": "article"}' --parent-slug=articles
+php bin/blokctl story:create -S 290817118944379 'My Article' \
+  --content='{"component": "article"}' --parent-id=123456
+
+# Publish immediately
+php bin/blokctl story:create -S 290817118944379 'My Article' \
+  --content='{"component": "page"}' --publish
+
+# Interactive: prompts for name and content
+php bin/blokctl story:create -S 290817118944379
+```
+
+| Type | Name | Description |
+|---|---|---|
+| Argument | `name` | Story name (prompted interactively if omitted) |
+
+**Content options** (mutually exclusive — prompted interactively if omitted):
+
+| Option | Description |
+|---|---|
+| `--content-file` | Path to a JSON file with content fields |
+| `--content` | Inline JSON string with content fields |
+
+The JSON must include a `"component"` key specifying the content type. All other keys are content fields. The same simplified format used by `story:update` is supported:
+
+```json
+{
+  "component": "default-page",
+  "headline": "About Us",
+  "subheadline": "Learn more about our company",
+  "cover_image": { "_asset": "https://example.com/hero.jpg" },
+  "cta_link": { "_slug": "contact" },
+  "body": [
+    {
+      "component": "hero_section",
+      "title": "Welcome",
+      "background": { "_asset": "/path/to/local-image.jpg" }
+    },
+    {
+      "component": "banner",
+      "text": "Check out our products",
+      "link": { "_slug": "products" }
+    }
+  ]
+}
+```
+
+Conventions:
+- **`{ "_asset": "..." }`** — asset field (URL is downloaded and uploaded to Storyblok; local file is uploaded directly)
+- **`{ "_slug": "..." }`** — multilink field pointing to a story (resolved by slug, stores the story UUID)
+- **Arrays of objects with `"component"`** — bloks (nested components, `_uid` auto-generated)
+
+**Optional:**
+
+| Option | Description |
+|---|---|
+| `--slug` | Story slug (auto-generated from name if omitted) |
+| `--parent-slug` | Parent folder slug |
+| `--parent-id` | Parent folder numeric ID (default: `0` for root) |
+| `--publish` | Publish the story immediately after creation |
+
 #### `stories:list` — List stories with filters
 
 ```bash
@@ -250,6 +327,136 @@ php bin/blokctl stories:list -S 290817118944379 --published-only --page=2 --per-
 | `--published-only` | | Only show published stories |
 | `--page` | `-p` | Page number (default: `1`) |
 | `--per-page` | | Results per page (default: `25`, max: `100`) |
+
+#### `story:update` — Update a story's content from simplified JSON
+
+```bash
+# Update from a JSON file
+php bin/blokctl story:update -S 290817118944379 --by-slug=articles/my-article \
+  --content-file=content.json
+
+# Update with inline JSON
+php bin/blokctl story:update -S 290817118944379 --by-slug=home \
+  --content='{"headline": "Welcome", "featured": true}'
+
+# Update and publish
+php bin/blokctl story:update -S 290817118944379 --by-id=123456 \
+  --content-file=content.json --publish
+```
+
+The content JSON uses a simplified format with these conventions:
+
+- **`{ "_asset": "..." }`** — asset field (URL is downloaded and uploaded to Storyblok; local file is uploaded directly)
+- **`{ "_slug": "..." }`** — multilink field pointing to a story (resolved by slug, stores the story UUID)
+- **Arrays of objects with `"component"`** — bloks (nested components, `_uid` auto-generated)
+
+Everything else passes through as-is. The resolver walks the tree recursively.
+
+**Example content file:**
+
+```json
+{
+  "headline": "My Article",
+  "cover_image": { "_asset": "https://example.com/photo.jpg" },
+  "body": [
+    {
+      "component": "hero_section",
+      "title": "Welcome",
+      "background": { "_asset": "/path/to/local-image.jpg" }
+    },
+    {
+      "component": "text_block",
+      "content": "Hello world"
+    }
+  ],
+  "cta_link": { "_slug": "contact" },
+  "sidebar": [
+    {
+      "component": "related_articles",
+      "items": [
+        { "component": "link_card", "title": "Other Post", "link": { "_slug": "articles/other" } }
+      ]
+    }
+  ]
+}
+```
+
+Only the fields you specify are updated — the existing content type and other fields are preserved. Inside arrays, objects with `"component"` are treated as nested bloks.
+```
+
+**Story lookup options** (mutually exclusive):
+
+| Option | Description |
+|---|---|
+| `--by-slug` | Find story by full slug |
+| `--by-id` | Find story by numeric ID |
+
+**Content options** (mutually exclusive):
+
+| Option | Description |
+|---|---|
+| `--content-file` | Path to a JSON file |
+| `--content` | Inline JSON string |
+
+**Optional:**
+
+| Option | Description |
+|---|---|
+| `--publish` | Publish the story after updating |
+
+Only the fields you specify are updated — existing content fields not in the JSON are preserved.
+
+#### `story:field-set` — Set a content field value on a story
+
+```bash
+# Set a text field by story slug (default type: text)
+php bin/blokctl story:field-set -S 290817118944379 headline 'My new headline' \
+  --by-slug=articles/my-article
+
+# Set a field by story ID
+php bin/blokctl story:field-set -S 290817118944379 title 'Updated title' --by-id=123456
+
+# Set a complex value (JSON object, array, number, boolean)
+php bin/blokctl story:field-set -S 290817118944379 tags '["news", "featured"]' \
+  --by-slug=articles/my-article --type=json
+
+php bin/blokctl story:field-set -S 290817118944379 featured 'true' \
+  --by-slug=home --type=json
+
+# Set an image field from a URL
+php bin/blokctl story:field-set -S 290817118944379 image 'https://example.com/photo.jpg' \
+  --by-slug=articles/my-article --type=asset
+
+# Set an image field from a local file (uploads to Storyblok)
+php bin/blokctl story:field-set -S 290817118944379 image '/path/to/photo.jpg' \
+  --by-slug=articles/my-article --type=asset
+
+# Interactive: prompts for story slug, field name, and value
+php bin/blokctl story:field-set -S 290817118944379
+```
+
+| Type | Name | Description |
+|---|---|---|
+| Argument | `field` | Field name (e.g. `headline`, `body`, `image`). Prompted if omitted |
+| Argument | `value` | Field value. Prompted if omitted |
+
+**Story lookup options** (mutually exclusive — prompted interactively if omitted):
+
+| Option | Description |
+|---|---|
+| `--by-slug` | Find story by full slug (e.g. `articles/my-article`) |
+| `--by-id` | Find story by numeric ID |
+
+**Optional:**
+
+| Option | Description |
+|---|---|
+| `--type` | Value type: `text` (default), `json`, or `asset` |
+
+Value types:
+- **`text`** (default) — sets the value as a plain string
+- **`json`** — parses the value as JSON (for objects, arrays, numbers, booleans)
+- **`asset`** — treats the value as an image: a URL is downloaded and uploaded to Storyblok; a local file path is uploaded directly
 
 #### `story:show` — Display a story as JSON
 
@@ -722,6 +929,38 @@ $result->parentId;  // int (0 for root)
 
 ### Stories
 
+#### Create a story with content
+
+```php
+use Blokctl\Action\Story\StoryCreateAction;
+
+$action = new StoryCreateAction($client);
+
+// Create from a content array (must include "component")
+$result = $action->execute($spaceId, 'My Article', [
+    'component' => 'article',
+    'title' => 'Hello World',
+    'body' => 'Some text',
+]);
+
+// With custom slug, in a folder, and published
+$result = $action->execute($spaceId, 'My Article', [
+    'component' => 'page',
+], slug: 'custom-slug', parentId: 123456, publish: true);
+
+// Parse content from a JSON file
+$content = $action->parseJsonFile('/path/to/content.json');
+$result = $action->execute($spaceId, 'My Article', $content);
+
+// Parse inline JSON
+$content = $action->parseJson('{"component": "page", "title": "Hello"}');
+
+// Resolve parent folder by slug
+$parentId = $action->resolveParentBySlug($spaceId, 'articles');
+
+$result->story; // Story object (the created story)
+```
+
 #### List stories with filters
 
 ```php
@@ -740,6 +979,80 @@ $result = (new StoriesListAction($client))->execute(
 
 $result->stories; // Stories collection
 $result->count(); // int
+```
+
+#### Update a story's content from simplified JSON
+
+```php
+use Blokctl\Action\Story\StoryUpdateAction;
+
+$action = new StoryUpdateAction($client);
+
+// Update with plain fields
+$result = $action->execute($spaceId, [
+    'headline' => 'Updated headline',
+    'featured' => true,
+], storySlug: 'articles/my-article');
+
+// With assets, bloks, and publish
+$result = $action->execute($spaceId, [
+    'cover_image' => ['_asset' => 'https://example.com/photo.jpg'],
+    'body' => [
+        ['component' => 'hero_section', 'title' => 'Welcome'],
+        ['component' => 'text_block', 'content' => 'Hello'],
+    ],
+], storySlug: 'home', publish: true);
+
+// Parse from file
+$content = $action->parseJsonFile('/path/to/content.json');
+$result = $action->execute($spaceId, $content, storyId: '123456');
+
+$result->story;          // Story object (updated)
+$result->appliedContent; // array (resolved content that was applied)
+```
+
+The `ContentResolver` class can also be used standalone:
+
+```php
+use Blokctl\Action\Story\ContentResolver;
+
+$resolver = new ContentResolver($client, $spaceId);
+$resolved = $resolver->resolve($simplifiedContent);
+// $resolved now has _asset markers converted to asset fields,
+// bloks with _uid generated, all nested recursively
+```
+
+#### Set a content field value on a story
+
+```php
+use Blokctl\Action\Story\StoryFieldSetAction;
+
+$action = new StoryFieldSetAction($client);
+
+// By slug
+$result = $action->execute($spaceId, 'headline', 'My new headline', storySlug: 'articles/my-article');
+
+// By ID
+$result = $action->execute($spaceId, 'title', 'Updated title', storyId: '123456');
+
+// Complex values (arrays, booleans, etc.)
+$result = $action->execute($spaceId, 'tags', ['news', 'featured'], storySlug: 'home');
+
+// Asset field from URL
+$result = $action->execute($spaceId, 'image', 'https://example.com/photo.jpg',
+    storySlug: 'articles/my-article', isAsset: true);
+
+// Asset field from local file (uploads to Storyblok, then uses setAsset())
+$result = $action->execute($spaceId, 'image', '/path/to/photo.jpg',
+    storySlug: 'articles/my-article', isAsset: true);
+
+// Upload an asset separately (for custom logic)
+$asset = $action->uploadAsset($spaceId, '/path/to/photo.jpg'); // returns Asset object
+
+$result->story;         // Story object (updated)
+$result->fieldName;     // string
+$result->newValue;      // mixed (for assets: the Storyblok CDN URL)
+$result->previousValue; // mixed (null if field didn't exist before)
 ```
 
 #### Show a story

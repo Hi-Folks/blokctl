@@ -1,0 +1,28 @@
+{
+  "component": "default-page",
+  "meta_title": "About Us",
+  "meta_description": "Learn more about our company",
+  "body": [
+    {
+      "component": "hero",
+      "headline": "Welcome to Our Company",
+      "subheadline": "Building the future, one step at a time",
+      "image": {
+        "_asset": "https://images.unsplash.com/photo-1497366216548-37526070297c"
+      }
+    },
+    {
+      "component": "banner",
+      "lead": "Check out our latest products!",
+      "buttons": [
+        {
+          "link": {
+            "_slug": "home"
+          },
+          "label": "Browse Products",
+          "component": "button"
+        }
+      ]
+    }
+  ]
+}
