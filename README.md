@@ -363,6 +363,16 @@ php bin/blokctl stories:workflow-assign -S 290817118944379 --workflow-stage-id=1
 
 Finds all stories without a workflow stage and assigns the selected stage to them.
 
+### Workflows
+
+#### `workflows:list` — List workflows and their stages
+
+```bash
+php bin/blokctl workflows:list -S 290817118944379
+```
+
+Lists all workflows configured in the space, along with their stages and IDs. Useful for looking up stage IDs by name (e.g. before using `story:workflow-change --stage-id=...`).
+
 ### Components
 
 #### `components:list` — List components with filters
@@ -752,6 +762,25 @@ if ($result->countWithoutStage > 0) {
     $executeResult = $action->execute($spaceId, $result, $stageId);
     $executeResult['assigned']; // array of ['name' => ..., 'stageId' => ...]
     $executeResult['errors'];   // string[]
+}
+```
+
+### Workflows
+
+#### List workflows and stages
+
+```php
+use Blokctl\Action\Workflow\WorkflowsListAction;
+
+$result = (new WorkflowsListAction($client))->execute($spaceId);
+
+$result->workflows; // array of ['id' => int, 'name' => string, 'isDefault' => bool, 'stages' => [...]]
+$result->count();   // int
+
+foreach ($result->workflows as $workflow) {
+    foreach ($workflow['stages'] as $stage) {
+        // $stage['id'], $stage['name'], $stage['position']
+    }
 }
 ```
 

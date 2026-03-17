@@ -23,6 +23,7 @@ use Blokctl\Command\StoryMoveCommand;
 use Blokctl\Command\StoryShowCommand;
 use Blokctl\Command\StoryWorkflowChangeCommand;
 use Blokctl\Command\UserMeCommand;
+use Blokctl\Command\WorkflowsListCommand;
 use Symfony\Component\Console\Application;
 
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
@@ -50,5 +51,6 @@ $application->add(new StoryMoveCommand());
 $application->add(new StoryShowCommand());
 $application->add(new StoryWorkflowChangeCommand());
 $application->add(new UserMeCommand());
+$application->add(new WorkflowsListCommand());
 
 $application->run();

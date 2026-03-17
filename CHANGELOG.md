@@ -3,8 +3,9 @@
 All notable changes to `blokctl` will be documented in this file.
 
 ## 0.2.2 - WIP
+- Adding `workflows:list`: List workflows and their stages (lookup stage IDs by name)
 - Adding `story:workflow-change`: Change the workflow stage of a story
-- 
+
 ## 0.2.1 - 2026-03-14
 -  Adding`story:move` — Move a story to a different folder
 
