@@ -3,6 +3,7 @@
 All notable changes to `blokctl` will be documented in this file.
 
 ## 0.2.2 - WIP
+- Adding `workflow:stage-show`: Show details of a workflow stage by name or ID
 - Adding `workflows:list`: List workflows and their stages (lookup stage IDs by name)
 - Adding `story:workflow-change`: Change the workflow stage of a story
 

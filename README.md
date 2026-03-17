@@ -373,6 +373,41 @@ php bin/blokctl workflows:list -S 290817118944379
 
 Lists all workflows configured in the space, along with their stages and IDs. Useful for looking up stage IDs by name (e.g. before using `story:workflow-change --stage-id=...`).
 
+#### `workflow:stage-show` — Show details of a workflow stage
+
+```bash
+# By name (case-insensitive)
+php bin/blokctl workflow:stage-show -S 290817118944379 --by-name=Review
+
+# By ID
+php bin/blokctl workflow:stage-show -S 290817118944379 --by-id=653554
+
+# Specify a non-default workflow by name
+php bin/blokctl workflow:stage-show -S 290817118944379 --by-name=Drafting --workflow-name="Article"
+
+# Specify a non-default workflow by ID
+php bin/blokctl workflow:stage-show -S 290817118944379 --by-name=Drafting --workflow-id=12345
+
+# Interactive: prompts for lookup method
+php bin/blokctl workflow:stage-show -S 290817118944379
+```
+
+**Lookup options** (mutually exclusive — prompted interactively if omitted):
+
+| Option | Description |
+|---|---|
+| `--by-name` | Find stage by name (case-insensitive). Searches the default workflow unless `--workflow-name` or `--workflow-id` is given |
+| `--by-id` | Find stage by numeric ID. Searches across all workflows unless scoped |
+
+**Workflow options** (optional, mutually exclusive — uses default workflow for name lookup if omitted):
+
+| Option | Description |
+|---|---|
+| `--workflow-name` | Workflow name (case-insensitive match) |
+| `--workflow-id` | Workflow numeric ID |
+
+Displays stage details: name, ID, workflow, position, color, publish permissions, user access, and allowed next stages.
+
 ### Components
 
 #### `components:list` — List components with filters
@@ -782,6 +817,28 @@ foreach ($result->workflows as $workflow) {
         // $stage['id'], $stage['name'], $stage['position']
     }
 }
+```
+
+#### Show a workflow stage
+
+```php
+use Blokctl\Action\Workflow\WorkflowStageShowAction;
+
+$action = new WorkflowStageShowAction($client);
+
+// By ID
+$result = $action->execute($spaceId, stageId: 653554);
+
+// By name (case-insensitive, searches default workflow)
+$result = $action->execute($spaceId, stageName: 'Review');
+
+// By name in a specific workflow (by name or ID)
+$result = $action->execute($spaceId, stageName: 'Drafting', workflowName: 'Article');
+$result = $action->execute($spaceId, stageName: 'Drafting', workflowId: '12345');
+
+$result->stage;        // array (full stage data: id, name, color, position, permissions, ...)
+$result->workflowName; // string
+$result->workflowId;   // int
 ```
 
 ### Components
