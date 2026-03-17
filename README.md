@@ -188,6 +188,35 @@ php bin/blokctl space:preview-add -S 290817118944379 'Staging' 'https://staging.
 | Argument | `name` | **(required)** Environment name (e.g. `Staging`, `Local Development`) |
 | Argument | `url` | **(required)** Environment URL |
 
+### Folders
+
+#### `folder:create` — Create a folder
+
+```bash
+# Create a folder at root
+php bin/blokctl folder:create -S 290817118944379 'Archive'
+
+# Create a folder inside a parent folder (by slug)
+php bin/blokctl folder:create -S 290817118944379 'Old Posts' --parent-slug=articles
+
+# Create a folder inside a parent folder (by ID)
+php bin/blokctl folder:create -S 290817118944379 'Old Posts' --parent-id=123456
+
+# Interactive: prompts for folder name
+php bin/blokctl folder:create -S 290817118944379
+```
+
+| Type | Name | Description |
+|---|---|---|
+| Argument | `name` | Folder name (prompted interactively if omitted) |
+
+**Parent folder options** (optional, mutually exclusive — defaults to root):
+
+| Option | Description |
+|---|---|
+| `--parent-slug` | Parent folder slug (e.g. `articles`, `articles/archive`) |
+| `--parent-id` | Parent folder numeric ID (default: `0` for root) |
+
 ### Stories
 
 #### `stories:list` — List stories with filters
@@ -666,6 +695,29 @@ $action = new SpacePreviewAddAction($client);
 $result = $action->preflight($spaceId);
 
 $action->execute($spaceId, $result, 'Staging', 'https://staging.example.com/?path=');
+```
+
+### Folders
+
+#### Create a folder
+
+```php
+use Blokctl\Action\Folder\FolderCreateAction;
+
+$action = new FolderCreateAction($client);
+
+// Create at root
+$result = $action->execute($spaceId, 'Archive');
+
+// Create inside a parent folder (by ID)
+$result = $action->execute($spaceId, 'Old Posts', parentId: 123456);
+
+// Resolve parent folder by slug, then create
+$parentId = $action->resolveParentBySlug($spaceId, 'articles');
+$result = $action->execute($spaceId, 'Old Posts', parentId: $parentId);
+
+$result->folder;    // Story object (the created folder)
+$result->parentId;  // int (0 for root)
 ```
 
 ### Stories

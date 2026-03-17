@@ -10,6 +10,7 @@ use Blokctl\Command\SpacePreviewListCommand;
 use Blokctl\Command\SpacePreviewSetCommand;
 use Blokctl\Command\SpacePreviewAddCommand;
 use Blokctl\Command\SpaceDeleteCommand;
+use Blokctl\Command\FolderCreateCommand;
 use Blokctl\Command\SpaceDemoRemoveCommand;
 use Blokctl\Command\SpacesListCommand;
 use Blokctl\Command\StoriesWorkflowAssignCommand;
@@ -34,6 +35,7 @@ $application = new Application('blokctl', '1.0.0');
 
 $application->add(new AppProvisionInstallCommand());
 $application->add(new AppProvisionListCommand());
+$application->add(new FolderCreateCommand());
 $application->add(new SpaceInfoCommand());
 $application->add(new SpacePreviewListCommand());
 $application->add(new SpacePreviewSetCommand());
