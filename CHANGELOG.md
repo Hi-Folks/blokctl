@@ -2,10 +2,12 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
-## 0.4.0 - WIP
+## 0.4.0 - 2026-03-19
 - Adding `story:update`: Update a story's content from simplified JSON with `_asset` markers, `_slug` link markers, and `component` bloks (recursive resolution)
 - Adding `story:field-set`: Set a content field value on a story by slug or ID, with `--type` option supporting `text`, `json`, and `asset` (local file upload or URL)
 - Adding `story:create`: Create a story with content from JSON (file or inline)
+- Adding `CLAUDE.md` as a lean entry point with skill pointers
+- Adding Claude Code skills: `/blokctl-cli` (CLI reference), `/blokctl-api` (PHP Action API guide), `/blokctl-dev` (contributor guide)
 
 ## 0.3.0 - 2026-03-17
 - Adding `folder:create`: Create a folder (with optional parent folder by slug or ID)
