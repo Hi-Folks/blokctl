@@ -2,6 +2,10 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
+## 0.5.0 - 2026-04-02
+- Adding `assets:unreferenced`: Detect orphaned assets not referenced in any story. Uses the Content Delivery API for story scanning (higher rate limits) and Management API for asset listing (up to 1000/page)
+- Adding `story:versions`: List versions of a story by slug, ID, or UUID, with optional full content output
+
 ## 0.4.0 - 2026-03-19
 - Adding `story:update`: Update a story's content from simplified JSON with `_asset` markers, `_slug` link markers, and `component` bloks (recursive resolution)
 - Adding `story:field-set`: Set a content field value on a story by slug or ID, with `--type` option supporting `text`, `json`, and `asset` (local file upload or URL)

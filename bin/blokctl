@@ -3,6 +3,7 @@
 
 require __DIR__ . '/../vendor/autoload.php';
 
+use Blokctl\Command\AssetsUnreferencedCommand;
 use Blokctl\Command\AppProvisionInstallCommand;
 use Blokctl\Command\AppProvisionListCommand;
 use Blokctl\Command\SpaceInfoCommand;
@@ -25,6 +26,7 @@ use Blokctl\Command\StoryFieldSetCommand;
 use Blokctl\Command\StoryMoveCommand;
 use Blokctl\Command\StoryUpdateCommand;
 use Blokctl\Command\StoryShowCommand;
+use Blokctl\Command\StoryVersionsCommand;
 use Blokctl\Command\StoryWorkflowChangeCommand;
 use Blokctl\Command\UserMeCommand;
 use Blokctl\Command\WorkflowsListCommand;
@@ -36,6 +38,7 @@ $dotenv->safeLoad();
 
 $application = new Application('blokctl', '1.0.0');
 
+$application->add(new AssetsUnreferencedCommand());
 $application->add(new AppProvisionInstallCommand());
 $application->add(new AppProvisionListCommand());
 $application->add(new FolderCreateCommand());
@@ -58,6 +61,7 @@ $application->add(new StoryFieldSetCommand());
 $application->add(new StoryMoveCommand());
 $application->add(new StoryUpdateCommand());
 $application->add(new StoryShowCommand());
+$application->add(new StoryVersionsCommand());
 $application->add(new StoryWorkflowChangeCommand());
 $application->add(new UserMeCommand());
 $application->add(new WorkflowsListCommand());

@@ -558,6 +558,43 @@ php bin/blokctl story:workflow-change -S 290817118944379
 | `--workflow-name` | Workflow name |
 | `--workflow-id` | Workflow numeric ID |
 
+#### `story:versions` — List versions of a story
+
+```bash
+# By slug
+php bin/blokctl story:versions -S 290817118944379 --by-slug=about
+
+# By ID
+php bin/blokctl story:versions -S 290817118944379 --by-id=123456
+
+# By UUID
+php bin/blokctl story:versions -S 290817118944379 --by-uuid=abc-def
+
+# Include full content of each version
+php bin/blokctl story:versions -S 290817118944379 --by-slug=about --show-content
+
+# Interactive: prompts for lookup method
+php bin/blokctl story:versions -S 290817118944379
+```
+
+**Lookup options** (mutually exclusive, prompted if omitted):
+
+| Option | Description |
+|---|---|
+| `--by-slug` | Find story by full slug |
+| `--by-id` | Find story by numeric ID |
+| `--by-uuid` | Find story by UUID |
+
+**Other options:**
+
+| Option | Short | Description |
+|---|---|---|
+| `--show-content` | | Include full content JSON of each version |
+| `--page` | `-p` | Page number (default: 1) |
+| `--per-page` | | Results per page (default: 25, max 100) |
+
+Displays each version's ID, creation date, status, author, and release ID (if any).
+
 #### `stories:tags-assign` — Assign tags to stories
 
 ```bash
@@ -643,6 +680,18 @@ php bin/blokctl workflow:stage-show -S 290817118944379
 | `--workflow-id` | Workflow numeric ID |
 
 Displays stage details: name, ID, workflow, position, color, publish permissions, user access, and allowed next stages.
+
+### Assets
+
+#### `assets:unreferenced` — List assets not referenced in any story
+
+```bash
+php bin/blokctl assets:unreferenced -S 290817118944379
+```
+
+Detects orphaned assets by comparing the full asset list against asset references found in story content. Uses the Content Delivery API (higher rate limits) to scan stories, and the Management API to list assets (up to 1000 per page).
+
+Shows a summary (total, referenced, unreferenced, stories scanned) followed by each unreferenced asset with its ID, content type, and file size.
 
 ### Components
 
@@ -1098,6 +1147,26 @@ $result->newFolderId;        // int
 $result->previousFullSlug;   // string (full slug before the move)
 ```
 
+#### List versions of a story
+
+```php
+use Blokctl\Action\Story\StoryVersionsAction;
+
+$result = (new StoryVersionsAction($client))->execute(
+    spaceId: $spaceId,
+    slug: 'about',           // or id: '123456', or uuid: 'abc-def'
+    showContent: false,
+    page: 1,
+    perPage: 25,
+);
+
+$result->versions; // array<array<string, mixed>> — version entries
+$result->storyId;  // string
+$result->count();  // int
+```
+
+Each version entry contains `id`, `created_at`, `status`, `user` (with `firstname`/`lastname`), and optionally `content` and `release_id`.
+
 #### Change the workflow stage of a story
 
 ```php
@@ -1205,6 +1274,29 @@ $result->stage;        // array (full stage data: id, name, color, position, per
 $result->workflowName; // string
 $result->workflowId;   // int
 ```
+
+### Assets
+
+#### Find unreferenced assets
+
+```php
+use Blokctl\Action\Asset\AssetsUnreferencedAction;
+
+$result = (new AssetsUnreferencedAction($client))->execute(
+    spaceId: $spaceId,
+    region: 'EU',
+    assetsPerPage: 1000,
+    storiesPerPage: 100,
+);
+
+$result->unreferencedAssets; // array<Asset> — assets not found in any story
+$result->totalAssets;        // int
+$result->referencedCount;    // int
+$result->storiesAnalyzed;    // int
+$result->unreferencedCount(); // int
+```
+
+Fetches all assets via the Management API (up to 1000/page), then scans all stories via the Content Delivery API (higher rate limits) for asset references. Returns the set difference.
 
 ### Components
 
