@@ -48,7 +48,7 @@ Every CLI command is backed by a reusable Action class with no CLI dependencies:
 | `Story\StoryVersionsAction` | List story versions | `->versions`, `->storyId`, `->count()` |
 | `Story\StoriesWorkflowAssignAction` | Assign stage to unstaged stories (preflight+execute) | `->countWithoutStage`, `->workflowStages` |
 | `Asset\AssetsListAction` | List/search assets (MAPI only) | `->assets`, `->count()` |
-| `Asset\AssetsUnreferencedAction` | Find unreferenced assets | `->unreferencedAssets`, `->totalAssets`, `->referencedCount`, `->storiesAnalyzed` |
+| `Asset\AssetsUnreferencedAction` | Find unreferenced assets (optional `previewToken`) | `->unreferencedAssets`, `->totalAssets`, `->referencedCount`, `->storiesAnalyzed` |
 | `Workflow\WorkflowsListAction` | List workflows+stages | `->workflows`, `->count()` |
 | `Workflow\WorkflowStageShowAction` | Show stage details | `->stage`, `->workflowName` |
 | `Component\ComponentsListAction` | List/filter components | `->components`, `->count()` |

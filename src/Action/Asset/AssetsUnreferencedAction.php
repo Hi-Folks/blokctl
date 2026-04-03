@@ -25,6 +25,7 @@ final readonly class AssetsUnreferencedAction
     public function execute(
         string $spaceId,
         string $region = 'EU',
+        ?string $previewToken = null,
         int $assetsPerPage = 1000,
         int $storiesPerPage = 100,
     ): AssetsUnreferencedResult {
@@ -62,8 +63,7 @@ final readonly class AssetsUnreferencedAction
         }
 
         // Step 2: Get preview token and set up CDN client
-        $space = (new SpaceApi($this->client))->get($spaceId)->data();
-        $token = $space->firstToken();
+        $token = $previewToken ?? (new SpaceApi($this->client))->get($spaceId)->data()->firstToken();
 
         if ($token === '') {
             throw new \RuntimeException('No preview access token found for this space.');

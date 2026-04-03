@@ -1319,6 +1319,7 @@ use Blokctl\Action\Asset\AssetsUnreferencedAction;
 $result = (new AssetsUnreferencedAction($client))->execute(
     spaceId: $spaceId,
     region: 'EU',
+    previewToken: $token,     // optional — skips SpaceApi call when provided
     assetsPerPage: 1000,
     storiesPerPage: 100,
 );
@@ -1330,7 +1331,7 @@ $result->storiesAnalyzed;    // int
 $result->unreferencedCount(); // int
 ```
 
-Fetches all assets via the Management API (up to 1000/page), then scans all stories via the Content Delivery API (higher rate limits) for asset references. Returns the set difference.
+Fetches all assets via the Management API (up to 1000/page), then scans all stories via the Content Delivery API (higher rate limits) for asset references. Returns the set difference. Pass `previewToken` to skip the SpaceApi lookup (useful for OAuth-only applications).
 
 ### Components
 

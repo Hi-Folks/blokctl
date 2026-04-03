@@ -2,6 +2,9 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
+## 0.6.2 - 2026-04-03
+- `AssetsUnreferencedAction` now accepts an optional `previewToken` parameter, skipping the SpaceApi call when provided (useful for OAuth-only applications)
+
 ## 0.6.1 - 2026-04-03
 - Adding `assets:list`: List assets with optional search filter via Management API
 
