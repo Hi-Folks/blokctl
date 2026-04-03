@@ -2,6 +2,10 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
+## 0.6.0 - 2026-04-03
+- Upgrading `symfony/console` from ^7.0 to ^8.0
+- Upgrading `phpunit/phpunit` from ^12.0 to ^13.0
+
 ## 0.5.0 - 2026-04-02
 - Adding `assets:unreferenced`: Detect orphaned assets not referenced in any story. Uses the Content Delivery API for story scanning (higher rate limits) and Management API for asset listing (up to 1000/page)
 - Adding `story:versions`: List versions of a story by slug, ID, or UUID, with optional full content output

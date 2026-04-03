@@ -1,7 +1,6 @@
 #!/usr/bin/env php
 <?php
-
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . "/../vendor/autoload.php";
 
 use Blokctl\Command\AssetsUnreferencedCommand;
 use Blokctl\Command\AppProvisionInstallCommand;
@@ -33,38 +32,39 @@ use Blokctl\Command\WorkflowsListCommand;
 use Blokctl\Command\WorkflowStageShowCommand;
 use Symfony\Component\Console\Application;
 
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . "/..");
 $dotenv->safeLoad();
 
-$application = new Application('blokctl', '1.0.0');
+$application = new Application("blokctl", "1.0.0-dev");
 
-$application->add(new AssetsUnreferencedCommand());
-$application->add(new AppProvisionInstallCommand());
-$application->add(new AppProvisionListCommand());
-$application->add(new FolderCreateCommand());
-$application->add(new SpaceInfoCommand());
-$application->add(new SpacePreviewListCommand());
-$application->add(new SpacePreviewSetCommand());
-$application->add(new SpacePreviewAddCommand());
-$application->add(new SpaceDeleteCommand());
-$application->add(new SpaceDemoRemoveCommand());
-$application->add(new SpaceTokenCommand());
-$application->add(new SpacesListCommand());
-$application->add(new StoriesWorkflowAssignCommand());
-$application->add(new ComponentFieldAddCommand());
-$application->add(new ComponentsListCommand());
-$application->add(new ComponentsUsageCommand());
-$application->add(new StoriesListCommand());
-$application->add(new StoriesTagsAssignCommand());
-$application->add(new StoryCreateCommand());
-$application->add(new StoryFieldSetCommand());
-$application->add(new StoryMoveCommand());
-$application->add(new StoryUpdateCommand());
-$application->add(new StoryShowCommand());
-$application->add(new StoryVersionsCommand());
-$application->add(new StoryWorkflowChangeCommand());
-$application->add(new UserMeCommand());
-$application->add(new WorkflowsListCommand());
-$application->add(new WorkflowStageShowCommand());
+$application->addCommand(new AssetsUnreferencedCommand());
+$application->addCommand(new AppProvisionInstallCommand());
+$application->addCommand(new AppProvisionListCommand());
+$application->addCommand(new FolderCreateCommand());
+$application->addCommand(new SpaceInfoCommand());
+$application->addCommand(new SpacePreviewListCommand());
+$application->addCommand(new SpacePreviewSetCommand());
+$application->addCommand(new SpacePreviewAddCommand());
+$application->addCommand(new SpaceDeleteCommand());
+$application->addCommand(new SpaceDemoRemoveCommand());
+$application->addCommand(new SpaceTokenCommand());
+$application->addCommand(new SpacesListCommand());
+$application->addCommand(new StoriesWorkflowAssignCommand());
+$application->addCommand(new ComponentFieldAddCommand());
+$application->addCommand(new ComponentsListCommand());
+$application->addCommand(new ComponentsUsageCommand());
+$application->addCommand(new StoriesListCommand());
+$application->addCommand(new StoriesTagsAssignCommand());
+$application->addCommand(new StoryCreateCommand());
+$application->addCommand(new StoryFieldSetCommand());
+$application->addCommand(new StoryMoveCommand());
+$application->addCommand(new StoryUpdateCommand());
+$application->addCommand(new StoryShowCommand());
+$application->addCommand(new StoryVersionsCommand());
+$application->addCommand(new StoryWorkflowChangeCommand());
+$application->addCommand(new UserMeCommand());
+$application->addCommand(new WorkflowsListCommand());
+$application->addCommand(new WorkflowStageShowCommand());
 
 $application->run();
+
