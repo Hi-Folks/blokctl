@@ -44,7 +44,12 @@ Use this skill when the user wants to run blokctl commands to manage a Storyblok
 - **`story:move`** — Move story to a different folder. Lookup: `--by-slug`, `--by-id`. Target: `--to-folder-slug`, `--to-folder-id` (use `0` for root).
 - **`story:workflow-change`** — Change workflow stage. Lookup: `--by-slug`, `--by-id`. Stage: `--stage` (name) or `--stage-id`. Workflow: `--workflow-name`, `--workflow-id`.
 - **`stories:tags-assign`** — Assign tags. Options: `--story-id` (repeatable), `--story-slug` (repeatable), `--tag` (`-t`, repeatable).
+- **`story:versions`** — List versions of a story. Lookup: `--by-slug`, `--by-id`, `--by-uuid`. Options: `--show-content`, `--page` (`-p`), `--per-page`.
 - **`stories:workflow-assign`** — Assign a workflow stage to all stories without one. Option: `--workflow-stage-id`.
+
+### Assets
+
+- **`assets:unreferenced`** — Detect orphaned assets not referenced in any story. Fetches all assets via Management API (1000/page), scans all stories via CDN API (higher rate limits), then diffs.
 
 ### Workflows
 

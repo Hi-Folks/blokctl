@@ -12,7 +12,7 @@ Use this skill when the user wants to add features, fix bugs, or contribute to b
 
 ```
 src/
-├── Action/<Group>/          # Business logic (no CLI deps)
+├── Action/<Group>/          # Business logic (no CLI deps) — Groups: AppProvision, Asset, Component, Folder, Space, SpacePreview, Story, User, Workflow
 │   ├── <Name>Action.php     # Action class
 │   └── <Name>Result.php     # Result DTO
 ├── Command/
@@ -183,7 +183,7 @@ composer all-checks       # All of the above + lint
 | `src/Command/AbstractCommand.php` | Base command: client init, `--space-id`/`--region` options, `setup()` method |
 | `src/Render.php` | Terminal output: `title()`, `labelValue()`, `labelValueCondition()`, `titleSection()`, `log()`, `error()` |
 | `tests/TestCase.php` | Test base: `mockResponse()`, `createMockClient()` |
-| `bin/blokctl` | Entry point: registers all 25 commands |
+| `bin/blokctl` | Entry point: registers all commands |
 
 ## Render helpers
 

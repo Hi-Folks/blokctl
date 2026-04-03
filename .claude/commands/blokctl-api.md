@@ -45,7 +45,9 @@ Every CLI command is backed by a reusable Action class with no CLI dependencies:
 | `Story\StoryMoveAction` | Move story to folder | `->story`, `->previousFolderId`, `->newFolderId` |
 | `Story\StoryWorkflowChangeAction` | Change workflow stage | `->story`, `->workflowStageName` |
 | `Story\StoriesTagsAssignAction` | Assign tags to stories | `->tagged`, `->errors` |
+| `Story\StoryVersionsAction` | List story versions | `->versions`, `->storyId`, `->count()` |
 | `Story\StoriesWorkflowAssignAction` | Assign stage to unstaged stories (preflight+execute) | `->countWithoutStage`, `->workflowStages` |
+| `Asset\AssetsUnreferencedAction` | Find unreferenced assets | `->unreferencedAssets`, `->totalAssets`, `->referencedCount`, `->storiesAnalyzed` |
 | `Workflow\WorkflowsListAction` | List workflows+stages | `->workflows`, `->count()` |
 | `Workflow\WorkflowStageShowAction` | Show stage details | `->stage`, `->workflowName` |
 | `Component\ComponentsListAction` | List/filter components | `->components`, `->count()` |
