@@ -2,6 +2,7 @@
 <?php
 require __DIR__ . "/../vendor/autoload.php";
 
+use Blokctl\Command\AssetsListCommand;
 use Blokctl\Command\AssetsUnreferencedCommand;
 use Blokctl\Command\AppProvisionInstallCommand;
 use Blokctl\Command\AppProvisionListCommand;
@@ -37,6 +38,7 @@ $dotenv->safeLoad();
 
 $application = new Application("blokctl", "1.0.0-dev");
 
+$application->addCommand(new AssetsListCommand());
 $application->addCommand(new AssetsUnreferencedCommand());
 $application->addCommand(new AppProvisionInstallCommand());
 $application->addCommand(new AppProvisionListCommand());

@@ -2,6 +2,9 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
+## 0.6.1 - 2026-04-03
+- Adding `assets:list`: List assets with optional search filter via Management API
+
 ## 0.6.0 - 2026-04-03
 - Upgrading `symfony/console` from ^7.0 to ^8.0
 - Upgrading `phpunit/phpunit` from ^12.0 to ^13.0

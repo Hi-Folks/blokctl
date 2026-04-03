@@ -49,6 +49,7 @@ Use this skill when the user wants to run blokctl commands to manage a Storyblok
 
 ### Assets
 
+- **`assets:list`** — List assets. Options: `--search`, `--page` (`-p`), `--per-page` (max 1000). Management API only, no preview token needed.
 - **`assets:unreferenced`** — Detect orphaned assets not referenced in any story. Fetches all assets via Management API (1000/page), scans all stories via CDN API (higher rate limits), then diffs.
 
 ### Workflows

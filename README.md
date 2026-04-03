@@ -683,6 +683,22 @@ Displays stage details: name, ID, workflow, position, color, publish permissions
 
 ### Assets
 
+#### `assets:list` — List assets
+
+```bash
+php bin/blokctl assets:list -S 290817118944379
+php bin/blokctl assets:list -S 290817118944379 --search=hero
+php bin/blokctl assets:list -S 290817118944379 --per-page=100 --page=2
+```
+
+| Option | Short | Description |
+|---|---|---|
+| `--search` | | Search assets by filename |
+| `--page` | `-p` | Page number (default: 1) |
+| `--per-page` | | Results per page (max 1000, default: 25) |
+
+Lists assets via the Management API. Each asset displays its filename, ID, content type, file size, and creation date. No preview token needed.
+
 #### `assets:unreferenced` — List assets not referenced in any story
 
 ```bash
@@ -1276,6 +1292,24 @@ $result->workflowId;   // int
 ```
 
 ### Assets
+
+#### List assets
+
+```php
+use Blokctl\Action\Asset\AssetsListAction;
+
+$result = (new AssetsListAction($client))->execute(
+    spaceId: $spaceId,
+    search: 'hero',
+    page: 1,
+    perPage: 25,
+);
+
+$result->assets; // Assets collection
+$result->count(); // int
+```
+
+Uses the Management API only. No preview token needed.
 
 #### Find unreferenced assets
 
