@@ -60,7 +60,7 @@ final readonly class AppProvisionInstallAction
     /**
      * Install an app by ID.
      */
-    public function execute(string $spaceId, string $appId): AppProvision
+    public function execute(string $spaceId, string|int $appId): AppProvision
     {
         return (new AppProvisionApi($this->client, $spaceId))
             ->install($appId)->data();

@@ -296,6 +296,50 @@ Conventions:
 | `--parent-id` | Parent folder numeric ID (default: `0` for root) |
 | `--publish` | Publish the story immediately after creation |
 
+#### `stories:bulk-create` — Create stories from JSON files in a directory
+
+```bash
+# Create stories from all JSON files in a directory
+php bin/blokctl stories:bulk-create -S 290817118944379 ./content/stories
+
+# Walk subdirectories recursively
+php bin/blokctl stories:bulk-create -S 290817118944379 ./content/stories --recursive
+
+# Place stories inside a parent folder (by slug or ID)
+php bin/blokctl stories:bulk-create -S 290817118944379 ./content/stories --parent-slug=articles
+php bin/blokctl stories:bulk-create -S 290817118944379 ./content/stories --parent-id=123456
+
+# Publish each story immediately after creation
+php bin/blokctl stories:bulk-create -S 290817118944379 ./content/stories --publish
+
+# Match only a specific file pattern
+php bin/blokctl stories:bulk-create -S 290817118944379 ./content/stories --pattern='page-*.json'
+
+# Interactive: prompts for directory
+php bin/blokctl stories:bulk-create -S 290817118944379
+```
+
+| Type | Name | Description |
+|---|---|---|
+| Argument | `directory` | Directory containing JSON files (prompted interactively if omitted) |
+
+| Option | Short | Description |
+|---|---|---|
+| `--recursive` | `-r` | Walk subdirectories recursively |
+| `--pattern` | | Glob pattern to match files (default: `*.json`) |
+| `--parent-slug` | | Parent folder slug (e.g. `articles`) |
+| `--parent-id` | | Parent folder numeric ID (default: `0` for root) |
+| `--publish` | | Publish each story immediately after creation |
+
+`--parent-slug` and `--parent-id` are mutually exclusive.
+
+Each JSON file is interpreted in one of two formats:
+
+- **Content-only**: the JSON is the content itself (must include a `"component"` key). Story name and slug are derived from the filename.
+- **Wrapper**: `{ "name": "...", "slug": "...", "content": { "component": "...", ... } }`. Top-level `name` and `slug` override the filename-derived values.
+
+Files are sorted alphabetically before processing. A summary of created stories and errors is printed at the end.
+
 #### `stories:list` — List stories with filters
 
 ```bash
@@ -1025,6 +1069,28 @@ $parentId = $action->resolveParentBySlug($spaceId, 'articles');
 
 $result->story; // Story object (the created story)
 ```
+
+#### Bulk-create stories from JSON files
+
+```php
+use Blokctl\Action\Story\StoriesBulkCreateAction;
+
+$result = (new StoriesBulkCreateAction($client))->execute(
+    spaceId: $spaceId,
+    directory: './content/stories',
+    recursive: true,
+    parentId: 123456,   // 0 for root
+    publish: false,
+    pattern: '*.json',
+);
+
+$result->created;      // array of ['file', 'name', 'slug', 'id', 'fullSlug']
+$result->errors;       // array of ['file', 'error'] — non-fatal errors
+$result->count();      // int — number of stories created
+$result->errorCount(); // int
+```
+
+Each JSON file is interpreted as content-only (must include `"component"`) or as a wrapper (`{ "name", "slug", "content" }`). Name and slug fall back to filename-derived values when not set in the wrapper. Files are sorted alphabetically before processing.
 
 #### List stories with filters
 

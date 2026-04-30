@@ -2,6 +2,15 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
+## 0.6.4 - 2026-04-30
+- `StoryMoveAction::execute()` now uses a minimal `parent_id`-only PUT instead of reconstructing the full story payload, so moving folders no longer fails with "component property is missing"
+- `AppProvisionInstallAction::execute()` now accepts `string|int` for `$appId`, matching the underlying SDK signature
+
+## 0.6.3 - 2026-04-21
+- Adding `stories:bulk-create`: Create stories from JSON files in a directory (supports content-only and wrapper formats, recursive walk, parent folder, and publish flag)
+- `StoriesWorkflowAssignAction::preflight()` now paginates through all story pages instead of stopping at the first page
+- `bin/blokctl` autoloader now supports both standalone usage and installation as a Composer dependency
+
 ## 0.6.2 - 2026-04-03
 - `AssetsUnreferencedAction` now accepts an optional `previewToken` parameter, skipping the SpaceApi call when provided (useful for OAuth-only applications)
 

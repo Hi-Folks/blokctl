@@ -54,14 +54,28 @@ final class AppProvisionInstallActionTest extends TestCase
     }
 
     #[Test]
-    public function execute_installs_app(): void
+    public function execute_installs_app_by_string_id(): void
     {
         $client = $this->createMockClient(
-            $this->mockResponse('one-app-provision'), // AppProvisionApi->install
+            $this->mockResponse('one-app-provision'),
         );
 
         $action = new AppProvisionInstallAction($client);
         $provision = $action->execute('680', '14');
+
+        $this->assertSame('Activities', $provision->name());
+        $this->assertSame('activity', $provision->slug());
+    }
+
+    #[Test]
+    public function execute_installs_app_by_int_id(): void
+    {
+        $client = $this->createMockClient(
+            $this->mockResponse('one-app-provision'),
+        );
+
+        $action = new AppProvisionInstallAction($client);
+        $provision = $action->execute('680', 14);
 
         $this->assertSame('Activities', $provision->name());
         $this->assertSame('activity', $provision->slug());

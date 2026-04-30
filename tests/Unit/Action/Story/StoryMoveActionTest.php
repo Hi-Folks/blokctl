@@ -113,4 +113,26 @@ final class StoryMoveActionTest extends TestCase
             folderId: 789012,
         );
     }
+
+    #[Test]
+    public function execute_moves_folder_by_id(): void
+    {
+        $client = $this->createMockClient(
+            $this->mockResponse('one-folder-created'), // StoryApi->get (fetch current state)
+            $this->mockResponse('one-folder-moved'),   // ManagementApi->put (minimal parent_id update)
+        );
+
+        $action = new StoryMoveAction($client);
+        $result = $action->execute(
+            spaceId: '680',
+            folderId: 789012,
+            storyId: '550001',
+        );
+
+        $this->assertSame('Archive', $result->story->name());
+        $this->assertSame(0, $result->previousFolderId);
+        $this->assertSame(789012, $result->newFolderId);
+        $this->assertSame('archive', $result->previousFullSlug);
+        $this->assertSame('archived/authors/archive', $result->story->fullSlug());
+    }
 }

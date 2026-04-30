@@ -1,0 +1,27 @@
+{
+    "stories": [
+        {
+            "name": "Another Without Stage",
+            "created_at": "2024-02-08T16:26:24.425Z",
+            "published_at": null,
+            "id": 100003,
+            "uuid": "aaaa-bbbb-cccc-0003",
+            "slug": "another-without-stage",
+            "full_slug": "another-without-stage",
+            "tag_list": [],
+            "is_startpage": false,
+            "parent_id": null,
+            "meta_data": null,
+            "group_id": "group-3",
+            "first_published_at": null,
+            "lang": "default",
+            "stage": {
+                "workflow_stage_id": null,
+                "workflow_id": null,
+                "workflow_stage_name": null,
+                "workflow_stage_color": null,
+                "workflow_name": null
+            }
+        }
+    ]
+}

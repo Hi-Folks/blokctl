@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Blokctl\Action\Story;
 
 use Storyblok\ManagementApi\Data\Story;
+use Storyblok\ManagementApi\Endpoints\ManagementApi;
 use Storyblok\ManagementApi\Endpoints\StoryApi;
 use Storyblok\ManagementApi\ManagementApiClient;
 use Storyblok\ManagementApi\QueryParameters\StoriesParams;
@@ -75,7 +76,7 @@ final readonly class StoryMoveAction
             throw new \RuntimeException("Provide either a story ID or slug.");
         }
 
-        // Fetch the story via MAPI
+        // Fetch the current state to capture previous folder and slug
         $response = $storyApi->get($storyId);
         if (!$response->isOk()) {
             throw new \RuntimeException("Story not found with ID: " . $storyId);
@@ -84,20 +85,25 @@ final readonly class StoryMoveAction
         $previousFolderId = $response->data()->folderId();
         $previousFullSlug = $response->data()->fullSlug();
 
-        // Move story by updating the folder via StoryApi
-        $storyData = Story::make($response->data()->toArray());
-        $storyData->setFolderId($folderId);
+        // Use a minimal PUT instead of reconstructing the full story payload.
+        // StoryApi::update() sends the complete object; for folders the API
+        // rejects it because folders lack content.component in their payload.
+        $putResponse = (new ManagementApi($this->client))
+            ->put(sprintf('spaces/%s/stories/%s', $spaceId, $storyId), [
+                'story' => ['parent_id' => $folderId],
+            ]);
 
-        $updateResponse = $storyApi->update($storyId, $storyData);
-
-        if (!$updateResponse->isOk()) {
+        if (!$putResponse->isOk()) {
             throw new \RuntimeException(
-                "Failed to move story: " . $updateResponse->getErrorMessage(),
+                "Failed to move: " . $putResponse->getErrorMessage(),
             );
         }
 
+        $rawStory = $putResponse->data()->get('story', [], '.', true);
+        $story = Story::make(is_array($rawStory) ? $rawStory : []);
+
         return new StoryMoveResult(
-            story: $updateResponse->data(),
+            story: $story,
             previousFolderId: $previousFolderId,
             newFolderId: $folderId,
             previousFullSlug: $previousFullSlug,

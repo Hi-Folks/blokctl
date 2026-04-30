@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Blokctl\Action\Story;
 
+use Storyblok\ManagementApi\Data\Stories;
 use Storyblok\ManagementApi\Data\Story;
 use Storyblok\ManagementApi\Data\WorkflowStageChange;
 use Storyblok\ManagementApi\Endpoints\StoryApi;
@@ -11,6 +12,7 @@ use Storyblok\ManagementApi\Endpoints\WorkflowApi;
 use Storyblok\ManagementApi\Endpoints\WorkflowStageApi;
 use Storyblok\ManagementApi\Endpoints\WorkflowStageChangeApi;
 use Storyblok\ManagementApi\ManagementApiClient;
+use Storyblok\ManagementApi\QueryParameters\PaginationParams;
 use Storyblok\ManagementApi\QueryParameters\StoriesParams;
 
 final readonly class StoriesWorkflowAssignAction
@@ -22,11 +24,31 @@ final readonly class StoriesWorkflowAssignAction
     /**
      * Fetch stories and available workflow stages.
      */
-    public function preflight(string $spaceId): StoriesWorkflowAssignResult
+    public function preflight(string $spaceId, int $perPage = 25): StoriesWorkflowAssignResult
     {
-        $stories = (new StoryApi($this->client, $spaceId))
-            ->page(new StoriesParams(storyOnly: true))
-            ->data();
+        $storyApi = new StoryApi($this->client, $spaceId);
+        $params = new StoriesParams(storyOnly: true);
+
+        /** @var array<int, array<string, mixed>> $allStories */
+        $allStories = [];
+        $page = 1;
+
+        do {
+            $response = $storyApi->page(
+                $params,
+                page: new PaginationParams(page: $page, perPage: $perPage),
+            );
+            $pageData = $response->data();
+            $fetchedCount = $pageData->count();
+
+            foreach ($pageData->toArray() as $story) {
+                $allStories[] = $story;
+            }
+
+            ++$page;
+        } while ($fetchedCount >= $perPage);
+
+        $stories = Stories::make($allStories);
 
         $countWithoutStage = 0;
         /** @var Story $story */

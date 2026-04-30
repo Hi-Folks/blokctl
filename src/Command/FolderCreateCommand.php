@@ -27,7 +27,8 @@ class FolderCreateCommand extends AbstractCommand
         $this
             ->addArgument('name', InputArgument::OPTIONAL, 'Folder name')
             ->addOption('parent-slug', null, InputOption::VALUE_REQUIRED, 'Parent folder slug (e.g. articles/archive)')
-            ->addOption('parent-id', null, InputOption::VALUE_REQUIRED, 'Parent folder numeric ID (default: 0 for root)');
+            ->addOption('parent-id', null, InputOption::VALUE_REQUIRED, 'Parent folder numeric ID (default: 0 for root)')
+            ->addOption('returns-only-id', null, InputOption::VALUE_NONE, 'Output only the folder ID (useful for scripting)');
     }
 
     protected function execute(
@@ -74,6 +75,12 @@ class FolderCreateCommand extends AbstractCommand
         } catch (\RuntimeException $runtimeException) {
             Render::error($runtimeException->getMessage());
             return self::FAILURE;
+        }
+
+        if ($input->getOption('returns-only-id')) {
+            $output->write($result->folder->id());
+
+            return self::SUCCESS;
         }
 
         Render::title('Folder Created');

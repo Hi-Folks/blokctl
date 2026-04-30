@@ -66,6 +66,28 @@ final class StoriesWorkflowAssignActionTest extends TestCase
     }
 
     #[Test]
+    public function preflight_paginates_through_all_pages(): void
+    {
+        $perPage = 2;
+
+        $client = $this->createMockClient(
+            $this->mockResponse('list-stories-workflow-page1'),  // page 1: 2 stories (= perPage, so fetch next)
+            $this->mockResponse('list-stories-workflow-page2'),  // page 2: 1 story (< perPage, stop)
+            $this->mockResponse('list-workflows'),
+            $this->mockResponse('list-workflow-stages'),
+        );
+
+        $action = new StoriesWorkflowAssignAction($client);
+        $result = $action->preflight('680', perPage: $perPage);
+
+        // 3 stories total across 2 pages
+        $this->assertCount(3, $result->stories);
+        // 2 without stage (one from page 1, one from page 2)
+        $this->assertSame(2, $result->countWithoutStage);
+        $this->assertNotEmpty($result->workflowStages);
+    }
+
+    #[Test]
     public function execute_assigns_workflow_stage_to_stories_without_one(): void
     {
         // preflight
