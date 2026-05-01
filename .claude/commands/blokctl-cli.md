@@ -43,6 +43,7 @@ Use this skill when the user wants to run blokctl commands to manage a Storyblok
 - **`story:show`** — Display story as JSON. Lookup: `--by-slug`, `--by-id`, `--by-uuid`. Option: `--only-story`.
 - **`story:move`** — Move story to a different folder. Lookup: `--by-slug`, `--by-id`. Target: `--to-folder-slug`, `--to-folder-id` (use `0` for root).
 - **`story:workflow-change`** — Change workflow stage. Lookup: `--by-slug`, `--by-id`. Stage: `--stage` (name) or `--stage-id`. Workflow: `--workflow-name`, `--workflow-id`.
+- **`stories:bulk-create [directory]`** — Create stories from JSON files in a directory. Options: `--recursive` (`-r`), `--pattern` (default `*.json`), `--parent-slug`, `--parent-id`, `--publish`. Each file can be content-only (JSON with `"component"`) or wrapper format (`{ "name", "slug", "content" }`). Name and slug default to the filename.
 - **`stories:tags-assign`** — Assign tags. Options: `--story-id` (repeatable), `--story-slug` (repeatable), `--tag` (`-t`, repeatable).
 - **`story:versions`** — List versions of a story. Lookup: `--by-slug`, `--by-id`, `--by-uuid`. Options: `--show-content`, `--page` (`-p`), `--per-page`.
 - **`stories:workflow-assign`** — Assign a workflow stage to all stories without one. Option: `--workflow-stage-id`.
