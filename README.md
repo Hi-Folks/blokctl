@@ -449,7 +449,7 @@ Everything else passes through as-is. The resolver walks the tree recursively.
 ```
 
 Only the fields you specify are updated — the existing content type and other fields are preserved. Inside arrays, objects with `"component"` are treated as nested bloks.
-```
+
 
 **Story lookup options** (mutually exclusive):
 
