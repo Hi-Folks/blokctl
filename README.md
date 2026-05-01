@@ -217,6 +217,29 @@ php bin/blokctl folder:create -S 290817118944379
 | `--parent-slug` | Parent folder slug (e.g. `articles`, `articles/archive`) |
 | `--parent-id` | Parent folder numeric ID (default: `0` for root) |
 
+#### `folder:dimension-add` — Create a folder and add it to the Dimensions app
+
+Creates a folder at root level and appends it to the Dimensions app configuration (`dimensions_app_folder_ids` and `dimensions_app_folders`). Reads the current configuration before updating, so existing folders are preserved.
+
+```bash
+# Create 'Italy' and add it to the Dimensions app
+php bin/blokctl folder:dimension-add -S 290817118944379 'Italy'
+
+# With an AI translation code
+php bin/blokctl folder:dimension-add -S 290817118944379 'Italy' --ai-translation-code=it
+
+# Interactive: prompts for folder name
+php bin/blokctl folder:dimension-add -S 290817118944379
+```
+
+| Type | Name | Description |
+|---|---|---|
+| Argument | `name` | Folder name (prompted interactively if omitted) |
+
+| Option | Description |
+|---|---|
+| `--ai-translation-code` | Language code for AI translation (e.g. `it`, `fr`, `de`). Defaults to empty string. |
+
 ### Stories
 
 #### `story:create` — Create a story with content from JSON
@@ -1034,6 +1057,20 @@ $result = $action->execute($spaceId, 'Old Posts', parentId: $parentId);
 
 $result->folder;    // Story object (the created folder)
 $result->parentId;  // int (0 for root)
+```
+
+#### Create a folder and add it to the Dimensions app
+
+```php
+use Blokctl\Action\Folder\FolderDimensionAddAction;
+
+$action = new FolderDimensionAddAction($client);
+
+$result = $action->execute($spaceId, 'Italy', aiTranslationCode: 'it');
+
+$result->folder;             // Story object (the created folder)
+$result->folderIds;          // int[] — all dimensions folder IDs after update
+$result->dimensionsFolders;  // array — full dimensions_app_folders config after update
 ```
 
 ### Stories

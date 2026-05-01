@@ -37,6 +37,7 @@ Every CLI command is backed by a reusable Action class with no CLI dependencies:
 | `SpacePreview\SpacePreviewSetAction` | Set preview URL (preflight+execute) | `->space` |
 | `SpacePreview\SpacePreviewAddAction` | Add environment (preflight+execute) | `->space` |
 | `Folder\FolderCreateAction` | Create folder | `->folder`, `->parentId` |
+| `Folder\FolderDimensionAddAction` | Create folder + append to Dimensions app config | `->folder`, `->folderIds`, `->dimensionsFolders` |
 | `Story\StoryCreateAction` | Create story with content | `->story` |
 | `Story\StoriesListAction` | List/filter stories | `->stories`, `->count()` |
 | `Story\StoryUpdateAction` | Update story content | `->story`, `->appliedContent` |

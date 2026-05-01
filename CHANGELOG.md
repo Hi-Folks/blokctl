@@ -2,6 +2,9 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
+## 0.6.5 - 2026-05-01
+- Adding `folder:dimension-add`: Create a folder at root and append it to the Dimensions app configuration (`dimensions_app_folder_ids` + `dimensions_app_folders`) in a single command. Option: `--ai-translation-code` (default: empty string).
+
 ## 0.6.4 - 2026-04-30
 - `StoryMoveAction::execute()` now uses a minimal `parent_id`-only PUT instead of reconstructing the full story payload, so moving folders no longer fails with "component property is missing"
 - `AppProvisionInstallAction::execute()` now accepts `string|int` for `$appId`, matching the underlying SDK signature

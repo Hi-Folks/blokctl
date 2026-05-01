@@ -33,6 +33,7 @@ Use this skill when the user wants to run blokctl commands to manage a Storyblok
 ### Folders
 
 - **`folder:create [name]`** — Create a folder. Options: `--parent-slug`, `--parent-id`. Defaults to root.
+- **`folder:dimension-add [name]`** — Create a folder at root and append it to the Dimensions app configuration. Option: `--ai-translation-code` (e.g. `it`, `fr`, `de`; defaults to empty string). Reads the current config before updating so existing folders are preserved.
 
 ### Stories
 
