@@ -69,7 +69,6 @@ final readonly class StoriesBulkCreateAction
                     'file' => $file,
                     'error' => $throwable->getMessage(),
                 ];
-                sleep(1);
             }
         }
 
