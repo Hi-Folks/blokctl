@@ -2,6 +2,11 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
+## 0.6.6 - 2026-05-04
+- Adding `component:show`: Display fields and schema of a component by name or ID. Shows field type, tab assignment, position, and plugin slug for custom fields.
+- Adding `--with-tabs` option to `component:show`: Also display tab information (display name, position, and assigned field keys).
+- Adding `--pos` option to `component:field-add`: Override the auto-calculated field position with an explicit integer value.
+
 ## 0.6.5 - 2026-05-01
 - Adding `folder:dimension-add`: Create a folder at root and append it to the Dimensions app configuration (`dimensions_app_folder_ids` + `dimensions_app_folders`) in a single command. Option: `--ai-translation-code` (default: empty string).
 

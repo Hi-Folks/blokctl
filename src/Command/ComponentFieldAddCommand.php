@@ -53,6 +53,12 @@ class ComponentFieldAddCommand extends AbstractCommand
                 null,
                 InputOption::VALUE_REQUIRED,
                 'Tab display name to place the field in (e.g. SEO)',
+            )
+            ->addOption(
+                'pos',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'Field position (integer). Defaults to next available position after existing fields.',
             );
     }
 
@@ -148,6 +154,10 @@ class ComponentFieldAddCommand extends AbstractCommand
             return self::FAILURE;
         }
 
+        /** @var string|null $posRaw */
+        $posRaw = $input->getOption('pos');
+        $pos = $posRaw !== null ? (int) $posRaw : null;
+
         try {
             $action->execute(
                 $this->spaceId,
@@ -156,6 +166,7 @@ class ComponentFieldAddCommand extends AbstractCommand
                 $type,
                 $tabName,
                 $fieldType,
+                $pos,
             );
             $typeLabel = $isCustom ? $fieldType : $type;
             Render::log(

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Blokctl\Action\Component;
 
 use Storyblok\ManagementApi\Data\Component;
+use Storyblok\ManagementApi\Data\Fields\Schema\FieldGeneric;
 use Storyblok\ManagementApi\Endpoints\ComponentApi;
 use Storyblok\ManagementApi\ManagementApiClient;
 
@@ -67,41 +68,27 @@ final readonly class ComponentFieldAddAction
         string $type,
         string $tabName,
         ?string $fieldType = null,
+        ?int $pos = null,
     ): void {
-        $schema = $preflight->schema;
-        $isCustom = $type === 'custom';
+        $component = $preflight->component;
 
-        // Calculate next position
-        $maxPos = -1;
-        foreach ($schema as $entry) {
-            if (!is_array($entry)) {
-                continue;
-            }
+        $nextPos = $component->maxPos() + 1;
 
-            if (isset($entry['pos']) && is_int($entry['pos']) && $entry['pos'] > $maxPos) {
-                $maxPos = $entry['pos'];
-            }
-        }
-
-        $nextPos = $maxPos + 1;
-
-        // Check if a tab with the same display_name already exists
+        // Find or create the tab
         $existingTabKey = null;
+        $schema = $component->getSchema();
         foreach ($schema as $key => $entry) {
-            if (!is_array($entry)) {
-                continue;
-            }
-
             if (
-                isset($entry['type']) && $entry['type'] === 'tab'
-                && isset($entry['display_name']) && $entry['display_name'] === $tabName
+                is_array($entry)
+                && ($entry['type'] ?? '') === 'tab'
+                && ($entry['display_name'] ?? '') === $tabName
             ) {
-                $existingTabKey = $key;
+                $existingTabKey = (string) $key;
                 break;
             }
         }
 
-        if ($existingTabKey !== null && is_array($schema[$existingTabKey])) {
+        if ($existingTabKey !== null) {
             /** @var string[] $keys */
             $keys = $schema[$existingTabKey]['keys'] ?? [];
             $keys[] = $fieldName;
@@ -117,22 +104,24 @@ final readonly class ComponentFieldAddAction
             ++$nextPos;
         }
 
-        // Add the field
-        $fieldEntry = [
-            'type' => $type,
-            'pos' => $nextPos,
-        ];
-        if ($isCustom) {
-            $fieldEntry['field_type'] = $fieldType;
-            $fieldEntry['options'] = [];
+        $component->setSchema($schema);
+
+        $fieldAttrs = ['type' => $type];
+        if ($type === 'custom') {
+            $fieldAttrs['field_type'] = $fieldType;
+            $fieldAttrs['options'] = [];
         }
 
-        $schema[$fieldName] = $fieldEntry;
+        $field = FieldGeneric::make($fieldName, $fieldAttrs);
 
-        $preflight->component->setSchema($schema);
+        if ($pos !== null) {
+            $component->insertField($field, $pos);
+        } else {
+            $component->insertField($field, $nextPos);
+        }
 
         (new ComponentApi($this->client, $spaceId))
-            ->update($preflight->component->id(), $preflight->component);
+            ->update($component->id(), $component);
     }
 
     private function generateUuid(): string

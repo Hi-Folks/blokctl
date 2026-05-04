@@ -849,10 +849,35 @@ php bin/blokctl component:field-add -S 290817118944379 \
 | `--type` | Field type: a core type (`text`, `textarea`, `richtext`, `number`, `boolean`, ...) or `custom` for plugins. Defaults to `custom` |
 | `--field-type` | Plugin field_type slug (e.g. `sb-ai-seo`). Required when `--type=custom` |
 | `--tab` | Tab display name to place the field in (e.g. `Content`). Prompted interactively if omitted |
+| `--pos` | Field position (integer). Defaults to next available position after existing fields |
 
 Supported core types: `text`, `textarea`, `richtext`, `markdown`, `number`, `datetime`, `boolean`, `option`, `options`, `asset`, `multiasset`, `multilink`, `table`, `bloks`, `section`.
 
 If a tab with the same display name already exists, the field is added to that tab. Returns an error if the field name already exists in the schema.
+
+#### `component:show` — Display fields and schema of a component
+
+```bash
+# By component name
+php bin/blokctl component:show -S 290817118944379 --by-name=default-page
+
+# By component ID
+php bin/blokctl component:show -S 290817118944379 --by-id=123456
+
+# Also display tab information
+php bin/blokctl component:show -S 290817118944379 --by-name=default-page --with-tabs
+
+# Interactive: prompts for lookup method and value
+php bin/blokctl component:show -S 290817118944379
+```
+
+| Option | Description |
+|---|---|
+| `--by-name` | Find component by name (e.g. `default-page`) |
+| `--by-id` | Find component by numeric ID |
+| `--with-tabs` | Also display tab information (name, pos, assigned field keys) |
+
+Displays: component name, ID, type (content-type, nestable, universal), and all fields sorted by position. Each field shows its type, tab assignment, and `pos`. For plugin fields, the `field_type` slug is also shown. With `--with-tabs`, a tabs section is appended listing each tab's display name, position, and the field keys assigned to it.
 
 ### Apps
 

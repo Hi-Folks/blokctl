@@ -97,6 +97,8 @@ final class ComponentFieldAddActionTest extends TestCase
 
         // Verify the field was added to the existing SEO tab's keys
         $seoTab = $schema['tab-57951678-9946-4960-bbcb-41136af8180a'];
+        $this->assertIsArray($seoTab);
+        $this->assertIsArray($seoTab['keys']);
         $this->assertContains('seo_field', $seoTab['keys']);
     }
 }
