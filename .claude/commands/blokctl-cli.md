@@ -43,7 +43,7 @@ Use this skill when the user wants to run blokctl commands to manage a Storyblok
 - **`story:field-set <field> <value>`** — Set a single content field. Lookup: `--by-slug`, `--by-id`. Option: `--type` (`text`|`json`|`asset`).
 - **`story:show`** — Display story as JSON. Lookup: `--by-slug`, `--by-id`, `--by-uuid`. Option: `--only-story`.
 - **`story:move`** — Move story to a different folder. Lookup: `--by-slug`, `--by-id`. Target: `--to-folder-slug`, `--to-folder-id` (use `0` for root).
-- **`story:workflow-change`** — Change workflow stage. Lookup: `--by-slug`, `--by-id`. Stage: `--stage` (name) or `--stage-id`. Workflow: `--workflow-name`, `--workflow-id`.
+- **`story:workflow-change`** — Change workflow stage. Lookup: `--by-slug`, `--by-id`. Stage: `--stage` (case-insensitive name) or `--stage-id`; use `--stage-id=0` to remove the current workflow stage. Workflow: `--workflow-name`, `--workflow-id` (default workflow if omitted).
 - **`stories:bulk-create [directory]`** — Create stories from JSON files in a directory. Options: `--recursive` (`-r`), `--pattern` (default `*.json`), `--parent-slug`, `--parent-id`, `--publish`. Each file can be content-only (JSON with `"component"`) or wrapper format (`{ "name", "slug", "content" }`). Name and slug default to the filename.
 - **`stories:tags-assign`** — Assign tags. Options: `--story-id` (repeatable), `--story-slug` (repeatable), `--tag` (`-t`, repeatable).
 - **`story:versions`** — List versions of a story. Lookup: `--by-slug`, `--by-id`, `--by-uuid`. Options: `--show-content`, `--page` (`-p`), `--per-page`.
@@ -130,6 +130,18 @@ php bin/blokctl story:field-set -S 12345 cover_image 'https://example.com/photo.
 ### Move stories between folders
 ```bash
 php bin/blokctl story:move -S 12345 --by-slug=authors/john --to-folder-slug=archived/authors
+```
+
+### Change or remove a workflow stage
+```bash
+# Set by stage name in the default workflow
+php bin/blokctl story:workflow-change -S 12345 --by-slug=home --stage=Reviewing
+
+# Set by stage ID
+php bin/blokctl story:workflow-change -S 12345 --by-id=456789 --stage-id=653555
+
+# Remove the current workflow stage
+php bin/blokctl story:workflow-change -S 12345 --by-slug=home --stage-id=0
 ```
 
 ### Create a folder then a story inside it

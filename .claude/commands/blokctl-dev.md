@@ -50,11 +50,11 @@ final readonly class <Name>Action
 }
 ```
 
-**Mutating action** — add a `preflight()` method that fetches data and validates preconditions:
+**Mutating action** — prefer a clear one-call `execute()` for normal use. Add `preflight()` only when callers need fetched state for confirmation, safety checks, or interactive selection:
 ```php
 public function preflight(string $spaceId): <Name>Result
 {
-    // Fetch current state, return result with safety flags
+    // Fetch current state for confirmation/selection
 }
 
 public function execute(string $spaceId, <Name>Result $preflight, /* params */): void
@@ -62,6 +62,8 @@ public function execute(string $spaceId, <Name>Result $preflight, /* params */):
     // Apply changes using preflight data
 }
 ```
+
+For mutating actions that can resolve their inputs internally, keep `execute()` as the main developer API and make resolution helpers private. Example: `StoryWorkflowChangeAction::execute()` accepts `storySlug`/`storyId` and `stageName`/`stageId` directly; `preflight()` is only used to list workflow stages for interactive selection.
 
 **Result DTO** (`src/Action/<Group>/<Name>Result.php`):
 ```php

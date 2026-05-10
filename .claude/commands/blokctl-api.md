@@ -22,7 +22,7 @@ Every CLI command is backed by a reusable Action class with no CLI dependencies:
 
 - **Constructor** receives only the `ManagementApiClient`
 - **Read-only Actions** have a single `execute()` returning a typed Result DTO
-- **Mutating Actions** use `preflight()` to validate + fetch data, then `execute()` to apply changes
+- **Mutating Actions** usually expose `execute()` as the normal one-call API. Add `preflight()` when callers need fetched state for confirmation or interactive selection.
 - **Result DTOs** are `final readonly` classes with public properties
 
 ## Quick reference
@@ -44,7 +44,7 @@ Every CLI command is backed by a reusable Action class with no CLI dependencies:
 | `Story\StoryFieldSetAction` | Set a single field | `->story`, `->fieldName`, `->newValue`, `->previousValue` |
 | `Story\StoryShowAction` | Show story by slug/id/uuid | `->story`, `->fullResponse` |
 | `Story\StoryMoveAction` | Move story to folder | `->story`, `->previousFolderId`, `->newFolderId` |
-| `Story\StoryWorkflowChangeAction` | Change workflow stage | `->story`, `->workflowStageName` |
+| `Story\StoryWorkflowChangeAction` | Change or remove workflow stage | `->story`, `->workflowStageName`, `->workflowStageId`, `->previousWorkflowStageId` |
 | `Story\StoriesBulkCreateAction` | Create stories from JSON files in a directory | `->created`, `->errors`, `->count()`, `->errorCount()` |
 | `Story\StoriesTagsAssignAction` | Assign tags to stories | `->tagged`, `->errors` |
 | `Story\StoryVersionsAction` | List story versions | `->versions`, `->storyId`, `->count()` |
@@ -128,6 +128,46 @@ $resolved = $resolver->resolve($simplifiedContent);
 // _asset markers → uploaded asset fields, bloks get _uid, nested recursively
 ```
 
+### Change or remove a workflow stage
+```php
+use Blokctl\Action\Story\StoryWorkflowChangeAction;
+
+$action = new StoryWorkflowChangeAction($client);
+
+// Set by story slug and stage name. Stage name matching is case-insensitive.
+$result = $action->execute(
+    spaceId: $spaceId,
+    storySlug: 'home',
+    stageName: 'Reviewing',
+);
+
+// Set by story ID and stage ID.
+$result = $action->execute(
+    spaceId: $spaceId,
+    storyId: '123456',
+    stageId: 653555,
+);
+
+// Scope stage-name lookup to a specific workflow.
+$result = $action->execute(
+    spaceId: $spaceId,
+    storySlug: 'home',
+    stageName: 'Reviewing',
+    workflowName: 'Default workflow',
+);
+
+// Remove the current workflow stage.
+$result = $action->execute(
+    spaceId: $spaceId,
+    storySlug: 'home',
+    stageId: 0,
+);
+
+// For interactive pickers, fetch available stages first.
+$preflight = $action->preflight($spaceId);
+$preflight->workflowStages; // array [id => name]
+```
+
 ### Resolve helpers
 ```php
 // Resolve app by slug → ID
@@ -135,10 +175,6 @@ $appId = (new AppProvisionInstallAction($client))->resolveBySlug($spaceId, 'my-a
 
 // Resolve folder by slug → ID
 $folderId = (new StoryMoveAction($client))->resolveFolderBySlug($spaceId, 'archived/authors');
-
-// Resolve workflow stage by name → ID
-$resolved = (new StoryWorkflowChangeAction($client))->resolveWorkflowStage($spaceId, stageName: 'Review');
-$stageId = $resolved['stageId'];
 ```
 
 ## Error handling
