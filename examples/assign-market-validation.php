@@ -44,11 +44,25 @@ $stageName = 'Market Validation';
 Render::title('Resolving workflow stage: ' . $stageName);
 
 $workflowAction = new StoryWorkflowChangeAction($client);
-$resolved = $workflowAction->resolveWorkflowStage($spaceId, $stageName);
-$stageId = $resolved['stageId'];
+$preflight = $workflowAction->preflight($spaceId);
+$stageId = null;
+$resolvedStageName = null;
+
+foreach ($preflight->workflowStages as $id => $name) {
+    if (strcasecmp($name, $stageName) === 0) {
+        $stageId = (int) $id;
+        $resolvedStageName = $name;
+        break;
+    }
+}
+
+if ($stageId === null || $resolvedStageName === null) {
+    Render::error('Workflow stage not found: ' . $stageName);
+    exit(1);
+}
 
 Render::labelValue('Stage ID', (string) $stageId);
-Render::labelValue('Stage name', $resolved['stageName']);
+Render::labelValue('Stage name', $resolvedStageName);
 
 // Fetch stories from each folder and filter those without a workflow stage
 $listAction = new StoriesListAction($client);
@@ -105,9 +119,8 @@ foreach ($storiesWithoutStage as $story) {
     try {
         $result = $workflowAction->execute(
             spaceId: $spaceId,
-            workflowStageId: $stageId,
-            workflowStageName: $stageName,
             storyId: (string) $story->id(),
+            stageId: $stageId,
         );
         $assigned++;
         Render::log('  Assigned: ' . $story->slug());

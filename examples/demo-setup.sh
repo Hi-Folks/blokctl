@@ -24,8 +24,9 @@ $BLOKCTL space:preview-set -S "$SPACE_ID" \
 echo "=== Step 3: Remove Demo Mode ==="
 $BLOKCTL space:demo-remove -S "$SPACE_ID"
 
-# Step 4: Assign workflow stages to stories
-echo "=== Step 4: Assign Workflow Stages ==="
+# Step 4: Assign an initial workflow stage to stories that do not have one.
+# This is interactive; pass --workflow-stage-id=<ID> -n for unattended runs.
+echo "=== Step 4: Assign Workflow Stages to Unstaged Stories ==="
 $BLOKCTL stories:workflow-assign -S "$SPACE_ID"
 
 # Step 5: Install apps
