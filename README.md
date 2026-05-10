@@ -587,6 +587,9 @@ php bin/blokctl story:move -S 290817118944379
 
 #### `story:workflow-change` — Change the workflow stage of a story
 
+Use this command when you want to change or remove the workflow stage for one
+specific story identified by slug or ID.
+
 ```bash
 # By stage name (uses default workflow)
 php bin/blokctl story:workflow-change -S 290817118944379 --by-slug=articles/my-post --stage=Review
@@ -703,6 +706,10 @@ At least one `--story-id` or `--story-slug` is required. Both can be combined.
 
 #### `stories:workflow-assign` — Assign workflow stages to stories
 
+Use this command as a bulk maintenance tool when you want to assign an initial
+workflow stage to stories that currently do not have one. Stories that already
+have a workflow stage are skipped.
+
 ```bash
 # Interactive: prompts for workflow stage selection
 php bin/blokctl stories:workflow-assign -S 290817118944379
@@ -715,7 +722,9 @@ php bin/blokctl stories:workflow-assign -S 290817118944379 --workflow-stage-id=1
 |---|---|
 | `--workflow-stage-id` | Workflow stage ID to assign (prompted interactively if omitted) |
 
-Finds all stories without a workflow stage and assigns the selected stage to them.
+Finds all stories without a workflow stage and assigns the selected stage to
+them. It does not change or remove stages from stories that already have one.
+For one specific story, or to remove a stage, use `story:workflow-change`.
 
 ### Workflows
 
@@ -1387,7 +1396,11 @@ $result->tagged; // array of ['name' => ..., 'tags' => ...]
 $result->errors; // string[] — non-fatal errors
 ```
 
-#### Assign workflow stages
+#### Assign workflow stages to unstaged stories
+
+`StoriesWorkflowAssignAction` is the PHP API for the bulk
+`stories:workflow-assign` command. It only assigns a stage to stories that do
+not already have one.
 
 ```php
 use Blokctl\Action\Story\StoriesWorkflowAssignAction;
