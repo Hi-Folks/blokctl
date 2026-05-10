@@ -17,100 +17,67 @@ final readonly class StoryWorkflowChangeAction
     public function __construct(private ManagementApiClient $client) {}
 
     /**
-     * Resolve workflow stage ID by name.
+     * Fetch workflow stages for interactive selection.
      *
-     * Looks up stages in the given workflow (or the default workflow if none specified).
-     *
-     * @return array{stageId: int, stageName: string, workflowStages: array<int|string, string>}
-     *
-     * @throws \RuntimeException if workflow or stage is not found
+     * @throws \RuntimeException if workflow or stages are not found
      */
-    public function resolveWorkflowStage(
+    public function preflight(
         string $spaceId,
-        ?string $stageName = null,
         ?string $workflowName = null,
         ?string $workflowId = null,
-    ): array {
-        $resolvedWorkflowId = $this->resolveWorkflowId($spaceId, $workflowName, $workflowId);
+    ): StoryWorkflowChangePreflightResult {
+        $workflowId = $this->resolveWorkflowId($spaceId, $workflowName, $workflowId);
+        $workflowStages = $this->listWorkflowStages($spaceId, $workflowId);
 
-        $stageApi = new WorkflowStageApi($this->client, $spaceId);
-        $stages = $stageApi->list($resolvedWorkflowId)->data();
-
-        /** @var array<int|string, string> $workflowStages */
-        $workflowStages = [];
-
-        /** @phpstan-ignore foreach.nonIterable */
-        foreach ($stages as $stage) {
-            /** @var int|string $id */
-            $id = $stage->get('id');
-            /** @var string $name */
-            $name = $stage->get('name');
-            $workflowStages[$id] = $name;
-        }
-
-        if ($workflowStages === []) {
-            throw new \RuntimeException("No workflow stages found.");
-        }
-
-        if ($stageName !== null) {
-            foreach ($workflowStages as $id => $name) {
-                if (strcasecmp($name, $stageName) === 0) {
-                    return [
-                        'stageId' => (int) $id,
-                        'stageName' => $name,
-                        'workflowStages' => $workflowStages,
-                    ];
-                }
-            }
-
-            throw new \RuntimeException(
-                "Workflow stage not found with name: " . $stageName
-                . ". Available stages: " . implode(', ', $workflowStages),
-            );
-        }
-
-        return [
-            'stageId' => 0,
-            'stageName' => '',
-            'workflowStages' => $workflowStages,
-        ];
+        return new StoryWorkflowChangePreflightResult(
+            workflowId: $workflowId,
+            workflowStages: $workflowStages,
+        );
     }
 
     /**
      * Change the workflow stage of a story.
      *
-     * @throws \RuntimeException if story or workflow stage is not found
+     * @throws \RuntimeException if story, workflow, or workflow stage is not found
      */
     public function execute(
         string $spaceId,
-        int $workflowStageId,
-        string $workflowStageName,
         ?string $storyId = null,
         ?string $storySlug = null,
+        ?string $stageName = null,
+        ?int $stageId = null,
+        ?string $workflowName = null,
+        ?string $workflowId = null,
     ): StoryWorkflowChangeResult {
+        if ($storySlug !== null && $storyId !== null) {
+            throw new \RuntimeException("Provide only one of story slug or ID.");
+        }
+
+        if ($stageName !== null && $stageId !== null) {
+            throw new \RuntimeException("Provide only one of workflow stage name or ID.");
+        }
+
+        if ($workflowName !== null && $workflowId !== null) {
+            throw new \RuntimeException("Provide only one of workflow name or ID.");
+        }
+
+        if ($stageName === null && $stageId === null) {
+            throw new \RuntimeException("Provide either a workflow stage name or ID.");
+        }
+
+        if ($stageId === 0) {
+            $resolvedStage = [
+                'stageId' => 0,
+                'stageName' => 'None',
+            ];
+        } else {
+            $workflowId = $this->resolveWorkflowId($spaceId, $workflowName, $workflowId);
+            $resolvedStage = $this->resolveWorkflowStage($spaceId, $workflowId, $stageName, $stageId);
+        }
+
         $storyApi = new StoryApi($this->client, $spaceId);
+        $storyId = $this->resolveStoryId($storyApi, $storySlug, $storyId);
 
-        // Resolve story ID from slug if needed
-        if ($storySlug !== null && $storyId === null) {
-            $params = new StoriesParams(withSlug: $storySlug);
-            $stories = $storyApi->page($params)->data();
-
-            if (count($stories) !== 1) {
-                throw new \RuntimeException(
-                    "Story not found with slug: " . $storySlug,
-                );
-            }
-
-            /** @var array{id: int|string} $story */
-            $story = $stories[0];
-            $storyId = (string) $story["id"];
-        }
-
-        if ($storyId === null) {
-            throw new \RuntimeException("Provide either a story ID or slug.");
-        }
-
-        // Fetch the story to get current state
         $response = $storyApi->get($storyId);
         if (!$response->isOk()) {
             throw new \RuntimeException("Story not found with ID: " . $storyId);
@@ -120,19 +87,16 @@ final readonly class StoryWorkflowChangeAction
         /** @var int|null $previousStageId */
         $previousStageId = $storyData->get('stage.workflow_stage_id') ?: null;
 
-        // Apply workflow stage change
-        $changesApi = new WorkflowStageChangeApi($this->client, $spaceId);
-        $changesApi->create(
-            WorkflowStageChange::makeFromParams(
-                (int) $storyId,
-                $workflowStageId,
-            ),
+        $this->createWorkflowStageChange(
+            spaceId: $spaceId,
+            storyId: (int) $storyId,
+            workflowStageId: $resolvedStage['stageId'],
         );
 
         return new StoryWorkflowChangeResult(
             story: $storyData,
-            workflowStageName: $workflowStageName,
-            workflowStageId: $workflowStageId,
+            workflowStageName: $resolvedStage['stageName'],
+            workflowStageId: $resolvedStage['stageId'],
             previousWorkflowStageId: $previousStageId,
         );
     }
@@ -145,12 +109,21 @@ final readonly class StoryWorkflowChangeAction
         ?string $workflowName,
         ?string $workflowId,
     ): string {
-        if ($workflowId !== null) {
-            return $workflowId;
-        }
-
         $workflowApi = new WorkflowApi($this->client, $spaceId);
         $workflows = $workflowApi->list()->data();
+
+        if ($workflowId !== null) {
+            /** @phpstan-ignore foreach.nonIterable */
+            foreach ($workflows as $workflow) {
+                if ((string) $workflow->get('id') === $workflowId) {
+                    return $workflowId;
+                }
+            }
+
+            throw new \RuntimeException(
+                "Workflow not found with ID: " . $workflowId,
+            );
+        }
 
         if ($workflowName !== null) {
             /** @phpstan-ignore foreach.nonIterable */
@@ -167,15 +140,151 @@ final readonly class StoryWorkflowChangeAction
             );
         }
 
-        // Use the default workflow
-        $defaultWorkflow = $workflows->get('0');
+        $defaultWorkflow = null;
         /** @phpstan-ignore foreach.nonIterable */
         foreach ($workflows as $workflow) {
+            if ($defaultWorkflow === null) {
+                $defaultWorkflow = $workflow;
+            }
+
             if ($workflow->getBoolean('is_default')) {
                 $defaultWorkflow = $workflow;
             }
         }
 
+        if ($defaultWorkflow === null) {
+            throw new \RuntimeException("No workflows found.");
+        }
+
         return (string) $defaultWorkflow->get('id');
+    }
+
+    /**
+     * @return array{stageId: int, stageName: string}
+     */
+    private function resolveWorkflowStage(
+        string $spaceId,
+        string $workflowId,
+        ?string $stageName,
+        ?int $stageId,
+    ): array {
+        if ($stageName === null && $stageId === null) {
+            throw new \RuntimeException("Provide either a workflow stage name or ID.");
+        }
+
+        $workflowStages = $this->listWorkflowStages($spaceId, $workflowId);
+
+        if ($stageId !== null) {
+            foreach ($workflowStages as $id => $name) {
+                if ((string) $id === (string) $stageId) {
+                    return [
+                        'stageId' => (int) $id,
+                        'stageName' => $name,
+                    ];
+                }
+            }
+
+            throw new \RuntimeException(
+                "Workflow stage not found with ID: " . $stageId
+                . ". Available stages: " . implode(', ', $workflowStages),
+            );
+        }
+
+        foreach ($workflowStages as $id => $name) {
+            if ($stageName !== null && strcasecmp($name, $stageName) === 0) {
+                return [
+                    'stageId' => (int) $id,
+                    'stageName' => $name,
+                ];
+            }
+        }
+
+        throw new \RuntimeException(
+            "Workflow stage not found with name: " . $stageName
+            . ". Available stages: " . implode(', ', $workflowStages),
+        );
+    }
+
+    /**
+     * @return array<int|string, string>
+     */
+    private function listWorkflowStages(string $spaceId, string $workflowId): array
+    {
+        $stageApi = new WorkflowStageApi($this->client, $spaceId);
+        $stages = $stageApi->list($workflowId)->data();
+
+        $workflowStages = [];
+
+        /** @phpstan-ignore foreach.nonIterable */
+        foreach ($stages as $stage) {
+            /** @var int|string $id */
+            $id = $stage->get('id');
+            /** @var string $name */
+            $name = $stage->get('name');
+            $workflowStages[$id] = $name;
+        }
+
+        if ($workflowStages === []) {
+            throw new \RuntimeException("No workflow stages found.");
+        }
+
+        return $workflowStages;
+    }
+
+    /**
+     * @throws \RuntimeException if the story is not found
+     */
+    private function resolveStoryId(
+        StoryApi $storyApi,
+        ?string $storySlug,
+        ?string $storyId,
+    ): string {
+        if ($storySlug !== null && $storyId === null) {
+            return $this->resolveStoryIdFromSlug($storyApi, $storySlug);
+        }
+
+        if ($storyId === null) {
+            throw new \RuntimeException("Provide either a story ID or slug.");
+        }
+
+        return $storyId;
+    }
+
+    private function resolveStoryIdFromSlug(StoryApi $storyApi, string $storySlug): string
+    {
+        $params = new StoriesParams(withSlug: $storySlug);
+        $stories = $storyApi->page($params)->data();
+        $storyCount = count($stories);
+
+        if ($storyCount === 0) {
+            throw new \RuntimeException(
+                "Story not found with slug: " . $storySlug,
+            );
+        }
+
+        if ($storyCount > 1) {
+            throw new \RuntimeException(
+                "Multiple stories found with slug: " . $storySlug,
+            );
+        }
+
+        /** @var array{id: int|string} $story */
+        $story = $stories[0];
+
+        return (string) $story["id"];
+    }
+
+    private function createWorkflowStageChange(
+        string $spaceId,
+        int $storyId,
+        int $workflowStageId,
+    ): void {
+        $changesApi = new WorkflowStageChangeApi($this->client, $spaceId);
+        $changesApi->create(
+            WorkflowStageChange::makeFromParams(
+                $storyId,
+                $workflowStageId,
+            ),
+        );
     }
 }

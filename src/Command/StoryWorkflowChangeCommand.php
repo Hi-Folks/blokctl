@@ -97,51 +97,32 @@ class StoryWorkflowChangeCommand extends AbstractCommand
         $action = new StoryWorkflowChangeAction($this->client);
 
         try {
-            // If stage ID is provided directly, resolve stage name from available stages
-            if ($stageIdRaw !== null) {
-                $resolved = $action->resolveWorkflowStage(
-                    $this->spaceId,
-                    null,
-                    $workflowName,
-                    $workflowId,
-                );
-                $stageId = (int) $stageIdRaw;
-                $resolvedStageName = $resolved['workflowStages'][$stageId] ?? 'Unknown';
-            } else {
-                // Resolve workflow stage by name or interactively
-                $resolved = $action->resolveWorkflowStage(
-                    $this->spaceId,
-                    $stageName,
-                    $workflowName,
-                    $workflowId,
-                );
-
-                $stageId = $resolved['stageId'];
-                $resolvedStageName = $resolved['stageName'];
-
-                // If neither --stage nor --stage-id was provided, prompt interactively
-                if ($stageName === null) {
-                    if ($input->getOption('no-interaction')) {
-                        $output->writeln('<error>Provide --stage or --stage-id when using --no-interaction</error>');
-                        return self::FAILURE;
-                    }
-
-                    /** @var array<int|string, string> $options */
-                    $options = $resolved['workflowStages'];
-                    $stageId = (int) select(
-                        label: 'Which workflow stage do you want to assign?',
-                        options: $options,
-                    );
-                    $resolvedStageName = $options[$stageId];
+            if ($stageName === null && $stageIdRaw === null) {
+                if ($input->getOption('no-interaction')) {
+                    $output->writeln('<error>Provide --stage or --stage-id when using --no-interaction</error>');
+                    return self::FAILURE;
                 }
+
+                $preflight = $action->preflight(
+                    $this->spaceId,
+                    workflowName: $workflowName,
+                    workflowId: $workflowId,
+                );
+
+                $stageIdRaw = (string) select(
+                    label: 'Which workflow stage do you want to assign?',
+                    options: $preflight->workflowStages,
+                );
             }
 
             $result = $action->execute(
                 spaceId: $this->spaceId,
-                workflowStageId: $stageId,
-                workflowStageName: $resolvedStageName,
                 storyId: $storyId,
                 storySlug: $storySlug,
+                stageName: $stageName,
+                stageId: $stageIdRaw === null ? null : (int) $stageIdRaw,
+                workflowName: $workflowName,
+                workflowId: $workflowId,
             );
         } catch (\RuntimeException $runtimeException) {
             Render::error($runtimeException->getMessage());

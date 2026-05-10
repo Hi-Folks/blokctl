@@ -2,6 +2,12 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
+## 0.6.7 - 2026-05-10
+- Improving `story:workflow-change`: resolve stories by full slug, resolve workflow stages by case-insensitive stage name, and support workflow selection by name or ID.
+- Refactoring `StoryWorkflowChangeAction` developer API so `execute()` accepts story slug/ID and stage name/ID directly; `preflight()` now returns available workflow stages for interactive selection.
+- Adding support for removing a story's current workflow stage with `--stage-id=0` or `stageId: 0` in PHP.
+- Expanding workflow-change tests and README examples for slug lookup, stage-name lookup, workflow scoping, and workflow-stage removal.
+
 ## 0.6.6 - 2026-05-04
 - Adding `component:show`: Display fields and schema of a component by name or ID. Shows field type, tab assignment, position, and plugin slug for custom fields.
 - Adding `--with-tabs` option to `component:show`: Also display tab information (display name, position, and assigned field keys).

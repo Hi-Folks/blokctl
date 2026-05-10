@@ -594,6 +594,9 @@ php bin/blokctl story:workflow-change -S 290817118944379 --by-slug=articles/my-p
 # By stage ID
 php bin/blokctl story:workflow-change -S 290817118944379 --by-id=123456 --stage-id=67890
 
+# Remove the current workflow stage
+php bin/blokctl story:workflow-change -S 290817118944379 --by-slug=home --stage-id=0
+
 # Specify a non-default workflow by name
 php bin/blokctl story:workflow-change -S 290817118944379 --by-slug=articles/my-post --stage=Review --workflow-name="Custom Workflow"
 
@@ -616,7 +619,7 @@ php bin/blokctl story:workflow-change -S 290817118944379
 | Option | Description |
 |---|---|
 | `--stage` | Workflow stage name to assign (case-insensitive match) |
-| `--stage-id` | Workflow stage numeric ID to assign |
+| `--stage-id` | Workflow stage numeric ID to assign. Use `0` to remove the current workflow stage |
 
 **Workflow options** (optional, mutually exclusive — uses default workflow if omitted):
 
@@ -624,6 +627,17 @@ php bin/blokctl story:workflow-change -S 290817118944379
 |---|---|
 | `--workflow-name` | Workflow name |
 | `--workflow-id` | Workflow numeric ID |
+
+The command resolves `--by-slug` as a full Storyblok slug, resolves `--stage`
+case-insensitively within the selected workflow, then creates a workflow stage
+change. On success it prints the story name, story slug, new workflow stage name
+and ID, and the previous workflow stage ID when available.
+Passing `--stage-id=0` removes the current workflow stage from the story.
+
+In non-interactive mode, provide one story lookup option and one stage option.
+Conflicting options such as `--by-slug` with `--by-id`, `--stage` with
+`--stage-id`, or `--workflow-name` with `--workflow-id` fail before API changes
+are attempted.
 
 #### `story:versions` — List versions of a story
 
@@ -1318,23 +1332,38 @@ use Blokctl\Action\Story\StoryWorkflowChangeAction;
 
 $action = new StoryWorkflowChangeAction($client);
 
-// Resolve stage by name (uses default workflow)
-$resolved = $action->resolveWorkflowStage($spaceId, stageName: 'Review');
-$stageId = $resolved['stageId'];
-$stageName = $resolved['stageName'];
+// Change workflow stage by story slug and stage name (uses default workflow)
+$result = $action->execute(
+    spaceId: $spaceId,
+    storySlug: 'articles/my-post',
+    stageName: 'Review',
+);
 
-// Resolve stage from a specific workflow by name
-$resolved = $action->resolveWorkflowStage($spaceId, stageName: 'Review', workflowName: 'Custom Workflow');
+// Change workflow stage by story ID and stage ID
+$result = $action->execute(
+    spaceId: $spaceId,
+    storyId: '123456',
+    stageId: 653555,
+);
 
-// List available stages for interactive selection (no stage name)
-$resolved = $action->resolveWorkflowStage($spaceId);
-$resolved['workflowStages']; // array [id => name]
+// Remove the current workflow stage
+$result = $action->execute(
+    spaceId: $spaceId,
+    storySlug: 'home',
+    stageId: 0,
+);
 
-// Change workflow stage by story slug
-$result = $action->execute($spaceId, $stageId, $stageName, storySlug: 'articles/my-post');
+// Scope stage lookup to a specific workflow by name or ID
+$result = $action->execute(
+    spaceId: $spaceId,
+    storySlug: 'articles/my-post',
+    stageName: 'Review',
+    workflowName: 'Custom Workflow',
+);
 
-// Change workflow stage by story ID
-$result = $action->execute($spaceId, $stageId, $stageName, storyId: '123456');
+// Fetch available stages for an interactive picker
+$preflight = $action->preflight($spaceId);
+$preflight->workflowStages; // array [id => name]
 
 $result->story;                   // Story object
 $result->workflowStageName;      // string
