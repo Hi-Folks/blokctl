@@ -848,7 +848,9 @@ php bin/blokctl component:field-add -S 290817118944379 \
   --component=default-page \
   --field=subtitle \
   --type=text \
-  --tab=Content
+  --tab=Content \
+  --display-name="Subtitle" \
+  --required
 
 # Add a richtext field
 php bin/blokctl component:field-add -S 290817118944379 \
@@ -873,6 +875,9 @@ php bin/blokctl component:field-add -S 290817118944379 \
 | `--field-type` | Plugin field_type slug (e.g. `sb-ai-seo`). Required when `--type=custom` |
 | `--tab` | Tab display name to place the field in (e.g. `Content`). Prompted interactively if omitted |
 | `--pos` | Field position (integer). Defaults to next available position after existing fields |
+| `--display-name` | Field label shown in the editor |
+| `--required` | Mark the field as required |
+| `--translatable` | Mark the field as translatable |
 
 Supported core types: `text`, `textarea`, `richtext`, `markdown`, `number`, `datetime`, `boolean`, `option`, `options`, `asset`, `multiasset`, `multilink`, `table`, `bloks`, `section`.
 
@@ -1549,7 +1554,15 @@ $action = new ComponentFieldAddAction($client);
 $result = $action->preflight($spaceId, 'default-page', 'subtitle');
 
 // Add a core field type
-$action->execute($spaceId, $result, 'subtitle', 'text', 'Content');
+$action->execute(
+    $spaceId,
+    $result,
+    'subtitle',
+    'text',
+    'Content',
+    displayName: 'Subtitle',
+    required: true,
+);
 
 // Add a plugin field
 $action->execute($spaceId, $result, 'SEO', 'custom', 'SEO', fieldType: 'sb-ai-seo');

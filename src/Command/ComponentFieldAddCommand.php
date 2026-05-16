@@ -59,6 +59,24 @@ class ComponentFieldAddCommand extends AbstractCommand
                 null,
                 InputOption::VALUE_REQUIRED,
                 'Field position (integer). Defaults to next available position after existing fields.',
+            )
+            ->addOption(
+                'display-name',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'Field display name shown in the editor.',
+            )
+            ->addOption(
+                'required',
+                null,
+                InputOption::VALUE_NONE,
+                'Mark the field as required.',
+            )
+            ->addOption(
+                'translatable',
+                null,
+                InputOption::VALUE_NONE,
+                'Mark the field as translatable.',
             );
     }
 
@@ -111,7 +129,9 @@ class ComponentFieldAddCommand extends AbstractCommand
             $type = 'custom';
         }
 
-        $isCustom = $type === 'custom';
+        $type = strtolower($type);
+
+        $isCustom = in_array($type, ['custom', 'plugin'], true);
 
         /** @var string|null $fieldType */
         $fieldType = $input->getOption('field-type');
@@ -158,6 +178,9 @@ class ComponentFieldAddCommand extends AbstractCommand
         $posRaw = $input->getOption('pos');
         $pos = $posRaw !== null ? (int) $posRaw : null;
 
+        /** @var string|null $displayName */
+        $displayName = $input->getOption('display-name');
+
         try {
             $action->execute(
                 $this->spaceId,
@@ -167,6 +190,9 @@ class ComponentFieldAddCommand extends AbstractCommand
                 $tabName,
                 $fieldType,
                 $pos,
+                $displayName,
+                (bool) $input->getOption('required'),
+                (bool) $input->getOption('translatable'),
             );
             $typeLabel = $isCustom ? $fieldType : $type;
             Render::log(

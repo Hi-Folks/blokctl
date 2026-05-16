@@ -76,6 +76,36 @@ final class ComponentFieldAddActionTest extends TestCase
     }
 
     #[Test]
+    public function execute_adds_common_field_attributes(): void
+    {
+        $client = $this->createMockClient(
+            $this->mockResponse('list-components'),    // ComponentApi->all
+            $this->mockResponse('one-article-page'),   // ComponentApi->get
+            $this->mockResponse('one-article-page'),   // ComponentApi->update response
+        );
+
+        $action = new ComponentFieldAddAction($client);
+        $preflight = $action->preflight('680', 'article-page', 'subtitle');
+
+        $action->execute(
+            '680',
+            $preflight,
+            'subtitle',
+            'text',
+            'New Tab',
+            displayName: 'Subtitle',
+            required: true,
+            translatable: true,
+        );
+
+        $schema = $preflight->component->getSchema();
+        $this->assertArrayHasKey('subtitle', $schema);
+        $this->assertSame('Subtitle', $schema['subtitle']['display_name']);
+        $this->assertTrue($schema['subtitle']['required']);
+        $this->assertTrue($schema['subtitle']['translatable']);
+    }
+
+    #[Test]
     public function execute_adds_custom_field_to_existing_tab(): void
     {
         $client = $this->createMockClient(

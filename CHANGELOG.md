@@ -2,6 +2,10 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
+## 0.7.0 - 2026-05-16
+- Requiring `storyblok/php-management-api-client` `^1.5.0` and using its typed schema field helpers when adding component fields.
+- Adding `--display-name`, `--required`, and `--translatable` to `component:field-add`.
+
 ## 0.6.7 - 2026-05-10
 - Improving `story:workflow-change`: resolve stories by full slug, resolve workflow stages by case-insensitive stage name, and support workflow selection by name or ID.
 - Refactoring `StoryWorkflowChangeAction` developer API so `execute()` accepts story slug/ID and stage name/ID directly; `preflight()` now returns available workflow stages for interactive selection.
