@@ -30,6 +30,9 @@ use Blokctl\Command\ComponentFieldAddCommand;
 use Blokctl\Command\ComponentsListCommand;
 use Blokctl\Command\ComponentShowCommand;
 use Blokctl\Command\ComponentsUsageCommand;
+use Blokctl\Command\ExperimentCreateCommand;
+use Blokctl\Command\ExperimentResultsPushCommand;
+use Blokctl\Command\ExperimentsListCommand;
 use Blokctl\Command\StoriesBulkCreateCommand;
 use Blokctl\Command\StoriesListCommand;
 use Blokctl\Command\StoriesTagsAssignCommand;
@@ -78,6 +81,9 @@ $application->addCommand(new ComponentFieldAddCommand());
 $application->addCommand(new ComponentsListCommand());
 $application->addCommand(new ComponentShowCommand());
 $application->addCommand(new ComponentsUsageCommand());
+$application->addCommand(new ExperimentCreateCommand());
+$application->addCommand(new ExperimentsListCommand());
+$application->addCommand(new ExperimentResultsPushCommand());
 $application->addCommand(new StoriesBulkCreateCommand());
 $application->addCommand(new StoriesListCommand());
 $application->addCommand(new StoriesTagsAssignCommand());
@@ -93,4 +99,3 @@ $application->addCommand(new WorkflowsListCommand());
 $application->addCommand(new WorkflowStageShowCommand());
 
 $application->run();
-

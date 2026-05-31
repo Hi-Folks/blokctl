@@ -2,6 +2,14 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
+## 0.8.0 - 2026-05-31
+- Requiring `storyblok/php-management-api-client` `^1.7.0` for typed experiment API support.
+- Adding `experiment:list`: List experiments in a space with pagination.
+- Adding `experiment:create`: Create a draft experiment with default control and variant entries; story IDs are optional.
+- Adding `experiment:results:push`: Upload static experiment result chart payloads from JSON.
+- Adding `examples/experiment-results.json` and `examples/push-experiment-results.sh` for demo result uploads.
+- Documenting experiment commands and noting that unsupported experiment endpoints can be called through the generic Management API client.
+
 ## 0.7.0 - 2026-05-16
 - Requiring `storyblok/php-management-api-client` `^1.5.0` and using its typed schema field helpers when adding component fields.
 - Adding `--display-name`, `--required`, and `--translatable` to `component:field-add`.

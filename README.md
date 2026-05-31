@@ -907,6 +907,37 @@ php bin/blokctl component:show -S 290817118944379
 
 Displays: component name, ID, type (content-type, nestable, universal), and all fields sorted by position. Each field shows its type, tab assignment, and `pos`. For plugin fields, the `field_type` slug is also shown. With `--with-tabs`, a tabs section is appended listing each tab's display name, position, and the field keys assigned to it.
 
+### Experiments
+
+#### `experiment:list` — List experiments
+
+```bash
+php bin/blokctl experiment:list -S 290817118944379
+php bin/blokctl experiment:list -S 290817118944379 --page=1 --per-page=25
+```
+
+Displays experiments in the space with ID, status, story count, variant count, and updated timestamp.
+
+#### `experiment:create` — Create a draft experiment
+
+```bash
+php bin/blokctl experiment:create -S 290817118944379
+php bin/blokctl experiment:create -S 290817118944379 --story-id=123456789
+```
+
+Creates a draft experiment with two default variants: `Control` and `Variant A`. Story IDs are optional and can be repeated.
+
+#### `experiment:results:push` — Push experiment result charts
+
+```bash
+php bin/blokctl experiment:results:push -S 290817118944379 178826800153745 \
+  --file=examples/experiment-results.json
+```
+
+Uploads a static experiment result payload from JSON. The file must contain a top-level `charts` array.
+
+> Note: `blokctl` only wraps the experiment workflows listed above. For other experiment endpoints, use the generic `Storyblok\ManagementApi\Endpoints\ManagementApi` class from the PHP management client to call the Management API path directly.
+
 ### Apps
 
 #### `app:provision-list` — List installed apps

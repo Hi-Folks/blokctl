@@ -1,0 +1,88 @@
+{
+  "charts": [
+    {
+      "kind": "bar",
+      "title": "Conversion Rate by Variant",
+      "xLabel": "Variant",
+      "yLabel": "Conversion rate",
+      "labels": [
+        "Control",
+        "Variant A"
+      ],
+      "series": [
+        {
+          "label": "Conversion rate",
+          "data": [
+            0.124,
+            0.157
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "bar",
+      "title": "Visitors by Variant",
+      "xLabel": "Variant",
+      "yLabel": "Visitors",
+      "labels": [
+        "Control",
+        "Variant A"
+      ],
+      "series": [
+        {
+          "label": "Visitors",
+          "data": [
+            1240,
+            1198
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "line",
+      "title": "Daily Conversion Trend",
+      "xLabel": "Day",
+      "yLabel": "Conversion rate",
+      "labels": [
+        "2026-05-24",
+        "2026-05-25",
+        "2026-05-26",
+        "2026-05-27",
+        "2026-05-28",
+        "2026-05-29",
+        "2026-05-30"
+      ],
+      "series": [
+        {
+          "label": "Control",
+          "data": [
+            0.111,
+            0.119,
+            0.121,
+            0.126,
+            0.128,
+            0.123,
+            0.124
+          ]
+        },
+        {
+          "label": "Variant A",
+          "data": [
+            0.132,
+            0.141,
+            0.149,
+            0.151,
+            0.158,
+            0.162,
+            0.157
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "text",
+      "title": "Mock Experiment Summary",
+      "body": "Variant A is currently outperforming the control in this demo dataset. These values are static mock results intended for dashboard experimentation."
+    }
+  ]
+}
