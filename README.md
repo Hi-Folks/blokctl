@@ -121,6 +121,39 @@ Each space displays: name, ID, plan, demo mode flag, created date, and last upda
 
 > This command does not require `--space-id`.
 
+#### `space:create` — Create or duplicate a space
+
+```bash
+# Create a blank space
+php bin/blokctl space:create 'My New Demo Space'
+
+# Duplicate an existing space into the current organization
+php bin/blokctl space:create 'NEW SPACE FROM TEMPLATE' \
+  --duplicate-from=286863409930127 \
+  --in-org \
+  --demo
+
+# Scripting: output only the new space ID
+php bin/blokctl space:create 'NEW SPACE FROM TEMPLATE' \
+  --duplicate-from=286863409930127 \
+  --in-org \
+  --demo \
+  --only-id \
+  -n
+```
+
+Creates a new Storyblok space. When `--duplicate-from` is provided, the command duplicates the source space ID using the Management API payload supported by Storyblok (`dup_id`, `in_org`, and `space.is_demo`).
+
+| Type | Name | Description |
+|---|---|---|
+| Argument | `name` | New space name (prompted interactively if omitted) |
+| Option | `--duplicate-from` | Existing space ID to duplicate |
+| Option | `--in-org` | Create the duplicated space inside the current organization |
+| Option | `--demo` | Mark the created space as a demo/example space |
+| Option | `--only-id` | Output only the new space ID, useful for scripts |
+
+> This command does not require `--space-id`.
+
 #### `space:info` — Display space information
 
 ```bash
@@ -1014,6 +1047,23 @@ $client = new ManagementApiClient('your-personal-access-token', region: Region::
 ```
 
 ### Spaces
+
+#### Create or duplicate a space
+
+```php
+use Blokctl\Action\Space\SpaceCreateAction;
+
+$result = (new SpaceCreateAction($client))->execute(
+    name: 'NEW SPACE FROM TEMPLATE',
+    duplicateFrom: '286863409930127',
+    isDemo: true,
+    inOrg: true,
+);
+
+$result->space;          // Space object for the newly created space
+$result->duplicated;     // bool
+$result->duplicateFrom;  // source space ID, when duplicated
+```
 
 #### Get space info
 

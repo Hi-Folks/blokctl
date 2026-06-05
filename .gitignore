@@ -12,3 +12,4 @@
 .phpactor.json
 /tmp/test-results
 /docs/
+test-push-results.sh
