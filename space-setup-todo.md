@@ -14,7 +14,7 @@ Related documentation:
 - [ ] Detect conflicting options such as `--demo` with `demo_mode.remove: true`.
 - [x] Validate the complete config before creating or modifying a space.
 - [x] Improve validation errors with the YAML/JSON property path, for example `components.fields[0].type`.
-- [ ] Make setup output distinguish `created`, `updated`, `unchanged`, `skipped`, and `failed`.
+- [x] Make setup output distinguish `planned`, `created`, `updated`, `installed`, `removed`, `skipped`, and `failed`.
 - [ ] Return a non-zero exit code when individual actions report errors unless explicitly configured otherwise.
 - [ ] Add focused tests for every supported config section.
 
@@ -219,4 +219,6 @@ Related documentation:
 - [x] Editor autocomplete and validation through YAML Language Server schema reference
 - [x] Basic dry-run mode
 - [x] Complete duplicate-first dry-run planning with target-space placeholders
+- [x] Shared compact operation reporting for dry-run and real execution
+- [x] Preview-token masking in rendered setup URLs
 - [x] Global and app-specific continue-on-error behavior

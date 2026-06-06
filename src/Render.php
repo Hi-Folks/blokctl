@@ -78,4 +78,34 @@ class Render
             </div>
             HTML);
     }
+
+    public static function operation(
+        string $status,
+        string $label,
+        string $color = 'green',
+        ?string $detail = null,
+    ): void {
+        $detailHtml = $detail === null || $detail === ''
+            ? ''
+            : '<div class="ml-14 text-gray">' . $detail . '</div>';
+
+        render(<<<HTML
+            <div>
+                <div class="mx-1">
+                    <span class="font-bold text-{$color}">{$status}</span>
+                    <span class="ml-2">{$label}</span>
+                </div>
+                {$detailHtml}
+            </div>
+            HTML);
+    }
+
+    public static function notice(string $message): void
+    {
+        render(<<<HTML
+            <div class="mx-1">
+                <span class="font-bold text-yellow">{$message}</span>
+            </div>
+            HTML);
+    }
 }

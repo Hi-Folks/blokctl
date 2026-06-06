@@ -37,6 +37,20 @@ php bin/blokctl space:setup \
 
 During a duplicate dry-run, `${{ space.id }}` resolves to `NEW_SPACE_ID` and `${{ space.preview_token }}` resolves to `PREVIEW_TOKEN`.
 
+Dry-run and real execution share the same compact operation report:
+
+```text
+Operations
+  PLANNED    Configure preview URLs
+  PLANNED    Install app: backups
+  PLANNED    Add component field: article-page.SEO
+
+Summary
+  Planned: 3
+```
+
+Real execution replaces `PLANNED` with outcomes such as `UPDATED`, `INSTALLED`, `CREATED`, `REMOVED`, `SKIPPED`, or `FAILED`. Preview tokens are masked whenever URLs are rendered.
+
 Validate a config without accessing Storyblok:
 
 ```bash

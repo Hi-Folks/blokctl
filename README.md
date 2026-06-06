@@ -209,6 +209,8 @@ Use either `-S` or `--duplicate-from`, not both. When `--duplicate-from` is used
 
 With `--dry-run --duplicate-from`, no space is created. The complete setup plan is rendered using `NEW_SPACE_ID` and `PREVIEW_TOKEN` placeholders.
 
+Both dry-run and real execution use compact operation statuses such as `PLANNED`, `UPDATED`, `INSTALLED`, `CREATED`, `REMOVED`, `SKIPPED`, and `FAILED`, followed by a final summary. Preview tokens are masked in rendered URLs.
+
 #### `space:info` — Display space information
 
 ```bash

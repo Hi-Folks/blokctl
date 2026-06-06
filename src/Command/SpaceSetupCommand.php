@@ -16,6 +16,9 @@ use Blokctl\Render;
 use Blokctl\SpaceSetup\SpaceSetupConfigLoader;
 use Blokctl\SpaceSetup\SpaceSetupConfigValidator;
 use Blokctl\SpaceSetup\SpaceSetupInputsResolver;
+use Blokctl\SpaceSetup\SpaceSetupOperationResult;
+use Blokctl\SpaceSetup\SpaceSetupOperationStatus;
+use Blokctl\SpaceSetup\SpaceSetupReporter;
 use Blokctl\SpaceSetup\SpaceSetupTargetResolver;
 use Blokctl\SpaceSetup\SpaceSetupVariableResolver;
 use Storyblok\ManagementApi\Data\Enum\Region;
@@ -101,12 +104,6 @@ class SpaceSetupCommand extends Command
 
             $dryRun = (bool) $input->getOption('dry-run');
 
-            if ($this->hasValue($duplicateFrom)) {
-                Render::titleSection('Create space from template');
-                Render::labelValue('Source space ID', (string) $duplicateFrom);
-                Render::labelValue('New space name', (string) $newSpaceName);
-            }
-
             $spaceId = (new SpaceSetupTargetResolver())->resolve(
                 existingSpaceId: $spaceId,
                 duplicateFrom: $duplicateFrom,
@@ -119,13 +116,6 @@ class SpaceSetupCommand extends Command
                     inOrg: (bool) $input->getOption('in-org'),
                 )->space->id(),
             );
-
-            if ($this->hasValue($duplicateFrom)) {
-                Render::labelValue(
-                    $dryRun ? 'Planned space ID' : 'Created space ID',
-                    $spaceId,
-                );
-            }
 
             /** @var string[] $inputOverrides */
             $inputOverrides = $input->getOption('set');
@@ -158,7 +148,10 @@ class SpaceSetupCommand extends Command
             }
 
             $continueOnError = (bool) $input->getOption('continue-on-error') || $this->boolValue($config['continue_on_error'] ?? false);
-            $this->runSetup($spaceId, $config, $dryRun, $continueOnError);
+            $mode = $this->hasValue($duplicateFrom)
+                ? 'Duplicate from ' . $duplicateFrom . ' as "' . $newSpaceName . '"'
+                : 'Existing space';
+            $this->runSetup($spaceId, $config, $dryRun, $continueOnError, $mode);
         } catch (\Exception $exception) {
             Render::error($exception->getMessage());
             return self::FAILURE;
@@ -170,79 +163,96 @@ class SpaceSetupCommand extends Command
     /**
      * @param array<string, mixed> $config
      */
-    private function runSetup(string $spaceId, array $config, bool $dryRun, bool $continueOnError): void
-    {
-        Render::title('Space Setup');
-        Render::labelValue('Target space ID', $spaceId);
+    private function runSetup(
+        string $spaceId,
+        array $config,
+        bool $dryRun,
+        bool $continueOnError,
+        string $mode,
+    ): void {
+        $reporter = new SpaceSetupReporter($dryRun);
+        $reporter->start($spaceId, $mode);
 
         if ($this->sectionEnabled($config['preview'] ?? null)) {
-            $this->runStep('Preview URLs', $continueOnError, function () use ($spaceId, $config, $dryRun): void {
-                $preview = $this->arrayValue($config['preview'] ?? []);
-                $defaultUrl = $this->stringValue($preview['default'] ?? '');
-                if ($defaultUrl === '') {
-                    throw new \RuntimeException('preview.default is required when preview is enabled.');
-                }
-
-                Render::labelValue('Default preview URL', $defaultUrl);
-
-                $environments = [];
-                foreach ($this->listValue($preview['environments'] ?? []) as $environment) {
-                    if (!is_array($environment)) {
-                        continue;
+            $preview = $this->arrayValue($config['preview'] ?? []);
+            $defaultUrl = $this->stringValue($preview['default'] ?? '');
+            $environmentConfigs = $this->listValue($preview['environments'] ?? []);
+            $reporter->run(
+                'Configure preview URLs',
+                SpaceSetupOperationStatus::Updated,
+                $continueOnError,
+                function () use ($spaceId, $defaultUrl, $environmentConfigs, $dryRun): SpaceSetupOperationResult {
+                    if ($defaultUrl === '') {
+                        throw new \RuntimeException('preview.default is required when preview is enabled.');
                     }
 
-                    $name = $this->stringValue($environment['name'] ?? '');
-                    $url = $this->stringValue($environment['url'] ?? '');
-                    if ($name === '' || $url === '') {
-                        throw new \RuntimeException('Each preview environment requires name and url.');
+                    $environments = [];
+                    foreach ($environmentConfigs as $environment) {
+                        if (!is_array($environment)) {
+                            continue;
+                        }
+
+                        $name = $this->stringValue($environment['name'] ?? '');
+                        $url = $this->stringValue($environment['url'] ?? '');
+                        if ($name === '' || $url === '') {
+                            throw new \RuntimeException('Each preview environment requires name and url.');
+                        }
+
+                        $environments[] = new SpaceEnvironment($name, $url);
                     }
 
-                    $environments[] = new SpaceEnvironment($name, $url);
-                    Render::labelValue('Environment: ' . $name, $url);
-                }
+                    if (!$dryRun) {
+                        $action = new SpacePreviewSetAction($this->client);
+                        $action->execute($spaceId, $action->preflight($spaceId), $defaultUrl, $environments);
+                    }
 
-                if ($dryRun) {
-                    return;
-                }
-
-                $action = new SpacePreviewSetAction($this->client);
-                $action->execute($spaceId, $action->preflight($spaceId), $defaultUrl, $environments);
-            });
+                    return new SpaceSetupOperationResult(
+                        SpaceSetupOperationStatus::Updated,
+                        'Configure preview URLs',
+                        $defaultUrl . ' (' . count($environments) . ' environments)',
+                    );
+                },
+            );
         }
 
         if ($this->boolValue($this->arrayValue($config['demo_mode'] ?? [])['remove'] ?? false)) {
-            $this->runStep('Remove demo mode', $continueOnError, function () use ($spaceId, $dryRun): void {
+            $reporter->run('Remove demo mode', SpaceSetupOperationStatus::Removed, $continueOnError, function () use ($spaceId, $dryRun): ?SpaceSetupOperationResult {
                 if ($dryRun) {
-                    Render::log('Dry run: would remove demo mode.');
-                    return;
+                    return null;
                 }
 
                 $action = new SpaceDemoRemoveAction($this->client);
                 $preflight = $action->preflight($spaceId);
                 if (!$preflight->isDemo) {
-                    Render::log('Space is not in demo mode. Skipping.');
-                    return;
+                    return new SpaceSetupOperationResult(
+                        SpaceSetupOperationStatus::Skipped,
+                        'Remove demo mode',
+                        'Space is not in demo mode.',
+                    );
                 }
 
                 $action->execute($spaceId, $preflight);
+                return null;
             });
         }
 
         if ($this->boolValue($this->arrayValue($config['workflow'] ?? [])['assign_unstaged'] ?? false)) {
-            $this->runStep('Assign workflow stages', $continueOnError, function () use ($spaceId, $config, $dryRun): void {
+            $reporter->run('Assign workflow stages', SpaceSetupOperationStatus::Updated, $continueOnError, function () use ($spaceId, $config, $dryRun): ?SpaceSetupOperationResult {
                 $workflow = $this->arrayValue($config['workflow'] ?? []);
                 $stageId = $this->nullableIntValue($workflow['stage_id'] ?? null);
 
                 if ($dryRun) {
-                    Render::log('Dry run: would assign workflow stages to unstaged stories.');
-                    return;
+                    return null;
                 }
 
                 $action = new StoriesWorkflowAssignAction($this->client);
                 $preflight = $action->preflight($spaceId);
                 if ($preflight->countWithoutStage === 0) {
-                    Render::log('All stories already have workflow stages.');
-                    return;
+                    return new SpaceSetupOperationResult(
+                        SpaceSetupOperationStatus::Skipped,
+                        'Assign workflow stages',
+                        'All stories already have workflow stages.',
+                    );
                 }
 
                 $stageId ??= $this->nullableIntValue($preflight->defaultStageId);
@@ -251,21 +261,27 @@ class SpaceSetupCommand extends Command
                 }
 
                 $result = $action->execute($spaceId, $preflight, $stageId);
-                foreach ($result['errors'] as $error) {
-                    Render::error($error);
+                if ($result['errors'] !== []) {
+                    throw new \RuntimeException(implode(' | ', $result['errors']));
                 }
+
+                return new SpaceSetupOperationResult(
+                    SpaceSetupOperationStatus::Updated,
+                    'Assign workflow stages',
+                    count($result['assigned']) . ' stories assigned.',
+                );
             });
         }
 
         $apps = $this->arrayValue($config['apps'] ?? []);
         foreach ($this->stringListValue($apps['install'] ?? []) as $slug) {
-            $this->runStep('Install app: ' . $slug, $continueOnError || $this->boolValue($apps['continue_on_error'] ?? false), function () use ($spaceId, $slug, $dryRun): void {
-                if ($dryRun) {
-                    return;
+            $reporter->run('Install app: ' . $slug, SpaceSetupOperationStatus::Installed, $continueOnError || $this->boolValue($apps['continue_on_error'] ?? false), function () use ($spaceId, $slug, $dryRun): ?SpaceSetupOperationResult {
+                if (!$dryRun) {
+                    $action = new AppProvisionInstallAction($this->client);
+                    $action->execute($spaceId, $action->resolveBySlug($spaceId, $slug));
                 }
 
-                $action = new AppProvisionInstallAction($this->client);
-                $action->execute($spaceId, $action->resolveBySlug($spaceId, $slug));
+                return null;
             });
         }
 
@@ -277,7 +293,7 @@ class SpaceSetupCommand extends Command
 
             $componentName = $this->stringValue($field['component'] ?? '');
             $fieldName = $this->stringValue($field['field'] ?? '');
-            $this->runStep('Add component field: ' . $componentName . '.' . $fieldName, $continueOnError, function () use ($spaceId, $field, $componentName, $fieldName, $dryRun): void {
+            $reporter->run('Add component field: ' . $componentName . '.' . $fieldName, SpaceSetupOperationStatus::Created, $continueOnError, function () use ($spaceId, $field, $componentName, $fieldName, $dryRun): ?SpaceSetupOperationResult {
                 $type = $this->stringValue($field['type'] ?? '');
                 $tab = $this->stringValue($field['tab'] ?? 'General');
                 if ($componentName === '' || $fieldName === '' || $type === '') {
@@ -285,7 +301,7 @@ class SpaceSetupCommand extends Command
                 }
 
                 if ($dryRun) {
-                    return;
+                    return null;
                 }
 
                 $action = new ComponentFieldAddAction($this->client);
@@ -302,6 +318,8 @@ class SpaceSetupCommand extends Command
                     required: $this->boolValue($field['required'] ?? false),
                     translatable: $this->boolValue($field['translatable'] ?? false),
                 );
+
+                return null;
             });
         }
 
@@ -311,53 +329,41 @@ class SpaceSetupCommand extends Command
             }
 
             $tags = $this->stringListValue($tagGroup['tags'] ?? []);
-            $this->runStep('Assign tags: ' . implode(', ', $tags), $continueOnError, function () use ($spaceId, $tagGroup, $tags, $dryRun): void {
+            $stories = $this->arrayValue($tagGroup['stories'] ?? []);
+            $storyIds = $this->stringListValue($stories['ids'] ?? []);
+            $storySlugs = $this->stringListValue($stories['slugs'] ?? []);
+            $label = 'Assign tags: ' . implode(', ', $tags);
+            $reporter->run($label, SpaceSetupOperationStatus::Updated, $continueOnError, function () use ($spaceId, $tags, $storyIds, $storySlugs, $dryRun, $label): SpaceSetupOperationResult {
                 if ($tags === []) {
                     throw new \RuntimeException('Tag assignment entries require at least one tag.');
                 }
 
-                $stories = $this->arrayValue($tagGroup['stories'] ?? []);
-                $storyIds = $this->stringListValue($stories['ids'] ?? []);
-                $storySlugs = $this->stringListValue($stories['slugs'] ?? []);
                 if ($storyIds === [] && $storySlugs === []) {
                     throw new \RuntimeException('Tag assignment entries require stories.ids or stories.slugs.');
                 }
 
                 if ($dryRun) {
-                    Render::labelValue('Story slugs', implode(', ', $storySlugs));
-                    return;
+                    return new SpaceSetupOperationResult(
+                        SpaceSetupOperationStatus::Updated,
+                        $label,
+                        'Stories: ' . implode(', ', [...$storyIds, ...$storySlugs]),
+                    );
                 }
 
                 $result = (new StoriesTagsAssignAction($this->client))->execute($spaceId, $storyIds, $storySlugs, $tags);
-                foreach ($result->errors as $error) {
-                    Render::error($error);
+                if ($result->errors !== []) {
+                    throw new \RuntimeException(implode(' | ', $result->errors));
                 }
+
+                return new SpaceSetupOperationResult(
+                    SpaceSetupOperationStatus::Updated,
+                    $label,
+                    count($result->tagged) . ' stories tagged.',
+                );
             });
         }
 
-        if ($dryRun) {
-            Render::titleSection('Dry-run plan complete');
-            Render::log('No changes were applied.');
-            return;
-        }
-
-        Render::titleSection('Setup complete');
-    }
-
-    private function runStep(string $label, bool $continueOnError, \Closure $callback): void
-    {
-        Render::titleSection($label);
-
-        try {
-            $callback();
-        } catch (\Exception $exception) {
-            if (!$continueOnError) {
-                throw $exception;
-            }
-
-            Render::error($exception->getMessage());
-            Render::log('Continuing after failed step.');
-        }
+        $reporter->finish();
     }
 
     /**
