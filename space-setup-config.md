@@ -49,20 +49,54 @@ YAML files can enable editor autocomplete and inline validation with:
 
 ## Variables
 
-String values support simple placeholders:
+The complete setup configuration supports namespaced expressions:
 
-| Placeholder | Description |
+| Context | Description |
 |---|---|
-| `{{ space_id }}` | Target space ID. If `--duplicate-from` is used, this is the newly created space ID. |
-| `{{ preview_token }}` | First preview access token of the target space. |
-| `{{ env.NAME }}` | Environment variable named `NAME`. |
+| `${{ inputs.NAME }}` | Declared setup input default or `--set` override. |
+| `${{ env.NAME }}` | Environment variable named `NAME`. |
+| `${{ space.id }}` | Target space ID. If `--duplicate-from` is used, this is the newly created space ID. |
+| `${{ space.preview_token }}` | First preview access token of the target space. |
 
 Example:
 
 ```yaml
+inputs:
+  frontend_host:
+    required: true
+
 preview:
-  default: "https://example.com/?token={{ preview_token }}&space={{ space_id }}&path="
+  default: "https://${{ inputs.frontend_host }}/?token=${{ space.preview_token }}&space=${{ space.id }}&path="
 ```
+
+Override declared inputs with repeatable `--set` options:
+
+```bash
+php bin/blokctl space:setup -S 290817118944379 \
+  --config examples/demo-space.yaml \
+  --set frontend_host=customer-demo.example.com
+```
+
+Values passed through `--set` are parsed as JSON when possible. For example, `--set enabled=true` resolves to a boolean and `--set count=5` resolves to an integer.
+
+Input resolution priority is:
+
+1. A matching `--set NAME=VALUE` CLI override.
+2. The input's `default` value declared in the YAML or JSON config.
+3. A validation error when the input is marked `required` and no value is available.
+
+The `env` and `space` contexts are not setup inputs:
+
+- `${{ env.NAME }}` is read automatically from the process environment.
+- `${{ space.id }}` and `${{ space.preview_token }}` are resolved automatically from the target space.
+
+When an entire value is one expression, its native type is preserved:
+
+```yaml
+enabled: "${{ inputs.enable_feature }}"
+```
+
+When an expression is embedded in other text, it must resolve to a scalar value and the result is a string. Missing variables stop setup with the exact configuration path.
 
 ## Top-Level Keys
 
@@ -71,6 +105,7 @@ Except for `version`, all top-level sections are optional. If a section is omitt
 | Key | Description |
 |---|---|
 | `version` | Required configuration schema version. Currently `1`. |
+| `inputs` | Reusable runtime input definitions with defaults and required values. |
 | `continue_on_error` | Global boolean. Continue after a failed step. |
 | `preview` | Set the default preview URL and frontend environments. |
 | `demo_mode` | Remove demo/example mode. |
@@ -84,14 +119,19 @@ Except for `version`, all top-level sections are optional. If a section is omitt
 ```yaml
 version: 1
 
+inputs:
+  frontend_host:
+    description: "Frontend host used by the default preview URL"
+    default: "storyblok-demo-default-se.netlify.app"
+
 continue_on_error: false
 
 preview:
   enabled: true
-  default: "https://storyblok-demo-default-se.netlify.app/?token={{ preview_token }}&path="
+  default: "https://${{ inputs.frontend_host }}/?token=${{ space.preview_token }}&path="
   environments:
     - name: "Local Development"
-      url: "https://localhost:3000/?token={{ preview_token }}&path="
+      url: "https://localhost:3000/?token=${{ space.preview_token }}&path="
 
 demo_mode:
   remove: true
@@ -135,6 +175,30 @@ tags:
       - Marketing
 ```
 
+## `inputs`
+
+Declares runtime values that can have defaults or be supplied through `--set`.
+
+```yaml
+inputs:
+  customer_name:
+    description: "Customer name shown in demo content"
+    required: true
+
+  frontend_host:
+    default: "demo.example.com"
+
+  enable_feature:
+    default: false
+```
+
+| Key | Required | Description |
+|---|---:|---|
+| `description` | No | Human-readable input description. |
+| `required` | No | Require a default or `--set` override. Defaults to `false`. |
+| `default` | No | Default input value. Supports strings, numbers, booleans, arrays, and objects. |
+| `secret` | No | Marks a value as sensitive for future masked output support. |
+
 ## `preview`
 
 Sets the default preview URL and optional frontend environments.
@@ -142,10 +206,10 @@ Sets the default preview URL and optional frontend environments.
 ```yaml
 preview:
   enabled: true
-  default: "https://example.com/?token={{ preview_token }}&path="
+  default: "https://example.com/?token=${{ space.preview_token }}&path="
   environments:
     - name: "Local Development"
-      url: "https://localhost:3000/?token={{ preview_token }}&path="
+      url: "https://localhost:3000/?token=${{ space.preview_token }}&path="
 ```
 
 | Key | Required | Description |
@@ -270,7 +334,7 @@ When using `--duplicate-from`, `space:setup` does this in order:
 2. Store the new space ID.
 3. Apply the config to the new space.
 
-That means `{{ space_id }}` always refers to the final target space, not the source template space.
+That means `${{ space.id }}` always refers to the final target space, not the source template space.
 
 ```bash
 php bin/blokctl space:setup \

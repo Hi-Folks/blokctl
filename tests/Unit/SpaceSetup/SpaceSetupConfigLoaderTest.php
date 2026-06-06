@@ -19,7 +19,7 @@ final class SpaceSetupConfigLoaderTest extends TestCase
         $this->assertIsArray($preview);
         $this->assertTrue($preview['enabled']);
         $this->assertSame(
-            'https://storyblok-demo-default-se.netlify.app/?token={{ preview_token }}&path=',
+            'https://${{ inputs.frontend_host }}/?token=${{ space.preview_token }}&path=',
             $preview['default'],
         );
 

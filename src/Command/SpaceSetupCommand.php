@@ -15,6 +15,8 @@ use Blokctl\Action\Story\StoriesWorkflowAssignAction;
 use Blokctl\Render;
 use Blokctl\SpaceSetup\SpaceSetupConfigLoader;
 use Blokctl\SpaceSetup\SpaceSetupConfigValidator;
+use Blokctl\SpaceSetup\SpaceSetupInputsResolver;
+use Blokctl\SpaceSetup\SpaceSetupVariableResolver;
 use Storyblok\ManagementApi\Data\Enum\Region;
 use Storyblok\ManagementApi\Data\SpaceEnvironment;
 use Storyblok\ManagementApi\ManagementApiClient;
@@ -44,6 +46,7 @@ class SpaceSetupCommand extends Command
             ->addOption('demo', null, InputOption::VALUE_NONE, 'Mark the duplicated space as a demo/example space')
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Print the planned setup without changing Storyblok')
             ->addOption('continue-on-error', null, InputOption::VALUE_NONE, 'Continue running setup steps after a non-fatal step failure')
+            ->addOption('set', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Override a setup input as NAME=VALUE (repeatable)')
             ->addOption('region', 'R', InputOption::VALUE_REQUIRED, 'The Storyblok region (' . implode(', ', Region::values()) . ')');
     }
 
@@ -106,7 +109,6 @@ class SpaceSetupCommand extends Command
             }
 
             $dryRun = (bool) $input->getOption('dry-run');
-            $continueOnError = (bool) $input->getOption('continue-on-error') || $this->boolValue($config['continue_on_error'] ?? false);
 
             if ($this->hasValue($duplicateFrom)) {
                 if (!$this->hasValue($newSpaceName)) {
@@ -138,6 +140,37 @@ class SpaceSetupCommand extends Command
                 return self::FAILURE;
             }
 
+            /** @var string[] $inputOverrides */
+            $inputOverrides = $input->getOption('set');
+            $inputs = (new SpaceSetupInputsResolver())->resolve($config, $inputOverrides);
+            $environment = getenv();
+            if (!is_array($environment)) {
+                $environment = [];
+            }
+
+            $resolver = new SpaceSetupVariableResolver([
+                'inputs' => $inputs,
+                'env' => array_merge($environment, $_ENV),
+                'space' => [
+                    'id' => (string) $spaceId,
+                    'preview_token' => $dryRun
+                        ? 'PREVIEW_TOKEN'
+                        : $this->resolvePreviewTokenWhenNeeded($config, (string) $spaceId),
+                ],
+            ]);
+            $config = $resolver->resolveConfig($config);
+
+            $resolvedValidation = (new SpaceSetupConfigValidator())->validate($config);
+            if (!$resolvedValidation->isValid()) {
+                Render::error('Resolved space setup configuration is invalid:');
+                foreach ($resolvedValidation->errors as $error) {
+                    Render::error($error);
+                }
+
+                return self::FAILURE;
+            }
+
+            $continueOnError = (bool) $input->getOption('continue-on-error') || $this->boolValue($config['continue_on_error'] ?? false);
             $this->runSetup((string) $spaceId, $config, $dryRun, $continueOnError);
         } catch (\Exception $exception) {
             Render::error($exception->getMessage());
@@ -155,18 +188,10 @@ class SpaceSetupCommand extends Command
         Render::title('Space Setup');
         Render::labelValue('Target space ID', $spaceId);
 
-        $variables = ['space_id' => $spaceId];
-
         if ($this->sectionEnabled($config['preview'] ?? null)) {
-            $this->runStep('Preview URLs', $continueOnError, function () use ($spaceId, $config, $dryRun, &$variables): void {
-                if (!isset($variables['preview_token'])) {
-                    $variables['preview_token'] = $dryRun
-                        ? 'PREVIEW_TOKEN'
-                        : (new SpaceTokenAction($this->client))->execute($spaceId)->token;
-                }
-
+            $this->runStep('Preview URLs', $continueOnError, function () use ($spaceId, $config, $dryRun): void {
                 $preview = $this->arrayValue($config['preview'] ?? []);
-                $defaultUrl = $this->resolveString($this->stringValue($preview['default'] ?? ''), $variables);
+                $defaultUrl = $this->stringValue($preview['default'] ?? '');
                 if ($defaultUrl === '') {
                     throw new \RuntimeException('preview.default is required when preview is enabled.');
                 }
@@ -180,7 +205,7 @@ class SpaceSetupCommand extends Command
                     }
 
                     $name = $this->stringValue($environment['name'] ?? '');
-                    $url = $this->resolveString($this->stringValue($environment['url'] ?? ''), $variables);
+                    $url = $this->stringValue($environment['url'] ?? '');
                     if ($name === '' || $url === '') {
                         throw new \RuntimeException('Each preview environment requires name and url.');
                     }
@@ -343,20 +368,21 @@ class SpaceSetupCommand extends Command
     }
 
     /**
-     * @param array<string, mixed> $variables
+     * @param array<string, mixed> $config
      */
-    private function resolveString(string $value, array $variables): string
+    private function resolvePreviewTokenWhenNeeded(array $config, string $spaceId): string
     {
-        return (string) preg_replace_callback('/{{\s*([A-Za-z0-9_.]+)\s*}}/', static function (array $matches) use ($variables): string {
-            $key = $matches[1];
-            if (str_starts_with($key, 'env.')) {
-                $envValue = getenv(substr($key, 4));
-                return is_string($envValue) ? $envValue : '';
-            }
+        $resolver = new SpaceSetupVariableResolver([]);
+        if (!$resolver->containsExpression($config, 'space.preview_token')) {
+            return '';
+        }
 
-            $value = $variables[$key] ?? '';
-            return is_scalar($value) ? (string) $value : '';
-        }, $value);
+        $token = (new SpaceTokenAction($this->client))->execute($spaceId)->token;
+        if ($token === null || $token === '') {
+            throw new \RuntimeException('Unable to resolve the preview token for space ' . $spaceId . '.');
+        }
+
+        return $token;
     }
 
     /**

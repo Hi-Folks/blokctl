@@ -9,7 +9,7 @@ Related documentation:
 
 ## Immediate Fixes
 
-- [ ] Apply variable substitution recursively to every config string, not only preview URLs.
+- [x] Apply variable substitution recursively to every config string, not only preview URLs.
 - [ ] Make `--dry-run --duplicate-from` show the complete post-duplication setup plan.
 - [ ] Detect conflicting options such as `--demo` with `demo_mode.remove: true`.
 - [x] Validate the complete config before creating or modifying a space.
@@ -35,8 +35,8 @@ Related documentation:
 - [x] Add editor autocomplete and inline validation through the JSON Schema.
 - [ ] Add optional template metadata: name, description, category, owner, and tags.
 - [ ] Add runtime parameters with required values, defaults, and secret/masked values.
-- [ ] Add repeatable CLI overrides: `--set customer_name=Acme`.
-- [ ] Support parameter placeholders such as `{{ customer_name }}`.
+- [x] Add repeatable CLI overrides: `--set customer_name=Acme`.
+- [x] Support namespaced parameter placeholders such as `${{ inputs.customer_name }}`.
 - [x] Add a config validation command:
 
   ```bash
@@ -77,11 +77,11 @@ Related documentation:
     update:
       - slug: site-config
         fields:
-          company_name: "{{ customer_name }}"
+          company_name: "${{ inputs.customer_name }}"
           primary_color: "{{ primary_color }}"
       - slug: home
         fields:
-          headline: "Welcome to {{ customer_name }}"
+          headline: "Welcome to ${{ inputs.customer_name }}"
   ```
 
 - [ ] Add story publishing and unpublishing.
@@ -99,7 +99,7 @@ Related documentation:
   assets:
     upload:
       - key: customer_logo
-        source: "{{ env.CUSTOMER_LOGO }}"
+        source: "${{ env.CUSTOMER_LOGO }}"
         folder: Brand
   ```
 
@@ -195,7 +195,7 @@ Related documentation:
 - [ ] Decide whether `space:setup` should support blank-space creation in addition to duplication.
 - [ ] Decide whether reconcile is the default mode or must be explicitly enabled.
 - [ ] Define how destructive operations are represented and confirmed.
-- [ ] Define whether unresolved variables fail setup or resolve to empty strings.
+- [x] Define whether unresolved variables fail setup or resolve to empty strings: unresolved variables fail setup.
 - [ ] Define whether IDs are permitted in portable templates or names/slugs are required.
 - [ ] Define how config secrets are masked in logs and reports.
 - [ ] Define a stable compatibility policy for config schema versions.
@@ -203,7 +203,9 @@ Related documentation:
 ## Current Supported Sections
 
 - [x] Preview default URL and frontend environments
-- [x] Preview URL placeholders: `{{ space_id }}`, `{{ preview_token }}`, and `{{ env.NAME }}`
+- [x] Recursive namespaced expressions for `inputs`, `env`, and `space` contexts
+- [x] Native type preservation for full-value expressions
+- [x] Setup input defaults, required values, and repeatable `--set` overrides
 - [x] Demo-mode removal
 - [x] Assign default or configured workflow stage to unstaged stories
 - [x] App installation by slug

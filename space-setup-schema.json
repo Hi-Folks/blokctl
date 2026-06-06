@@ -15,8 +15,11 @@
     },
     "continue_on_error": {
       "description": "Continue running setup steps after a failed step.",
-      "type": "boolean",
+      "$ref": "#/$defs/booleanOrExpression",
       "default": false
+    },
+    "inputs": {
+      "$ref": "#/$defs/inputs"
     },
     "preview": {
       "$ref": "#/$defs/preview"
@@ -42,6 +45,55 @@
       "type": "string",
       "minLength": 1
     },
+    "expression": {
+      "type": "string",
+      "pattern": "^\\$\\{\\{\\s*[A-Za-z_][A-Za-z0-9_.]*\\s*}}$"
+    },
+    "booleanOrExpression": {
+      "oneOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "#/$defs/expression"
+        }
+      ]
+    },
+    "integerOrExpression": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "$ref": "#/$defs/expression"
+        }
+      ]
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/inputDefinition"
+      }
+    },
+    "inputDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "secret": {
+          "type": "boolean",
+          "default": false
+        },
+        "default": true
+      }
+    },
     "identifier": {
       "oneOf": [
         {
@@ -62,7 +114,7 @@
       ],
       "properties": {
         "enabled": {
-          "type": "boolean",
+          "$ref": "#/$defs/booleanOrExpression",
           "default": true
         },
         "default": {
@@ -97,7 +149,7 @@
       ],
       "properties": {
         "remove": {
-          "type": "boolean"
+          "$ref": "#/$defs/booleanOrExpression"
         }
       }
     },
@@ -109,14 +161,21 @@
       ],
       "properties": {
         "assign_unstaged": {
-          "type": "boolean"
+          "$ref": "#/$defs/booleanOrExpression"
         },
         "stage_id": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 1
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/expression"
+            }
+          ]
         }
       }
     },
@@ -128,7 +187,7 @@
       ],
       "properties": {
         "continue_on_error": {
-          "type": "boolean",
+          "$ref": "#/$defs/booleanOrExpression",
           "default": false
         },
         "install": {
@@ -183,8 +242,7 @@
           "$ref": "#/$defs/nonEmptyString"
         },
         "pos": {
-          "type": "integer",
-          "minimum": 0
+          "$ref": "#/$defs/integerOrExpression"
         },
         "display_name": {
           "$ref": "#/$defs/nonEmptyString"
@@ -193,11 +251,11 @@
           "$ref": "#/$defs/nonEmptyString"
         },
         "required": {
-          "type": "boolean",
+          "$ref": "#/$defs/booleanOrExpression",
           "default": false
         },
         "translatable": {
-          "type": "boolean",
+          "$ref": "#/$defs/booleanOrExpression",
           "default": false
         }
       }

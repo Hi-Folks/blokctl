@@ -86,6 +86,38 @@ final class SpaceSetupConfigValidatorTest extends TestCase
         $this->assertErrorsContain($result->errors, 'boolean');
     }
 
+    #[Test]
+    public function accepts_namespaced_expressions_before_resolution(): void
+    {
+        $result = (new SpaceSetupConfigValidator())->validate([
+            'version' => 1,
+            'inputs' => [
+                'enabled' => [
+                    'default' => true,
+                ],
+                'position' => [
+                    'default' => 3,
+                ],
+            ],
+            'preview' => [
+                'enabled' => '${{ inputs.enabled }}',
+                'default' => 'https://${{ env.FRONTEND_HOST }}/?space=${{ space.id }}',
+            ],
+            'components' => [
+                'fields' => [
+                    [
+                        'component' => 'page',
+                        'field' => 'title',
+                        'type' => 'text',
+                        'pos' => '${{ inputs.position }}',
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->assertTrue($result->isValid());
+    }
+
     /**
      * @param string[] $errors
      */
