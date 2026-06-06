@@ -12,32 +12,32 @@ Related documentation:
 - [ ] Apply variable substitution recursively to every config string, not only preview URLs.
 - [ ] Make `--dry-run --duplicate-from` show the complete post-duplication setup plan.
 - [ ] Detect conflicting options such as `--demo` with `demo_mode.remove: true`.
-- [ ] Validate the complete config before creating or modifying a space.
-- [ ] Improve validation errors with the YAML/JSON property path, for example `components.fields[0].type`.
+- [x] Validate the complete config before creating or modifying a space.
+- [x] Improve validation errors with the YAML/JSON property path, for example `components.fields[0].type`.
 - [ ] Make setup output distinguish `created`, `updated`, `unchanged`, `skipped`, and `failed`.
 - [ ] Return a non-zero exit code when individual actions report errors unless explicitly configured otherwise.
 - [ ] Add focused tests for every supported config section.
 
 ## Priority 1: Schema, Validation, and Template Definition
 
-- [ ] Add required config schema version: `version: 1`.
-- [ ] Create `space-setup-schema.json` using JSON Schema Draft 2020-12.
-- [ ] Use the same JSON Schema to validate both YAML and JSON setup files.
-- [ ] Add `additionalProperties: false` to detect unsupported and misspelled properties.
-- [ ] Validate the complete config before duplicating, creating, or modifying a space.
-- [ ] Report validation errors with precise property paths, for example `components.fields[0].type`.
-- [ ] Add the YAML Language Server schema reference to example YAML files:
+- [x] Add required config schema version: `version: 1`.
+- [x] Create `space-setup-schema.json` using JSON Schema Draft 2020-12.
+- [x] Use the same JSON Schema to validate both YAML and JSON setup files.
+- [x] Add `additionalProperties: false` to detect unsupported and misspelled properties.
+- [x] Validate the complete config before duplicating, creating, or modifying a space.
+- [x] Report validation errors with precise property paths, for example `components.fields[0].type`.
+- [x] Add the YAML Language Server schema reference to example YAML files:
 
   ```yaml
   # yaml-language-server: $schema=../space-setup-schema.json
   ```
 
-- [ ] Add editor autocomplete and inline validation through the JSON Schema.
+- [x] Add editor autocomplete and inline validation through the JSON Schema.
 - [ ] Add optional template metadata: name, description, category, owner, and tags.
 - [ ] Add runtime parameters with required values, defaults, and secret/masked values.
 - [ ] Add repeatable CLI overrides: `--set customer_name=Acme`.
 - [ ] Support parameter placeholders such as `{{ customer_name }}`.
-- [ ] Add a config validation command:
+- [x] Add a config validation command:
 
   ```bash
   php bin/blokctl space:setup-validate --config demo-space.yaml
@@ -212,5 +212,8 @@ Related documentation:
 - [x] Existing-space setup with `-S`
 - [x] Duplicate-first setup with `--duplicate-from`
 - [x] YAML and JSON config loading
+- [x] Draft 2020-12 JSON Schema validation for YAML and JSON configs
+- [x] Standalone `space:setup-validate` command
+- [x] Editor autocomplete and validation through YAML Language Server schema reference
 - [x] Basic dry-run mode
 - [x] Global and app-specific continue-on-error behavior

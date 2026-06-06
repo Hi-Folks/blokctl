@@ -25,6 +25,12 @@ Use `--dry-run` to inspect the plan without changing Storyblok:
 php bin/blokctl space:setup -S 290817118944379 --config examples/demo-space.yaml --dry-run
 ```
 
+Validate a config without accessing Storyblok:
+
+```bash
+php bin/blokctl space:setup-validate --config examples/demo-space.yaml
+```
+
 ## File Format
 
 The config file can be YAML or JSON. YAML is recommended for templates because it is easier to read and edit.
@@ -32,6 +38,14 @@ The config file can be YAML or JSON. YAML is recommended for templates because i
 The current example is [examples/demo-space.yaml](examples/demo-space.yaml).
 
 Future improvements and missing provisioning capabilities are tracked in [space-setup-todo.md](space-setup-todo.md).
+
+Both YAML and JSON files are validated against [space-setup-schema.json](space-setup-schema.json) before `space:setup` creates, duplicates, or modifies a space. Unknown properties, invalid types, and missing required properties cause setup to stop.
+
+YAML files can enable editor autocomplete and inline validation with:
+
+```yaml
+# yaml-language-server: $schema=../space-setup-schema.json
+```
 
 ## Variables
 
@@ -52,10 +66,11 @@ preview:
 
 ## Top-Level Keys
 
-All top-level sections are optional. If a section is omitted, that setup step is skipped.
+Except for `version`, all top-level sections are optional. If a section is omitted, that setup step is skipped.
 
 | Key | Description |
 |---|---|
+| `version` | Required configuration schema version. Currently `1`. |
 | `continue_on_error` | Global boolean. Continue after a failed step. |
 | `preview` | Set the default preview URL and frontend environments. |
 | `demo_mode` | Remove demo/example mode. |
@@ -67,6 +82,8 @@ All top-level sections are optional. If a section is omitted, that setup step is
 ## Full YAML Example
 
 ```yaml
+version: 1
+
 continue_on_error: false
 
 preview:

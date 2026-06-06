@@ -14,6 +14,7 @@ use Blokctl\Action\Story\StoriesTagsAssignAction;
 use Blokctl\Action\Story\StoriesWorkflowAssignAction;
 use Blokctl\Render;
 use Blokctl\SpaceSetup\SpaceSetupConfigLoader;
+use Blokctl\SpaceSetup\SpaceSetupConfigValidator;
 use Storyblok\ManagementApi\Data\Enum\Region;
 use Storyblok\ManagementApi\Data\SpaceEnvironment;
 use Storyblok\ManagementApi\ManagementApiClient;
@@ -77,6 +78,15 @@ class SpaceSetupCommand extends Command
             }
 
             $config = (new SpaceSetupConfigLoader())->load($configPath);
+            $validation = (new SpaceSetupConfigValidator())->validate($config);
+            if (!$validation->isValid()) {
+                Render::error('Invalid space setup configuration:');
+                foreach ($validation->errors as $error) {
+                    Render::error($error);
+                }
+
+                return self::FAILURE;
+            }
 
             /** @var string|null $spaceId */
             $spaceId = $input->getOption('space-id');

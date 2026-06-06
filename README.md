@@ -158,6 +158,8 @@ Creates a new Storyblok space. When `--duplicate-from` is provided, the command 
 
 #### `space:setup` — Set up a space from a config file
 
+`space:setup` follows a **Configuration as Code** approach: the desired Storyblok configuration is stored in version-controlled YAML or JSON, making demo-space provisioning reproducible and automatable.
+
 ```bash
 # Apply setup to an existing space
 php bin/blokctl space:setup -S 290817118944379 --config examples/demo-space.yaml
@@ -172,9 +174,12 @@ php bin/blokctl space:setup \
 
 # Preview the plan without changing Storyblok
 php bin/blokctl space:setup -S 290817118944379 --config examples/demo-space.yaml --dry-run
+
+# Validate a setup config without accessing Storyblok
+php bin/blokctl space:setup-validate --config examples/demo-space.yaml
 ```
 
-The setup config supports JSON and YAML. The example [examples/demo-space.yaml](examples/demo-space.yaml) mirrors the demo setup script: preview URLs, demo-mode removal, workflow assignment, app installation, component field additions, and story tag assignments. See [space-setup-config.md](space-setup-config.md) for the full configuration syntax.
+The setup config supports JSON and YAML and is validated against [space-setup-schema.json](space-setup-schema.json) before any space is created or modified. The example [examples/demo-space.yaml](examples/demo-space.yaml) mirrors the demo setup script: preview URLs, demo-mode removal, workflow assignment, app installation, component field additions, and story tag assignments. See [space-setup-config.md](space-setup-config.md) for the full configuration syntax.
 
 | Option | Description |
 |---|---|

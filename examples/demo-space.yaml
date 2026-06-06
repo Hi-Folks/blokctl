@@ -1,3 +1,7 @@
+# yaml-language-server: $schema=../space-setup-schema.json
+
+version: 1
+
 preview:
   enabled: true
   default: "https://storyblok-demo-default-se.netlify.app/?token={{ preview_token }}&path="
