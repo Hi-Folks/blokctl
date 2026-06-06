@@ -4,7 +4,6 @@ All notable changes to `blokctl` will be documented in this file.
 
 ## 0.9.0 - WIP
 
-- Requiring PHP 8.4.1 or higher and upgrading `symfony/yaml` from ^7.0 to ^8.0.
 - Adding `space:create`: Create a new Storyblok space or duplicate an existing space as a reusable demo template.
 - Adding `space:setup`: Provision an existing or newly duplicated space from a version-controlled YAML or JSON configuration file.
 - Adding `space:setup-validate`: Validate setup configuration files against the bundled JSON Schema without accessing Storyblok.
@@ -13,6 +12,7 @@ All notable changes to `blokctl` will be documented in this file.
 - Adding complete `--dry-run` planning, including duplicate-first provisioning, without creating or modifying a space.
 - Adding structured operation reporting with consistent statuses, execution summaries, failure handling, and masked preview tokens.
 - Adding setup configuration examples, schema, reference documentation, and a roadmap for future provisioning capabilities.
+- Requiring PHP 8.4.1 or higher and upgrading `symfony/yaml` from ^7.0 to ^8.0.
 
 ## 0.8.0 - 2026-05-31
 - Requiring `storyblok/php-management-api-client` `^1.7.0` for typed experiment API support.
