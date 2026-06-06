@@ -8,9 +8,11 @@
 >
 > **Important:** Since this is a testing phase, please use a **test user** with a **test Personal Access Token** that only has access to a **test space**. Do not use your production credentials or spaces.
 
-**Your Storyblok space, under your control.**
+**An unofficial Storyblok automation toolkit.**
 
-An opinionated, unofficial CLI tool for managing [Storyblok](https://www.storyblok.com/) spaces, built with PHP. Configure spaces, shape components, manage stories, set preview URLs, install apps, assign workflows and tags — all from the command line.
+`blokctl` provides a command-line interface, reusable PHP API, and Configuration as Code provisioning for managing and automating [Storyblok](https://www.storyblok.com/) spaces.
+
+Use individual commands or PHP actions to automate specific operations, or define repeatable space setups in version-controlled YAML or JSON configuration files. Configure spaces, shape components, manage stories, set preview URLs, install apps, assign workflows and tags, and provision complete demo environments.
 
 ## How is `blokctl` different from the Official Storyblok CLI?
 

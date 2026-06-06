@@ -1,6 +1,6 @@
 {
   "name": "hi-folks/blokctl",
-  "description": "An opinionated, unofficial CLI tool for managing Storyblok spaces",
+  "description": "An unofficial Storyblok automation toolkit providing a command-line interface, reusable PHP API, and Configuration as Code provisioning.",
   "type": "library",
   "license": "MIT",
   "require": {
