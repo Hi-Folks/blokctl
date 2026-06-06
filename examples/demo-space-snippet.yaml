@@ -1,0 +1,24 @@
+# Storyblok Demo Space as Code
+
+version: 1
+
+inputs:
+  customer:
+    required: true
+  frontend_host:
+    default: "storyblok-demo.netlify.app"
+
+preview:
+  default: "https://${{ inputs.frontend_host }}/?token=${{ space.preview_token }}"
+  environments:
+    - name: "${{ inputs.customer }} Demo"
+      url: "https://${{ inputs.frontend_host }}"
+
+apps:
+  install:
+    - releases_only
+    - storyblok-gmbh@ai-seo
+    - backups
+
+workflow:
+  assign_unstaged: true

@@ -16,6 +16,7 @@ use Blokctl\Render;
 use Blokctl\SpaceSetup\SpaceSetupConfigLoader;
 use Blokctl\SpaceSetup\SpaceSetupConfigValidator;
 use Blokctl\SpaceSetup\SpaceSetupInputsResolver;
+use Blokctl\SpaceSetup\SpaceSetupTargetResolver;
 use Blokctl\SpaceSetup\SpaceSetupVariableResolver;
 use Storyblok\ManagementApi\Data\Enum\Region;
 use Storyblok\ManagementApi\Data\SpaceEnvironment;
@@ -98,46 +99,32 @@ class SpaceSetupCommand extends Command
             /** @var string|null $newSpaceName */
             $newSpaceName = $input->getOption('name');
 
-            if ($this->hasValue($spaceId) && $this->hasValue($duplicateFrom)) {
-                Render::error('Use either --space-id (-S) or --duplicate-from, not both.');
-                return self::FAILURE;
-            }
-
-            if (!$this->hasValue($spaceId) && !$this->hasValue($duplicateFrom)) {
-                Render::error('Provide an existing --space-id (-S) or create one with --duplicate-from and --name.');
-                return self::FAILURE;
-            }
-
             $dryRun = (bool) $input->getOption('dry-run');
 
             if ($this->hasValue($duplicateFrom)) {
-                if (!$this->hasValue($newSpaceName)) {
-                    Render::error('--name is required when using --duplicate-from.');
-                    return self::FAILURE;
-                }
-
                 Render::titleSection('Create space from template');
                 Render::labelValue('Source space ID', (string) $duplicateFrom);
                 Render::labelValue('New space name', (string) $newSpaceName);
-
-                if ($dryRun) {
-                    Render::log('Dry run: skipping space duplication and setup execution.');
-                    return self::SUCCESS;
-                }
-
-                $created = (new SpaceCreateAction($this->client))->execute(
-                    name: (string) $newSpaceName,
-                    duplicateFrom: $duplicateFrom,
-                    isDemo: (bool) $input->getOption('demo'),
-                    inOrg: (bool) $input->getOption('in-org'),
-                );
-                $spaceId = $created->space->id();
-                Render::labelValue('Created space ID', $spaceId);
             }
 
-            if (!$this->hasValue($spaceId)) {
-                Render::error('Unable to resolve the target space ID.');
-                return self::FAILURE;
+            $spaceId = (new SpaceSetupTargetResolver())->resolve(
+                existingSpaceId: $spaceId,
+                duplicateFrom: $duplicateFrom,
+                newSpaceName: $newSpaceName,
+                dryRun: $dryRun,
+                duplicate: fn(string $sourceSpaceId, string $name): string => (new SpaceCreateAction($this->client))->execute(
+                    name: $name,
+                    duplicateFrom: $sourceSpaceId,
+                    isDemo: (bool) $input->getOption('demo'),
+                    inOrg: (bool) $input->getOption('in-org'),
+                )->space->id(),
+            );
+
+            if ($this->hasValue($duplicateFrom)) {
+                Render::labelValue(
+                    $dryRun ? 'Planned space ID' : 'Created space ID',
+                    $spaceId,
+                );
             }
 
             /** @var string[] $inputOverrides */
@@ -152,10 +139,10 @@ class SpaceSetupCommand extends Command
                 'inputs' => $inputs,
                 'env' => array_merge($environment, $_ENV),
                 'space' => [
-                    'id' => (string) $spaceId,
+                    'id' => $spaceId,
                     'preview_token' => $dryRun
                         ? 'PREVIEW_TOKEN'
-                        : $this->resolvePreviewTokenWhenNeeded($config, (string) $spaceId),
+                        : $this->resolvePreviewTokenWhenNeeded($config, $spaceId),
                 ],
             ]);
             $config = $resolver->resolveConfig($config);
@@ -171,7 +158,7 @@ class SpaceSetupCommand extends Command
             }
 
             $continueOnError = (bool) $input->getOption('continue-on-error') || $this->boolValue($config['continue_on_error'] ?? false);
-            $this->runSetup((string) $spaceId, $config, $dryRun, $continueOnError);
+            $this->runSetup($spaceId, $config, $dryRun, $continueOnError);
         } catch (\Exception $exception) {
             Render::error($exception->getMessage());
             return self::FAILURE;
@@ -346,6 +333,12 @@ class SpaceSetupCommand extends Command
                     Render::error($error);
                 }
             });
+        }
+
+        if ($dryRun) {
+            Render::titleSection('Dry-run plan complete');
+            Render::log('No changes were applied.');
+            return;
         }
 
         Render::titleSection('Setup complete');

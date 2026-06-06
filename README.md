@@ -175,6 +175,13 @@ php bin/blokctl space:setup \
 # Preview the plan without changing Storyblok
 php bin/blokctl space:setup -S 290817118944379 --config examples/demo-space.yaml --dry-run
 
+# Preview duplication and the complete setup plan without creating a space
+php bin/blokctl space:setup \
+  --duplicate-from=286863409930127 \
+  --name='Planned Demo' \
+  --config examples/demo-space.yaml \
+  --dry-run
+
 # Override setup inputs
 php bin/blokctl space:setup -S 290817118944379 \
   --config examples/demo-space.yaml \
@@ -199,6 +206,8 @@ The setup config supports JSON and YAML and is validated against [space-setup-sc
 | `--set` | Override a declared setup input as `NAME=VALUE` (repeatable) |
 
 Use either `-S` or `--duplicate-from`, not both. When `--duplicate-from` is used, `space:setup` creates the new space first and applies the configured changes to the new space ID.
+
+With `--dry-run --duplicate-from`, no space is created. The complete setup plan is rendered using `NEW_SPACE_ID` and `PREVIEW_TOKEN` placeholders.
 
 #### `space:info` — Display space information
 

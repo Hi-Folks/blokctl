@@ -10,7 +10,7 @@ Related documentation:
 ## Immediate Fixes
 
 - [x] Apply variable substitution recursively to every config string, not only preview URLs.
-- [ ] Make `--dry-run --duplicate-from` show the complete post-duplication setup plan.
+- [x] Make `--dry-run --duplicate-from` show the complete post-duplication setup plan.
 - [ ] Detect conflicting options such as `--demo` with `demo_mode.remove: true`.
 - [x] Validate the complete config before creating or modifying a space.
 - [x] Improve validation errors with the YAML/JSON property path, for example `components.fields[0].type`.
@@ -218,4 +218,5 @@ Related documentation:
 - [x] Standalone `space:setup-validate` command
 - [x] Editor autocomplete and validation through YAML Language Server schema reference
 - [x] Basic dry-run mode
+- [x] Complete duplicate-first dry-run planning with target-space placeholders
 - [x] Global and app-specific continue-on-error behavior

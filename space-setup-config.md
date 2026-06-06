@@ -25,6 +25,18 @@ Use `--dry-run` to inspect the plan without changing Storyblok:
 php bin/blokctl space:setup -S 290817118944379 --config examples/demo-space.yaml --dry-run
 ```
 
+For duplicate-first provisioning, dry-run also displays the complete post-duplication plan without creating a space:
+
+```bash
+php bin/blokctl space:setup \
+  --duplicate-from=286863409930127 \
+  --name='Planned Demo' \
+  --config examples/demo-space.yaml \
+  --dry-run
+```
+
+During a duplicate dry-run, `${{ space.id }}` resolves to `NEW_SPACE_ID` and `${{ space.preview_token }}` resolves to `PREVIEW_TOKEN`.
+
 Validate a config without accessing Storyblok:
 
 ```bash
@@ -346,3 +358,5 @@ php bin/blokctl space:setup \
 ```
 
 Do not pass `-S` together with `--duplicate-from`; these modes are mutually exclusive.
+
+With `--dry-run`, duplication is skipped and the complete setup plan is rendered using placeholder target-space values.
