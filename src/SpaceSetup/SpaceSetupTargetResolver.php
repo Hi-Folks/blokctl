@@ -22,11 +22,11 @@ final class SpaceSetupTargetResolver
         $hasDuplicateSource = $duplicateFrom !== null && $duplicateFrom !== '';
 
         if ($hasExistingSpace && $hasDuplicateSource) {
-            throw new \RuntimeException('Use either --space-id (-S) or --duplicate-from, not both.');
+            throw new \RuntimeException('Use either --space-id (-S) or space.duplicate_from in the setup configuration, not both.');
         }
 
         if (!$hasExistingSpace && !$hasDuplicateSource) {
-            throw new \RuntimeException('Provide an existing --space-id (-S) or create one with --duplicate-from and --name.');
+            throw new \RuntimeException('Provide an existing --space-id (-S) or configure space.duplicate_from and space.name.');
         }
 
         if ($existingSpaceId !== null && $existingSpaceId !== '') {
@@ -34,7 +34,7 @@ final class SpaceSetupTargetResolver
         }
 
         if ($newSpaceName === null || $newSpaceName === '') {
-            throw new \RuntimeException('--name is required when using --duplicate-from.');
+            throw new \RuntimeException('space.name is required when using space.duplicate_from.');
         }
 
         if ($dryRun) {

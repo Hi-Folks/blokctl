@@ -10,8 +10,8 @@ Related documentation:
 ## Immediate Fixes
 
 - [x] Apply variable substitution recursively to every config string, not only preview URLs.
-- [x] Make `--dry-run --duplicate-from` show the complete post-duplication setup plan.
-- [ ] Detect conflicting options such as `--demo` with `demo_mode.remove: true`.
+- [x] Make duplicate-first `--dry-run` show the complete post-duplication setup plan.
+- [x] Detect conflicting settings such as `space.demo: true` with `demo_mode.remove: true`.
 - [x] Validate the complete config before creating or modifying a space.
 - [x] Improve validation errors with the YAML/JSON property path, for example `components.fields[0].type`.
 - [x] Make setup output distinguish `planned`, `created`, `updated`, `installed`, `removed`, `skipped`, and `failed`.
@@ -34,7 +34,7 @@ Related documentation:
 
 - [x] Add editor autocomplete and inline validation through the JSON Schema.
 - [ ] Add optional template metadata: name, description, category, owner, and tags.
-- [ ] Add runtime parameters with required values, defaults, and secret/masked values.
+- [ ] Complete secret/masked runtime parameter handling.
 - [x] Add repeatable CLI overrides: `--set customer_name=Acme`.
 - [x] Support namespaced parameter placeholders such as `${{ inputs.customer_name }}`.
 - [x] Add a config validation command:
@@ -191,7 +191,7 @@ Related documentation:
 
 ## Decisions to Make
 
-- [ ] Decide whether creation/duplication settings belong only in CLI options or may also live in config.
+- [x] Store duplication settings in config for `space:setup`; keep CLI options on `space:create`.
 - [ ] Decide whether `space:setup` should support blank-space creation in addition to duplication.
 - [ ] Decide whether reconcile is the default mode or must be explicitly enabled.
 - [ ] Define how destructive operations are represented and confirmed.
@@ -212,7 +212,7 @@ Related documentation:
 - [x] Component field additions
 - [x] Story tag assignments by slug or ID
 - [x] Existing-space setup with `-S`
-- [x] Duplicate-first setup with `--duplicate-from`
+- [x] Configuration-driven duplicate-first setup with `space.duplicate_from`
 - [x] YAML and JSON config loading
 - [x] Draft 2020-12 JSON Schema validation for YAML and JSON configs
 - [x] Standalone `space:setup-validate` command

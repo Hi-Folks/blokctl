@@ -163,29 +163,20 @@ Creates a new Storyblok space. When `--duplicate-from` is provided, the command 
 `space:setup` follows a **Configuration as Code** approach: the desired Storyblok configuration is stored in version-controlled YAML or JSON, making demo-space provisioning reproducible and automatable.
 
 ```bash
-# Apply setup to an existing space
-php bin/blokctl space:setup -S 290817118944379 --config examples/demo-space.yaml
+# Apply a config without a space section to an existing space
+php bin/blokctl space:setup -S 290817118944379 --config existing-space.yaml
 
 # Duplicate a template space, then apply the setup to the newly created space
-php bin/blokctl space:setup \
-  --duplicate-from=286863409930127 \
-  --name='My Demo' \
-  --in-org \
-  --demo \
-  --config examples/demo-space.yaml
+php bin/blokctl space:setup --config examples/demo-space.yaml
 
 # Preview the plan without changing Storyblok
-php bin/blokctl space:setup -S 290817118944379 --config examples/demo-space.yaml --dry-run
+php bin/blokctl space:setup -S 290817118944379 --config existing-space.yaml --dry-run
 
 # Preview duplication and the complete setup plan without creating a space
-php bin/blokctl space:setup \
-  --duplicate-from=286863409930127 \
-  --name='Planned Demo' \
-  --config examples/demo-space.yaml \
-  --dry-run
+php bin/blokctl space:setup --config examples/demo-space.yaml --dry-run
 
 # Override setup inputs
-php bin/blokctl space:setup -S 290817118944379 \
+php bin/blokctl space:setup \
   --config examples/demo-space.yaml \
   --set frontend_host=customer-demo.example.com
 
@@ -195,21 +186,25 @@ php bin/blokctl space:setup-validate --config examples/demo-space.yaml
 
 The setup config supports JSON and YAML and is validated against [space-setup-schema.json](space-setup-schema.json) before any space is created or modified. The example [examples/demo-space.yaml](examples/demo-space.yaml) mirrors the demo setup script: preview URLs, demo-mode removal, workflow assignment, app installation, component field additions, and story tag assignments. See [space-setup-config.md](space-setup-config.md) for the full configuration syntax.
 
+```yaml
+space:
+  name: "Customer Demo"
+  duplicate_from: "286863409930127"
+  in_org: true
+  demo: false
+```
+
 | Option | Description |
 |---|---|
 | `--space-id`, `-S` | Existing Storyblok Space ID to set up |
 | `--config`, `-c` | JSON or YAML setup configuration file |
-| `--duplicate-from` | Source space ID to duplicate before setup |
-| `--name` | New space name when using `--duplicate-from` |
-| `--in-org` | Create the duplicated space inside the current organization |
-| `--demo` | Mark the duplicated space as a demo/example space |
 | `--dry-run` | Print the planned setup without changing Storyblok |
 | `--continue-on-error` | Continue after a non-fatal step failure |
 | `--set` | Override a declared setup input as `NAME=VALUE` (repeatable) |
 
-Use either `-S` or `--duplicate-from`, not both. When `--duplicate-from` is used, `space:setup` creates the new space first and applies the configured changes to the new space ID.
+Use either `-S` with a config that does not define `space`, or define duplication settings in the config's `space` section. When `space.duplicate_from` is configured, `space:setup` creates the new space first and applies the configured changes to the new space ID.
 
-With `--dry-run --duplicate-from`, no space is created. The complete setup plan is rendered using `NEW_SPACE_ID` and `PREVIEW_TOKEN` placeholders.
+With `--dry-run` and a configured `space.duplicate_from`, no space is created. The complete setup plan is rendered using `NEW_SPACE_ID` and `PREVIEW_TOKEN` placeholders.
 
 Both dry-run and real execution use compact operation statuses such as `PLANNED`, `UPDATED`, `INSTALLED`, `CREATED`, `REMOVED`, `SKIPPED`, and `FAILED`, followed by a final summary. Preview tokens are masked in rendered URLs.
 

@@ -5,7 +5,7 @@ All notable changes to `blokctl` will be documented in this file.
 ## 0.9.0 - WIP
 
 - Adding `space:create`: Create a new Storyblok space or duplicate an existing space as a reusable demo template.
-- Adding `space:setup`: Provision an existing or newly duplicated space from a version-controlled YAML or JSON configuration file.
+- Adding `space:setup`: Provision an existing space or configure duplicate-first provisioning entirely from a version-controlled YAML or JSON file.
 - Adding `space:setup-validate`: Validate setup configuration files against the bundled JSON Schema without accessing Storyblok.
 - Adding namespaced setup variables for runtime inputs, environment variables, target space IDs, and automatically retrieved preview tokens.
 - Adding `--set` overrides for reusable setup templates with required inputs and default values.

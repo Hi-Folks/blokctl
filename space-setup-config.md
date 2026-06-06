@@ -2,37 +2,28 @@
 
 `space:setup` applies repeatable setup steps to a Storyblok space from a JSON or YAML file.
 
-It can run against an existing space:
+It can run against an existing space when the config does not define a `space` section:
 
 ```bash
-php bin/blokctl space:setup -S 290817118944379 --config examples/demo-space.yaml
+php bin/blokctl space:setup -S 290817118944379 --config existing-space.yaml
 ```
 
-Or it can duplicate a template space first, then apply the setup to the newly created space:
+Or it can use the configuration to duplicate a template space first, then apply the setup to the newly created space:
 
 ```bash
-php bin/blokctl space:setup \
-  --duplicate-from=286863409930127 \
-  --name='My Demo' \
-  --in-org \
-  --demo \
-  --config examples/demo-space.yaml
+php bin/blokctl space:setup --config examples/demo-space.yaml
 ```
 
 Use `--dry-run` to inspect the plan without changing Storyblok:
 
 ```bash
-php bin/blokctl space:setup -S 290817118944379 --config examples/demo-space.yaml --dry-run
+php bin/blokctl space:setup -S 290817118944379 --config existing-space.yaml --dry-run
 ```
 
 For duplicate-first provisioning, dry-run also displays the complete post-duplication plan without creating a space:
 
 ```bash
-php bin/blokctl space:setup \
-  --duplicate-from=286863409930127 \
-  --name='Planned Demo' \
-  --config examples/demo-space.yaml \
-  --dry-run
+php bin/blokctl space:setup --config examples/demo-space.yaml --dry-run
 ```
 
 During a duplicate dry-run, `${{ space.id }}` resolves to `NEW_SPACE_ID` and `${{ space.preview_token }}` resolves to `PREVIEW_TOKEN`.
@@ -81,7 +72,7 @@ The complete setup configuration supports namespaced expressions:
 |---|---|
 | `${{ inputs.NAME }}` | Declared setup input default or `--set` override. |
 | `${{ env.NAME }}` | Environment variable named `NAME`. |
-| `${{ space.id }}` | Target space ID. If `--duplicate-from` is used, this is the newly created space ID. |
+| `${{ space.id }}` | Target space ID. If `space.duplicate_from` is configured, this is the newly created space ID. |
 | `${{ space.preview_token }}` | First preview access token of the target space. |
 
 Example:
@@ -124,6 +115,27 @@ enabled: "${{ inputs.enable_feature }}"
 
 When an expression is embedded in other text, it must resolve to a scalar value and the result is a string. Missing variables stop setup with the exact configuration path.
 
+## `space`
+
+Duplicates a template space before applying the setup. Omit this section when targeting an existing space with `-S`.
+
+```yaml
+space:
+  name: "${{ inputs.customer_name }} Demo"
+  duplicate_from: "286863409930127"
+  in_org: true
+  demo: false
+```
+
+| Key | Required | Description |
+|---|---:|---|
+| `name` | Yes | Name of the duplicated space. |
+| `duplicate_from` | Yes | Source template space ID. |
+| `in_org` | No | Create the duplicated space inside the current organization. Defaults to `false`. |
+| `demo` | No | Mark the duplicated space as a demo/example space. Defaults to `false`. |
+
+`space.demo: true` cannot be combined with `demo_mode.remove: true`.
+
 ## Top-Level Keys
 
 Except for `version`, all top-level sections are optional. If a section is omitted, that setup step is skipped.
@@ -132,6 +144,7 @@ Except for `version`, all top-level sections are optional. If a section is omitt
 |---|---|
 | `version` | Required configuration schema version. Currently `1`. |
 | `inputs` | Reusable runtime input definitions with defaults and required values. |
+| `space` | Duplicate a template space before applying the setup. Omit when using `-S`. |
 | `continue_on_error` | Global boolean. Continue after a failed step. |
 | `preview` | Set the default preview URL and frontend environments. |
 | `demo_mode` | Remove demo/example mode. |
@@ -151,6 +164,12 @@ inputs:
     default: "storyblok-demo-default-se.netlify.app"
 
 continue_on_error: false
+
+space:
+  name: "Storyblok Customer Demo"
+  duplicate_from: "286863409930127"
+  in_org: true
+  demo: false
 
 preview:
   enabled: true
@@ -354,23 +373,19 @@ Each tag group needs at least one story slug or story ID.
 
 ## Duplication and Setup
 
-When using `--duplicate-from`, `space:setup` does this in order:
+When `space.duplicate_from` is configured, `space:setup` does this in order:
 
-1. Create a new space by duplicating the source space ID.
-2. Store the new space ID.
-3. Apply the config to the new space.
+1. Resolve and validate the complete configuration.
+2. Create a new space by duplicating the source space ID.
+3. Store the new space ID.
+4. Apply the config to the new space.
 
 That means `${{ space.id }}` always refers to the final target space, not the source template space.
 
 ```bash
-php bin/blokctl space:setup \
-  --duplicate-from=286863409930127 \
-  --name='Campaign Demo' \
-  --in-org \
-  --demo \
-  --config examples/demo-space.yaml
+php bin/blokctl space:setup --config examples/demo-space.yaml
 ```
 
-Do not pass `-S` together with `--duplicate-from`; these modes are mutually exclusive.
+Do not pass `-S` when the config defines `space.duplicate_from`; these modes are mutually exclusive.
 
 With `--dry-run`, duplication is skipped and the complete setup plan is rendered using placeholder target-space values.

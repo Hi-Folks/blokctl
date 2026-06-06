@@ -21,6 +21,9 @@
     "inputs": {
       "$ref": "#/$defs/inputs"
     },
+    "space": {
+      "$ref": "#/$defs/space"
+    },
     "preview": {
       "$ref": "#/$defs/preview"
     },
@@ -105,6 +108,30 @@
           "minimum": 1
         }
       ]
+    },
+    "space": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "duplicate_from"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "duplicate_from": {
+          "$ref": "#/$defs/identifier"
+        },
+        "in_org": {
+          "$ref": "#/$defs/booleanOrExpression",
+          "default": false
+        },
+        "demo": {
+          "$ref": "#/$defs/booleanOrExpression",
+          "default": false
+        }
+      }
     },
     "preview": {
       "type": "object",

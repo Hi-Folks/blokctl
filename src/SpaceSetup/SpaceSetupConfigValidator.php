@@ -32,7 +32,7 @@ final readonly class SpaceSetupConfigValidator
 
         $result = new Validator(null, 100, false)->validate($data, $schema);
         if ($result->isValid()) {
-            return new SpaceSetupConfigValidationResult([]);
+            return new SpaceSetupConfigValidationResult($this->semanticErrors($config));
         }
 
         $error = $result->error();
@@ -53,6 +53,23 @@ final readonly class SpaceSetupConfigValidator
         }
 
         return new SpaceSetupConfigValidationResult($errors);
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     *
+     * @return string[]
+     */
+    private function semanticErrors(array $config): array
+    {
+        $space = is_array($config['space'] ?? null) ? $config['space'] : [];
+        $demoMode = is_array($config['demo_mode'] ?? null) ? $config['demo_mode'] : [];
+
+        if (($space['demo'] ?? false) === true && ($demoMode['remove'] ?? false) === true) {
+            return ['$.space.demo: Cannot mark a duplicated space as demo when demo_mode.remove is true.'];
+        }
+
+        return [];
     }
 
     private function formatPath(string $pointer): string

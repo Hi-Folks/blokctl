@@ -44,10 +44,6 @@ class SpaceSetupCommand extends Command
         $this
             ->addOption('space-id', 'S', InputOption::VALUE_REQUIRED, 'Existing Storyblok Space ID to set up')
             ->addOption('config', 'c', InputOption::VALUE_REQUIRED, 'JSON or YAML setup configuration file')
-            ->addOption('duplicate-from', null, InputOption::VALUE_REQUIRED, 'Create a new space by duplicating this source space ID before setup')
-            ->addOption('name', null, InputOption::VALUE_REQUIRED, 'New space name when using --duplicate-from')
-            ->addOption('in-org', null, InputOption::VALUE_NONE, 'Create the duplicated space inside the current organization')
-            ->addOption('demo', null, InputOption::VALUE_NONE, 'Mark the duplicated space as a demo/example space')
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Print the planned setup without changing Storyblok')
             ->addOption('continue-on-error', null, InputOption::VALUE_NONE, 'Continue running setup steps after a non-fatal step failure')
             ->addOption('set', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Override a setup input as NAME=VALUE (repeatable)')
@@ -97,25 +93,7 @@ class SpaceSetupCommand extends Command
 
             /** @var string|null $spaceId */
             $spaceId = $input->getOption('space-id');
-            /** @var string|null $duplicateFrom */
-            $duplicateFrom = $input->getOption('duplicate-from');
-            /** @var string|null $newSpaceName */
-            $newSpaceName = $input->getOption('name');
-
             $dryRun = (bool) $input->getOption('dry-run');
-
-            $spaceId = new SpaceSetupTargetResolver()->resolve(
-                existingSpaceId: $spaceId,
-                duplicateFrom: $duplicateFrom,
-                newSpaceName: $newSpaceName,
-                dryRun: $dryRun,
-                duplicate: fn(string $sourceSpaceId, string $name): string => new SpaceCreateAction($this->client)->execute(
-                    name: $name,
-                    duplicateFrom: $sourceSpaceId,
-                    isDemo: (bool) $input->getOption('demo'),
-                    inOrg: (bool) $input->getOption('in-org'),
-                )->space->id(),
-            );
 
             /** @var string[] $inputOverrides */
             $inputOverrides = $input->getOption('set');
@@ -125,9 +103,45 @@ class SpaceSetupCommand extends Command
                 $environment = [];
             }
 
-            $resolver = new SpaceSetupVariableResolver([
+            $baseVariables = [
                 'inputs' => $inputs,
                 'env' => array_merge($environment, $_ENV),
+            ];
+            $preflightConfig = new SpaceSetupVariableResolver([
+                ...$baseVariables,
+                'space' => [
+                    'id' => SpaceSetupTargetResolver::DRY_RUN_SPACE_ID,
+                    'preview_token' => 'PREVIEW_TOKEN',
+                ],
+            ])->resolveConfig($config);
+            $preflightValidation = new SpaceSetupConfigValidator()->validate($preflightConfig);
+            if (!$preflightValidation->isValid()) {
+                Render::error('Resolved space setup configuration is invalid:');
+                foreach ($preflightValidation->errors as $error) {
+                    Render::error($error);
+                }
+
+                return self::FAILURE;
+            }
+
+            $spaceConfig = $this->arrayValue($preflightConfig['space'] ?? []);
+            $duplicateFrom = $this->nullableStringValue($spaceConfig['duplicate_from'] ?? null);
+            $newSpaceName = $this->nullableStringValue($spaceConfig['name'] ?? null);
+            $spaceId = new SpaceSetupTargetResolver()->resolve(
+                existingSpaceId: $spaceId,
+                duplicateFrom: $duplicateFrom,
+                newSpaceName: $newSpaceName,
+                dryRun: $dryRun,
+                duplicate: fn(string $sourceSpaceId, string $name): string => new SpaceCreateAction($this->client)->execute(
+                    name: $name,
+                    duplicateFrom: $sourceSpaceId,
+                    isDemo: $this->boolValue($spaceConfig['demo'] ?? false),
+                    inOrg: $this->boolValue($spaceConfig['in_org'] ?? false),
+                )->space->id(),
+            );
+
+            $resolver = new SpaceSetupVariableResolver([
+                ...$baseVariables,
                 'space' => [
                     'id' => $spaceId,
                     'preview_token' => $dryRun

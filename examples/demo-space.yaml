@@ -7,6 +7,12 @@ inputs:
     description: "Frontend host used by the default preview URL"
     default: "storyblok-demo-default-se.netlify.app"
 
+space:
+  name: "Storyblok Customer Demo"
+  duplicate_from: "286863409930127"
+  in_org: true
+  demo: false
+
 preview:
   enabled: true
   default: "https://${{ inputs.frontend_host }}/?token=${{ space.preview_token }}&path="

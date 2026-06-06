@@ -8,6 +8,11 @@ inputs:
   frontend_host:
     default: "storyblok-demo.netlify.app"
 
+space:
+  name: "${{ inputs.customer }} Demo"
+  duplicate_from: "286863409930127"
+  in_org: true
+
 preview:
   default: "https://${{ inputs.frontend_host }}/?token=${{ space.preview_token }}"
   environments:

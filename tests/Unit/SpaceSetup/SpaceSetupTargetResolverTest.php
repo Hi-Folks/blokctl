@@ -72,7 +72,7 @@ final class SpaceSetupTargetResolverTest extends TestCase
     public function rejects_existing_space_and_duplicate_source_together(): void
     {
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Use either --space-id (-S) or --duplicate-from, not both.');
+        $this->expectExceptionMessage('Use either --space-id (-S) or space.duplicate_from in the setup configuration, not both.');
 
         new SpaceSetupTargetResolver()->resolve(
             existingSpaceId: '123456',
@@ -87,7 +87,7 @@ final class SpaceSetupTargetResolverTest extends TestCase
     public function requires_name_when_duplicating(): void
     {
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('--name is required when using --duplicate-from.');
+        $this->expectExceptionMessage('space.name is required when using space.duplicate_from.');
 
         new SpaceSetupTargetResolver()->resolve(
             existingSpaceId: null,

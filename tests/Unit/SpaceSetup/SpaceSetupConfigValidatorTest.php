@@ -87,6 +87,41 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     }
 
     #[Test]
+    public function rejects_enabling_and_removing_demo_mode(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'space' => [
+                'name' => 'Customer Demo',
+                'duplicate_from' => '286863409930127',
+                'demo' => true,
+            ],
+            'demo_mode' => [
+                'remove' => true,
+            ],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertErrorsContain($result->errors, '$.space.demo');
+        $this->assertErrorsContain($result->errors, 'demo_mode.remove');
+    }
+
+    #[Test]
+    public function rejects_space_duplication_without_a_name(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'space' => [
+                'duplicate_from' => '286863409930127',
+            ],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertErrorsContain($result->errors, '$.space');
+        $this->assertErrorsContain($result->errors, 'name');
+    }
+
+    #[Test]
     public function accepts_namespaced_expressions_before_resolution(): void
     {
         $result = new SpaceSetupConfigValidator()->validate([
