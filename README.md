@@ -126,6 +126,7 @@ Each space displays: name, ID, plan, demo mode flag, created date, and last upda
 ```bash
 # Create a blank space
 php bin/blokctl space:create 'My New Demo Space'
+php bin/blokctl space:create --name='My New Demo Space'
 
 # Duplicate an existing space into the current organization
 php bin/blokctl space:create 'NEW SPACE FROM TEMPLATE' \
@@ -147,12 +148,46 @@ Creates a new Storyblok space. When `--duplicate-from` is provided, the command 
 | Type | Name | Description |
 |---|---|---|
 | Argument | `name` | New space name (prompted interactively if omitted) |
+| Option | `--name` | New space name, useful when you prefer option-style commands |
 | Option | `--duplicate-from` | Existing space ID to duplicate |
 | Option | `--in-org` | Create the duplicated space inside the current organization |
 | Option | `--demo` | Mark the created space as a demo/example space |
 | Option | `--only-id` | Output only the new space ID, useful for scripts |
 
 > This command does not require `--space-id`.
+
+#### `space:setup` — Set up a space from a config file
+
+```bash
+# Apply setup to an existing space
+php bin/blokctl space:setup -S 290817118944379 --config examples/demo-space.yaml
+
+# Duplicate a template space, then apply the setup to the newly created space
+php bin/blokctl space:setup \
+  --duplicate-from=286863409930127 \
+  --name='My Demo' \
+  --in-org \
+  --demo \
+  --config examples/demo-space.yaml
+
+# Preview the plan without changing Storyblok
+php bin/blokctl space:setup -S 290817118944379 --config examples/demo-space.yaml --dry-run
+```
+
+The setup config supports JSON and YAML. The example [examples/demo-space.yaml](examples/demo-space.yaml) mirrors the demo setup script: preview URLs, demo-mode removal, workflow assignment, app installation, component field additions, and story tag assignments. See [space-setup-config.md](space-setup-config.md) for the full configuration syntax.
+
+| Option | Description |
+|---|---|
+| `--space-id`, `-S` | Existing Storyblok Space ID to set up |
+| `--config`, `-c` | JSON or YAML setup configuration file |
+| `--duplicate-from` | Source space ID to duplicate before setup |
+| `--name` | New space name when using `--duplicate-from` |
+| `--in-org` | Create the duplicated space inside the current organization |
+| `--demo` | Mark the duplicated space as a demo/example space |
+| `--dry-run` | Print the planned setup without changing Storyblok |
+| `--continue-on-error` | Continue after a non-fatal step failure |
+
+Use either `-S` or `--duplicate-from`, not both. When `--duplicate-from` is used, `space:setup` creates the new space first and applies the configured changes to the new space ID.
 
 #### `space:info` — Display space information
 

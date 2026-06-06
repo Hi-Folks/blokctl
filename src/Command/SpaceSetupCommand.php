@@ -1,0 +1,434 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Blokctl\Command;
+
+use Blokctl\Action\AppProvision\AppProvisionInstallAction;
+use Blokctl\Action\Component\ComponentFieldAddAction;
+use Blokctl\Action\Space\SpaceCreateAction;
+use Blokctl\Action\Space\SpaceDemoRemoveAction;
+use Blokctl\Action\Space\SpaceTokenAction;
+use Blokctl\Action\SpacePreview\SpacePreviewSetAction;
+use Blokctl\Action\Story\StoriesTagsAssignAction;
+use Blokctl\Action\Story\StoriesWorkflowAssignAction;
+use Blokctl\Render;
+use Blokctl\SpaceSetup\SpaceSetupConfigLoader;
+use Storyblok\ManagementApi\Data\Enum\Region;
+use Storyblok\ManagementApi\Data\SpaceEnvironment;
+use Storyblok\ManagementApi\ManagementApiClient;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
+
+#[AsCommand(
+    name: 'space:setup',
+    description: 'Set up a Storyblok space from a JSON or YAML configuration file',
+)]
+class SpaceSetupCommand extends Command
+{
+    private ManagementApiClient $client;
+
+    #[\Override]
+    protected function configure(): void
+    {
+        $this
+            ->addOption('space-id', 'S', InputOption::VALUE_REQUIRED, 'Existing Storyblok Space ID to set up')
+            ->addOption('config', 'c', InputOption::VALUE_REQUIRED, 'JSON or YAML setup configuration file')
+            ->addOption('duplicate-from', null, InputOption::VALUE_REQUIRED, 'Create a new space by duplicating this source space ID before setup')
+            ->addOption('name', null, InputOption::VALUE_REQUIRED, 'New space name when using --duplicate-from')
+            ->addOption('in-org', null, InputOption::VALUE_NONE, 'Create the duplicated space inside the current organization')
+            ->addOption('demo', null, InputOption::VALUE_NONE, 'Mark the duplicated space as a demo/example space')
+            ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Print the planned setup without changing Storyblok')
+            ->addOption('continue-on-error', null, InputOption::VALUE_NONE, 'Continue running setup steps after a non-fatal step failure')
+            ->addOption('region', 'R', InputOption::VALUE_REQUIRED, 'The Storyblok region (' . implode(', ', Region::values()) . ')');
+    }
+
+    protected function initialize(InputInterface $input, OutputInterface $output): void
+    {
+        $token = $_ENV['SECRET_KEY'] ?? null;
+        if (!is_string($token) || $token === '') {
+            throw new \RuntimeException('SECRET_KEY not found in environment. Check your .env file.');
+        }
+
+        /** @var string|null $regionValue */
+        $regionValue = $input->getOption('region');
+        $region = Region::EU;
+        if ($regionValue !== null) {
+            $region = Region::tryFrom(strtoupper($regionValue));
+            if ($region === null) {
+                throw new \RuntimeException('Invalid region "' . $regionValue . '". Valid regions: ' . implode(', ', Region::values()));
+            }
+        }
+
+        $this->client = new ManagementApiClient($token, region: $region, shouldRetry: true);
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        try {
+            /** @var string|null $configPath */
+            $configPath = $input->getOption('config');
+            if ($configPath === null || $configPath === '') {
+                Render::error('A setup configuration file is required. Provide it with --config.');
+                return self::FAILURE;
+            }
+
+            $config = (new SpaceSetupConfigLoader())->load($configPath);
+
+            /** @var string|null $spaceId */
+            $spaceId = $input->getOption('space-id');
+            /** @var string|null $duplicateFrom */
+            $duplicateFrom = $input->getOption('duplicate-from');
+            /** @var string|null $newSpaceName */
+            $newSpaceName = $input->getOption('name');
+
+            if ($this->hasValue($spaceId) && $this->hasValue($duplicateFrom)) {
+                Render::error('Use either --space-id (-S) or --duplicate-from, not both.');
+                return self::FAILURE;
+            }
+
+            if (!$this->hasValue($spaceId) && !$this->hasValue($duplicateFrom)) {
+                Render::error('Provide an existing --space-id (-S) or create one with --duplicate-from and --name.');
+                return self::FAILURE;
+            }
+
+            $dryRun = (bool) $input->getOption('dry-run');
+            $continueOnError = (bool) $input->getOption('continue-on-error') || $this->boolValue($config['continue_on_error'] ?? false);
+
+            if ($this->hasValue($duplicateFrom)) {
+                if (!$this->hasValue($newSpaceName)) {
+                    Render::error('--name is required when using --duplicate-from.');
+                    return self::FAILURE;
+                }
+
+                Render::titleSection('Create space from template');
+                Render::labelValue('Source space ID', (string) $duplicateFrom);
+                Render::labelValue('New space name', (string) $newSpaceName);
+
+                if ($dryRun) {
+                    Render::log('Dry run: skipping space duplication and setup execution.');
+                    return self::SUCCESS;
+                }
+
+                $created = (new SpaceCreateAction($this->client))->execute(
+                    name: (string) $newSpaceName,
+                    duplicateFrom: $duplicateFrom,
+                    isDemo: (bool) $input->getOption('demo'),
+                    inOrg: (bool) $input->getOption('in-org'),
+                );
+                $spaceId = $created->space->id();
+                Render::labelValue('Created space ID', $spaceId);
+            }
+
+            if (!$this->hasValue($spaceId)) {
+                Render::error('Unable to resolve the target space ID.');
+                return self::FAILURE;
+            }
+
+            $this->runSetup((string) $spaceId, $config, $dryRun, $continueOnError);
+        } catch (\Exception $exception) {
+            Render::error($exception->getMessage());
+            return self::FAILURE;
+        }
+
+        return self::SUCCESS;
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    private function runSetup(string $spaceId, array $config, bool $dryRun, bool $continueOnError): void
+    {
+        Render::title('Space Setup');
+        Render::labelValue('Target space ID', $spaceId);
+
+        $variables = ['space_id' => $spaceId];
+
+        if ($this->sectionEnabled($config['preview'] ?? null)) {
+            $this->runStep('Preview URLs', $continueOnError, function () use ($spaceId, $config, $dryRun, &$variables): void {
+                if (!isset($variables['preview_token'])) {
+                    $variables['preview_token'] = $dryRun
+                        ? 'PREVIEW_TOKEN'
+                        : (new SpaceTokenAction($this->client))->execute($spaceId)->token;
+                }
+
+                $preview = $this->arrayValue($config['preview'] ?? []);
+                $defaultUrl = $this->resolveString($this->stringValue($preview['default'] ?? ''), $variables);
+                if ($defaultUrl === '') {
+                    throw new \RuntimeException('preview.default is required when preview is enabled.');
+                }
+
+                Render::labelValue('Default preview URL', $defaultUrl);
+
+                $environments = [];
+                foreach ($this->listValue($preview['environments'] ?? []) as $environment) {
+                    if (!is_array($environment)) {
+                        continue;
+                    }
+
+                    $name = $this->stringValue($environment['name'] ?? '');
+                    $url = $this->resolveString($this->stringValue($environment['url'] ?? ''), $variables);
+                    if ($name === '' || $url === '') {
+                        throw new \RuntimeException('Each preview environment requires name and url.');
+                    }
+
+                    $environments[] = new SpaceEnvironment($name, $url);
+                    Render::labelValue('Environment: ' . $name, $url);
+                }
+
+                if ($dryRun) {
+                    return;
+                }
+
+                $action = new SpacePreviewSetAction($this->client);
+                $action->execute($spaceId, $action->preflight($spaceId), $defaultUrl, $environments);
+            });
+        }
+
+        if ($this->boolValue($this->arrayValue($config['demo_mode'] ?? [])['remove'] ?? false)) {
+            $this->runStep('Remove demo mode', $continueOnError, function () use ($spaceId, $dryRun): void {
+                if ($dryRun) {
+                    Render::log('Dry run: would remove demo mode.');
+                    return;
+                }
+
+                $action = new SpaceDemoRemoveAction($this->client);
+                $preflight = $action->preflight($spaceId);
+                if (!$preflight->isDemo) {
+                    Render::log('Space is not in demo mode. Skipping.');
+                    return;
+                }
+
+                $action->execute($spaceId, $preflight);
+            });
+        }
+
+        if ($this->boolValue($this->arrayValue($config['workflow'] ?? [])['assign_unstaged'] ?? false)) {
+            $this->runStep('Assign workflow stages', $continueOnError, function () use ($spaceId, $config, $dryRun): void {
+                $workflow = $this->arrayValue($config['workflow'] ?? []);
+                $stageId = $this->nullableIntValue($workflow['stage_id'] ?? null);
+
+                if ($dryRun) {
+                    Render::log('Dry run: would assign workflow stages to unstaged stories.');
+                    return;
+                }
+
+                $action = new StoriesWorkflowAssignAction($this->client);
+                $preflight = $action->preflight($spaceId);
+                if ($preflight->countWithoutStage === 0) {
+                    Render::log('All stories already have workflow stages.');
+                    return;
+                }
+
+                $stageId ??= $this->nullableIntValue($preflight->defaultStageId);
+                if ($stageId === null) {
+                    throw new \RuntimeException('workflow.stage_id is required because no default workflow stage could be resolved.');
+                }
+
+                $result = $action->execute($spaceId, $preflight, $stageId);
+                foreach ($result['errors'] as $error) {
+                    Render::error($error);
+                }
+            });
+        }
+
+        $apps = $this->arrayValue($config['apps'] ?? []);
+        foreach ($this->stringListValue($apps['install'] ?? []) as $slug) {
+            $this->runStep('Install app: ' . $slug, $continueOnError || $this->boolValue($apps['continue_on_error'] ?? false), function () use ($spaceId, $slug, $dryRun): void {
+                if ($dryRun) {
+                    return;
+                }
+
+                $action = new AppProvisionInstallAction($this->client);
+                $action->execute($spaceId, $action->resolveBySlug($spaceId, $slug));
+            });
+        }
+
+        $components = $this->arrayValue($config['components'] ?? []);
+        foreach ($this->listValue($components['fields'] ?? []) as $field) {
+            if (!is_array($field)) {
+                continue;
+            }
+
+            $componentName = $this->stringValue($field['component'] ?? '');
+            $fieldName = $this->stringValue($field['field'] ?? '');
+            $this->runStep('Add component field: ' . $componentName . '.' . $fieldName, $continueOnError, function () use ($spaceId, $field, $componentName, $fieldName, $dryRun): void {
+                $type = $this->stringValue($field['type'] ?? '');
+                $tab = $this->stringValue($field['tab'] ?? 'General');
+                if ($componentName === '' || $fieldName === '' || $type === '') {
+                    throw new \RuntimeException('Component field entries require component, field, and type.');
+                }
+
+                if ($dryRun) {
+                    return;
+                }
+
+                $action = new ComponentFieldAddAction($this->client);
+                $preflight = $action->preflight($spaceId, $componentName, $fieldName);
+                $action->execute(
+                    spaceId: $spaceId,
+                    preflight: $preflight,
+                    fieldName: $fieldName,
+                    type: $type,
+                    tabName: $tab,
+                    fieldType: $this->nullableStringValue($field['field_type'] ?? $field['fieldType'] ?? null),
+                    pos: $this->nullableIntValue($field['pos'] ?? null),
+                    displayName: $this->nullableStringValue($field['display_name'] ?? $field['displayName'] ?? null),
+                    required: $this->boolValue($field['required'] ?? false),
+                    translatable: $this->boolValue($field['translatable'] ?? false),
+                );
+            });
+        }
+
+        foreach ($this->listValue($config['tags'] ?? []) as $tagGroup) {
+            if (!is_array($tagGroup)) {
+                continue;
+            }
+
+            $tags = $this->stringListValue($tagGroup['tags'] ?? []);
+            $this->runStep('Assign tags: ' . implode(', ', $tags), $continueOnError, function () use ($spaceId, $tagGroup, $tags, $dryRun): void {
+                if ($tags === []) {
+                    throw new \RuntimeException('Tag assignment entries require at least one tag.');
+                }
+
+                $stories = $this->arrayValue($tagGroup['stories'] ?? []);
+                $storyIds = $this->stringListValue($stories['ids'] ?? []);
+                $storySlugs = $this->stringListValue($stories['slugs'] ?? []);
+                if ($storyIds === [] && $storySlugs === []) {
+                    throw new \RuntimeException('Tag assignment entries require stories.ids or stories.slugs.');
+                }
+
+                if ($dryRun) {
+                    Render::labelValue('Story slugs', implode(', ', $storySlugs));
+                    return;
+                }
+
+                $result = (new StoriesTagsAssignAction($this->client))->execute($spaceId, $storyIds, $storySlugs, $tags);
+                foreach ($result->errors as $error) {
+                    Render::error($error);
+                }
+            });
+        }
+
+        Render::titleSection('Setup complete');
+    }
+
+    private function runStep(string $label, bool $continueOnError, \Closure $callback): void
+    {
+        Render::titleSection($label);
+
+        try {
+            $callback();
+        } catch (\Exception $exception) {
+            if (!$continueOnError) {
+                throw $exception;
+            }
+
+            Render::error($exception->getMessage());
+            Render::log('Continuing after failed step.');
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $variables
+     */
+    private function resolveString(string $value, array $variables): string
+    {
+        return (string) preg_replace_callback('/{{\s*([A-Za-z0-9_.]+)\s*}}/', static function (array $matches) use ($variables): string {
+            $key = $matches[1];
+            if (str_starts_with($key, 'env.')) {
+                $envValue = getenv(substr($key, 4));
+                return is_string($envValue) ? $envValue : '';
+            }
+
+            $value = $variables[$key] ?? '';
+            return is_scalar($value) ? (string) $value : '';
+        }, $value);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function arrayValue(mixed $value): array
+    {
+        if (!is_array($value)) {
+            return [];
+        }
+
+        /** @var array<string, mixed> $value */
+        return $value;
+    }
+
+    /**
+     * @return mixed[]
+     */
+    private function listValue(mixed $value): array
+    {
+        return is_array($value) ? array_values($value) : [];
+    }
+
+    /**
+     * @return string[]
+     */
+    private function stringListValue(mixed $value): array
+    {
+        if (is_string($value) && $value !== '') {
+            return [$value];
+        }
+
+        $items = [];
+        foreach ($this->listValue($value) as $item) {
+            if (is_scalar($item) && (string) $item !== '') {
+                $items[] = (string) $item;
+            }
+        }
+
+        return $items;
+    }
+
+    private function sectionEnabled(mixed $section): bool
+    {
+        return is_array($section) && $this->boolValue($section['enabled'] ?? true);
+    }
+
+    private function stringValue(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : '';
+    }
+
+    private function nullableStringValue(mixed $value): string|null
+    {
+        $value = $this->stringValue($value);
+        return $value === '' ? null : $value;
+    }
+
+    private function boolValue(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            return in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true);
+        }
+
+        return is_scalar($value) && (bool) $value;
+    }
+
+    private function nullableIntValue(mixed $value): int|null
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return is_numeric($value) ? (int) $value : null;
+    }
+
+    private function hasValue(mixed $value): bool
+    {
+        return is_string($value) && $value !== '';
+    }
+}

@@ -10,7 +10,8 @@
     "laravel/prompts": "^0.3.7",
     "nunomaduro/termwind": "^2.3",
     "symfony/console": "^8.0",
-    "storyblok/php-content-api-client": "^1.16"
+    "storyblok/php-content-api-client": "^1.16",
+    "symfony/yaml": "^7.0"
   },
   "require-dev": {
     "phpstan/phpstan": "^2.0",

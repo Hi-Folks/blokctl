@@ -31,6 +31,12 @@ class SpaceCreateCommand extends Command
         $this
             ->addArgument('name', InputArgument::OPTIONAL, 'New space name')
             ->addOption(
+                'name',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'New space name',
+            )
+            ->addOption(
                 'duplicate-from',
                 null,
                 InputOption::VALUE_REQUIRED,
@@ -98,6 +104,12 @@ class SpaceCreateCommand extends Command
     ): int {
         /** @var string|null $name */
         $name = $input->getArgument('name');
+        if (empty($name)) {
+            /** @var string|null $nameOption */
+            $nameOption = $input->getOption('name');
+            $name = $nameOption;
+        }
+
         /** @var string|null $duplicateFrom */
         $duplicateFrom = $input->getOption('duplicate-from');
 
