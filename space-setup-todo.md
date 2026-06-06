@@ -16,7 +16,7 @@ Related documentation:
 - [x] Improve validation errors with the YAML/JSON property path, for example `components.fields[0].type`.
 - [x] Make setup output distinguish `planned`, `created`, `updated`, `installed`, `removed`, `skipped`, and `failed`.
 - [x] Return a non-zero exit code when individual actions report errors, including when setup continues.
-- [ ] Add focused tests for every supported config section.
+- [x] Add focused dry-run and execution tests for every supported config section.
 
 ## Priority 1: Schema, Validation, and Template Definition
 
