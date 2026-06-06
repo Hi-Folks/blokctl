@@ -22,7 +22,7 @@ The official [Storyblok CLI](https://www.storyblok.com/docs/libraries/storyblok-
 
 ## Requirements
 
-- PHP 8.2 or higher
+- PHP 8.4.1 or higher
 - A Storyblok [Personal Access Token](https://app.storyblok.com/#/me/account?tab=token)
 
 ## Installation

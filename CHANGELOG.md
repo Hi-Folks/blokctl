@@ -4,6 +4,7 @@ All notable changes to `blokctl` will be documented in this file.
 
 ## 0.9.0 - WIP
 
+- Requiring PHP 8.4.1 or higher and upgrading `symfony/yaml` from ^7.0 to ^8.0.
 - Adding `space:create`: Create a new Storyblok space or duplicate an existing space as a reusable demo template.
 - Adding `space:setup`: Provision an existing or newly duplicated space from a version-controlled YAML or JSON configuration file.
 - Adding `space:setup-validate`: Validate setup configuration files against the bundled JSON Schema without accessing Storyblok.
