@@ -2,6 +2,17 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
+## 0.9.0 - WIP
+
+- Adding `space:create`: Create a new Storyblok space or duplicate an existing space as a reusable demo template.
+- Adding `space:setup`: Provision an existing or newly duplicated space from a version-controlled YAML or JSON configuration file.
+- Adding `space:setup-validate`: Validate setup configuration files against the bundled JSON Schema without accessing Storyblok.
+- Adding namespaced setup variables for runtime inputs, environment variables, target space IDs, and automatically retrieved preview tokens.
+- Adding `--set` overrides for reusable setup templates with required inputs and default values.
+- Adding complete `--dry-run` planning, including duplicate-first provisioning, without creating or modifying a space.
+- Adding structured operation reporting with consistent statuses, execution summaries, failure handling, and masked preview tokens.
+- Adding setup configuration examples, schema, reference documentation, and a roadmap for future provisioning capabilities.
+
 ## 0.8.0 - 2026-05-31
 - Requiring `storyblok/php-management-api-client` `^1.7.0` for typed experiment API support.
 - Adding `experiment:list`: List experiments in a space with pagination.
