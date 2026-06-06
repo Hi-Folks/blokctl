@@ -10,7 +10,7 @@ All notable changes to `blokctl` will be documented in this file.
 - Adding namespaced setup variables for runtime inputs, environment variables, target space IDs, and automatically retrieved preview tokens.
 - Adding `--set` overrides for reusable setup templates with required inputs and default values.
 - Adding complete `--dry-run` planning, including duplicate-first provisioning, without creating or modifying a space.
-- Adding structured operation reporting with consistent statuses, execution summaries, failure handling, and masked preview tokens.
+- Adding structured operation reporting with consistent statuses, execution summaries, non-zero exit codes for failed operations, and masked preview tokens.
 - Adding setup configuration examples, schema, reference documentation, and a roadmap for future provisioning capabilities.
 - Requiring PHP 8.4.1 or higher and upgrading `symfony/yaml` from ^7.0 to ^8.0.
 

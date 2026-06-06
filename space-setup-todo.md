@@ -15,7 +15,7 @@ Related documentation:
 - [x] Validate the complete config before creating or modifying a space.
 - [x] Improve validation errors with the YAML/JSON property path, for example `components.fields[0].type`.
 - [x] Make setup output distinguish `planned`, `created`, `updated`, `installed`, `removed`, `skipped`, and `failed`.
-- [ ] Return a non-zero exit code when individual actions report errors unless explicitly configured otherwise.
+- [x] Return a non-zero exit code when individual actions report errors, including when setup continues.
 - [ ] Add focused tests for every supported config section.
 
 ## Priority 1: Schema, Validation, and Template Definition

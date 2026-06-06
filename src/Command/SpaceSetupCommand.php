@@ -165,13 +165,13 @@ class SpaceSetupCommand extends Command
             $mode = $this->hasValue($duplicateFrom)
                 ? 'Duplicate from ' . $duplicateFrom . ' as "' . $newSpaceName . '"'
                 : 'Existing space';
-            $this->runSetup($spaceId, $config, $dryRun, $continueOnError, $mode);
+            return $this->runSetup($spaceId, $config, $dryRun, $continueOnError, $mode)
+                ? self::SUCCESS
+                : self::FAILURE;
         } catch (\Exception $exception) {
             Render::error($exception->getMessage());
             return self::FAILURE;
         }
-
-        return self::SUCCESS;
     }
 
     /**
@@ -183,7 +183,7 @@ class SpaceSetupCommand extends Command
         bool $dryRun,
         bool $continueOnError,
         string $mode,
-    ): void {
+    ): bool {
         $reporter = new SpaceSetupReporter($dryRun);
         $reporter->start($spaceId, $mode);
 
@@ -378,6 +378,8 @@ class SpaceSetupCommand extends Command
         }
 
         $reporter->finish();
+
+        return !$reporter->hasFailures();
     }
 
     /**

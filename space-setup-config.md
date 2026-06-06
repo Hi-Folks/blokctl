@@ -42,6 +42,8 @@ Summary
 
 Real execution replaces `PLANNED` with outcomes such as `UPDATED`, `INSTALLED`, `CREATED`, `REMOVED`, `SKIPPED`, or `FAILED`. Preview tokens are masked whenever URLs are rendered.
 
+Setup exits with a non-zero status when any operation fails. Enabling `continue_on_error` allows later operations to run, but does not hide the failed setup outcome from scripts or CI jobs.
+
 Validate a config without accessing Storyblok:
 
 ```bash

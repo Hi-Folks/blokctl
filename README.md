@@ -208,6 +208,8 @@ With `--dry-run` and a configured `space.duplicate_from`, no space is created. T
 
 Both dry-run and real execution use compact operation statuses such as `PLANNED`, `UPDATED`, `INSTALLED`, `CREATED`, `REMOVED`, `SKIPPED`, and `FAILED`, followed by a final summary. Preview tokens are masked in rendered URLs.
 
+When `--continue-on-error`, `continue_on_error`, or app-specific continuation is enabled, setup continues after failed operations but still exits with a non-zero status so scripts and CI jobs can detect the incomplete setup.
+
 #### `space:info` — Display space information
 
 ```bash

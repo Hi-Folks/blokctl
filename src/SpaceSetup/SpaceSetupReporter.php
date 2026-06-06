@@ -91,6 +91,11 @@ final class SpaceSetupReporter
         return $this->results;
     }
 
+    public function hasFailures(): bool
+    {
+        return array_any($this->results, fn($result): bool => $result->status === SpaceSetupOperationStatus::Failed);
+    }
+
     private function record(SpaceSetupOperationResult $result): void
     {
         $this->results[] = $result;

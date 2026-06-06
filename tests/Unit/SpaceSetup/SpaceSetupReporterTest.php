@@ -42,6 +42,7 @@ final class SpaceSetupReporterTest extends TestCase
         $result = $reporter->results()[0];
         $this->assertSame(SpaceSetupOperationStatus::Planned, $result->status);
         $this->assertSame('Install app: backups', $result->label);
+        $this->assertFalse($reporter->hasFailures());
     }
 
     #[Test]
@@ -70,6 +71,7 @@ final class SpaceSetupReporterTest extends TestCase
         $this->assertSame(SpaceSetupOperationStatus::Installed, $results[0]->status);
         $this->assertSame(SpaceSetupOperationStatus::Skipped, $results[1]->status);
         $this->assertSame('Already removed.', $results[1]->detail);
+        $this->assertFalse($reporter->hasFailures());
     }
 
     #[Test]
@@ -89,5 +91,6 @@ final class SpaceSetupReporterTest extends TestCase
         $result = $reporter->results()[0];
         $this->assertSame(SpaceSetupOperationStatus::Failed, $result->status);
         $this->assertSame('App unavailable.', $result->detail);
+        $this->assertTrue($reporter->hasFailures());
     }
 }
