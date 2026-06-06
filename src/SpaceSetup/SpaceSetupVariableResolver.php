@@ -76,13 +76,7 @@ final readonly class SpaceSetupVariableResolver
     public function containsExpression(mixed $value, string $expression): bool
     {
         if (is_array($value)) {
-            foreach ($value as $item) {
-                if ($this->containsExpression($item, $expression)) {
-                    return true;
-                }
-            }
-
-            return false;
+            return array_any($value, fn($item): bool => $this->containsExpression($item, $expression));
         }
 
         return is_string($value)

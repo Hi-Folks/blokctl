@@ -125,14 +125,7 @@ final class ContentResolver
             return false;
         }
 
-        // At least one item must have a "component" key
-        foreach ($value as $item) {
-            if (is_array($item) && isset($item['component'])) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($value, fn($item): bool => is_array($item) && isset($item['component']));
     }
 
     /**

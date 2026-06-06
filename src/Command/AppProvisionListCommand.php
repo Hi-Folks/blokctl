@@ -20,7 +20,7 @@ class AppProvisionListCommand extends AbstractCommand
         InputInterface $input,
         OutputInterface $output,
     ): int {
-        $result = (new AppProvisionListAction($this->client))
+        $result = new AppProvisionListAction($this->client)
             ->execute($this->spaceId);
 
         if ($result->count() === 0) {

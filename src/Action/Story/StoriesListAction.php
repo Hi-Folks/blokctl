@@ -39,7 +39,7 @@ final readonly class StoriesListAction
             perPage: $perPage,
         );
 
-        $stories = (new StoryApi($this->client, $spaceId))
+        $stories = new StoryApi($this->client, $spaceId)
             ->page($params, page: $pagination)->data();
 
         return new StoriesListResult(

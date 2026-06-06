@@ -30,7 +30,7 @@ final readonly class AssetsListAction
             perPage: $perPage,
         );
 
-        $assets = (new AssetApi($this->client, $spaceId))
+        $assets = new AssetApi($this->client, $spaceId)
             ->page($params, $pagination)->data();
 
         return new AssetsListResult(

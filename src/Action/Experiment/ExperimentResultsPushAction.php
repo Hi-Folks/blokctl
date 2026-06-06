@@ -24,7 +24,7 @@ final readonly class ExperimentResultsPushAction
     ): ExperimentResultsPushResult {
         $charts = $this->extractCharts($payload);
 
-        $response = (new ExperimentApi($this->client, $spaceId))
+        $response = new ExperimentApi($this->client, $spaceId)
             ->pushResults($experimentId, ExperimentResult::forCharts($charts));
 
         if (!$response->isOk()) {

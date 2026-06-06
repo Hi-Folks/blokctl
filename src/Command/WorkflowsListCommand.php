@@ -20,7 +20,7 @@ class WorkflowsListCommand extends AbstractCommand
         InputInterface $input,
         OutputInterface $output,
     ): int {
-        $result = (new WorkflowsListAction($this->client))->execute($this->spaceId);
+        $result = new WorkflowsListAction($this->client)->execute($this->spaceId);
 
         if ($result->count() === 0) {
             Render::log('No workflows found');

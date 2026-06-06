@@ -123,7 +123,7 @@ class StoryFieldSetCommand extends AbstractCommand
         }
 
         try {
-            $result = (new StoryFieldSetAction($this->client))->execute(
+            $result = new StoryFieldSetAction($this->client)->execute(
                 spaceId: $this->spaceId,
                 fieldName: $fieldName,
                 fieldValue: $fieldValue,

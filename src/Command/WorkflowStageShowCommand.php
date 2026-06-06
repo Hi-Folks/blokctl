@@ -81,7 +81,7 @@ class WorkflowStageShowCommand extends AbstractCommand
         }
 
         try {
-            $result = (new WorkflowStageShowAction($this->client))->execute(
+            $result = new WorkflowStageShowAction($this->client)->execute(
                 spaceId: $this->spaceId,
                 stageId: $stageIdRaw !== null ? (int) $stageIdRaw : null,
                 stageName: $stageName,

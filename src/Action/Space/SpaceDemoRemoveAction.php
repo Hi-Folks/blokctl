@@ -16,7 +16,7 @@ final readonly class SpaceDemoRemoveAction
 
     public function preflight(string $spaceId): SpaceDemoRemoveResult
     {
-        $space = (new SpaceApi($this->client))->get($spaceId)->data();
+        $space = new SpaceApi($this->client)->get($spaceId)->data();
 
         return new SpaceDemoRemoveResult(
             space: $space,
@@ -41,6 +41,6 @@ final readonly class SpaceDemoRemoveAction
         $editSpace->set('id', $preflight->space->id());
         $editSpace->removeDemoMode();
 
-        (new SpaceApi($this->client))->update($spaceId, $editSpace);
+        new SpaceApi($this->client)->update($spaceId, $editSpace);
     }
 }

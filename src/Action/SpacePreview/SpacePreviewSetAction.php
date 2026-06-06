@@ -17,7 +17,7 @@ final readonly class SpacePreviewSetAction
 
     public function preflight(string $spaceId): SpacePreviewSetResult
     {
-        $space = (new SpaceApi($this->client))->get($spaceId)->data();
+        $space = new SpaceApi($this->client)->get($spaceId)->data();
 
         return new SpacePreviewSetResult(
             space: $space,
@@ -43,6 +43,6 @@ final readonly class SpacePreviewSetAction
             $editSpace->addEnvironment($environment);
         }
 
-        (new SpaceApi($this->client))->update($spaceId, $editSpace);
+        new SpaceApi($this->client)->update($spaceId, $editSpace);
     }
 }

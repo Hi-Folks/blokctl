@@ -141,7 +141,7 @@ final readonly class ComponentFieldAddAction
             $component->insertField($field, $nextPos);
         }
 
-        (new ComponentApi($this->client, $spaceId))
+        new ComponentApi($this->client, $spaceId)
             ->update($component->id(), $component);
     }
 

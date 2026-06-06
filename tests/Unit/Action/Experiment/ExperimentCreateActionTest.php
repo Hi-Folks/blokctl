@@ -17,7 +17,7 @@ final class ExperimentCreateActionTest extends TestCase
             $this->mockResponse('one-experiment'),
         );
 
-        $result = (new ExperimentCreateAction($client))->execute(
+        $result = new ExperimentCreateAction($client)->execute(
             spaceId: '222',
             name: 'blokctl_probe',
             displayName: 'blokctl probe',
@@ -37,7 +37,7 @@ final class ExperimentCreateActionTest extends TestCase
             $this->mockResponse('one-experiment'),
         );
 
-        $result = (new ExperimentCreateAction($client))->execute(
+        $result = new ExperimentCreateAction($client)->execute(
             spaceId: '222',
             name: 'blokctl_probe',
             displayName: 'blokctl probe',

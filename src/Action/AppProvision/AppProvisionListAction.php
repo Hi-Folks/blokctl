@@ -15,7 +15,7 @@ final readonly class AppProvisionListAction
 
     public function execute(string $spaceId): AppProvisionListResult
     {
-        $provisions = (new AppProvisionApi($this->client, $spaceId))
+        $provisions = new AppProvisionApi($this->client, $spaceId)
             ->page()->data();
 
         return new AppProvisionListResult(

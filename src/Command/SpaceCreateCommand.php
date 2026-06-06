@@ -127,7 +127,7 @@ class SpaceCreateCommand extends Command
         }
 
         try {
-            $result = (new SpaceCreateAction($this->client))->execute(
+            $result = new SpaceCreateAction($this->client)->execute(
                 name: $name,
                 duplicateFrom: $duplicateFrom,
                 isDemo: (bool) $input->getOption('demo'),

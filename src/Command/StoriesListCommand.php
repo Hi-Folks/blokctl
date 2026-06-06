@@ -86,7 +86,7 @@ class StoriesListCommand extends AbstractCommand
         /** @var string $perPageOption */
         $perPageOption = $input->getOption('per-page');
 
-        $result = (new StoriesListAction($this->client))->execute(
+        $result = new StoriesListAction($this->client)->execute(
             spaceId: $this->spaceId,
             contentType: $contentType,
             startsWith: $startsWith,

@@ -51,7 +51,7 @@ class ComponentsListCommand extends AbstractCommand
         /** @var string|null $inGroup */
         $inGroup = $input->getOption('in-group');
 
-        $result = (new ComponentsListAction($this->client))->execute(
+        $result = new ComponentsListAction($this->client)->execute(
             spaceId: $this->spaceId,
             search: $search,
             rootOnly: (bool) $input->getOption('root-only'),

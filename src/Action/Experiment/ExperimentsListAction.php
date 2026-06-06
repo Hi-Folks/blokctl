@@ -18,7 +18,7 @@ final readonly class ExperimentsListAction
         int $page = 1,
         int $perPage = 25,
     ): ExperimentsListResult {
-        $response = (new ExperimentApi($this->client, $spaceId))
+        $response = new ExperimentApi($this->client, $spaceId)
             ->page($page, $perPage);
 
         if (!$response->isOk()) {

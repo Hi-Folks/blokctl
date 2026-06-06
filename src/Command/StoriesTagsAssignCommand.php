@@ -64,7 +64,7 @@ class StoriesTagsAssignCommand extends AbstractCommand
 
         Render::titleSection('Assigning tags: ' . implode(', ', $tags));
 
-        $result = (new StoriesTagsAssignAction($this->client))->execute(
+        $result = new StoriesTagsAssignAction($this->client)->execute(
             spaceId: $this->spaceId,
             storyIds: $storyIds,
             storySlugs: $storySlugs,

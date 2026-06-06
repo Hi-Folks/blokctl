@@ -15,7 +15,7 @@ final class SpaceSetupTargetResolverTest extends TestCase
     {
         $duplicateCalled = false;
 
-        $spaceId = (new SpaceSetupTargetResolver())->resolve(
+        $spaceId = new SpaceSetupTargetResolver()->resolve(
             existingSpaceId: '123456',
             duplicateFrom: null,
             newSpaceName: null,
@@ -35,7 +35,7 @@ final class SpaceSetupTargetResolverTest extends TestCase
     {
         $duplicateCalled = false;
 
-        $spaceId = (new SpaceSetupTargetResolver())->resolve(
+        $spaceId = new SpaceSetupTargetResolver()->resolve(
             existingSpaceId: null,
             duplicateFrom: 'template-id',
             newSpaceName: 'Customer Demo',
@@ -53,7 +53,7 @@ final class SpaceSetupTargetResolverTest extends TestCase
     #[Test]
     public function duplicates_and_returns_created_space_id(): void
     {
-        $spaceId = (new SpaceSetupTargetResolver())->resolve(
+        $spaceId = new SpaceSetupTargetResolver()->resolve(
             existingSpaceId: null,
             duplicateFrom: 'template-id',
             newSpaceName: 'Customer Demo',
@@ -74,7 +74,7 @@ final class SpaceSetupTargetResolverTest extends TestCase
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Use either --space-id (-S) or --duplicate-from, not both.');
 
-        (new SpaceSetupTargetResolver())->resolve(
+        new SpaceSetupTargetResolver()->resolve(
             existingSpaceId: '123456',
             duplicateFrom: 'template-id',
             newSpaceName: 'Customer Demo',
@@ -89,7 +89,7 @@ final class SpaceSetupTargetResolverTest extends TestCase
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('--name is required when using --duplicate-from.');
 
-        (new SpaceSetupTargetResolver())->resolve(
+        new SpaceSetupTargetResolver()->resolve(
             existingSpaceId: null,
             duplicateFrom: 'template-id',
             newSpaceName: null,

@@ -94,7 +94,7 @@ class StoryVersionsCommand extends AbstractCommand
         $perPageStr = $input->getOption('per-page');
 
         try {
-            $result = (new StoryVersionsAction($this->client))->execute(
+            $result = new StoryVersionsAction($this->client)->execute(
                 spaceId: $this->spaceId,
                 id: $id,
                 slug: $slug,

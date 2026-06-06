@@ -24,7 +24,7 @@ final readonly class SpacesListAction
         bool $soloOnly = false,
     ): SpacesListResult {
         $params = $search ? new SpacesParams(search: $search) : null;
-        $allSpaces = (new SpaceApi($this->client))->all($params)->data();
+        $allSpaces = new SpaceApi($this->client)->all($params)->data();
 
         if ($soloOnly) {
             $ownedOnly = true;
@@ -32,7 +32,7 @@ final readonly class SpacesListAction
 
         $user = null;
         if ($ownedOnly) {
-            $user = (new UserApi($this->client))->me()->data();
+            $user = new UserApi($this->client)->me()->data();
         }
 
         $cutoffDate = null;

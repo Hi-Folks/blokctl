@@ -73,13 +73,13 @@ class StoriesBulkCreateCommand extends AbstractCommand
         try {
             $parentId = 0;
             if ($parentSlug !== null) {
-                $parentId = (new StoryCreateAction($this->client))
+                $parentId = new StoryCreateAction($this->client)
                     ->resolveParentBySlug($this->spaceId, $parentSlug);
             } elseif ($parentIdRaw !== null) {
                 $parentId = (int) $parentIdRaw;
             }
 
-            $result = (new StoriesBulkCreateAction($this->client))->execute(
+            $result = new StoriesBulkCreateAction($this->client)->execute(
                 spaceId: $this->spaceId,
                 directory: $directory,
                 recursive: $recursive,

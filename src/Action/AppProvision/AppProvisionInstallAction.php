@@ -23,7 +23,7 @@ final readonly class AppProvisionInstallAction
      */
     public function resolveBySlug(string $spaceId, string $slug): string
     {
-        $apps = (new AppApi($this->client))
+        $apps = new AppApi($this->client)
             ->page(new AppsParams($spaceId, 1, 100))
             ->data();
 
@@ -42,7 +42,7 @@ final readonly class AppProvisionInstallAction
      */
     public function preflight(string $spaceId): AppProvisionInstallResult
     {
-        $apps = (new AppApi($this->client))
+        $apps = new AppApi($this->client)
             ->page(new AppsParams($spaceId))
             ->data();
 
@@ -62,7 +62,7 @@ final readonly class AppProvisionInstallAction
      */
     public function execute(string $spaceId, string|int $appId): AppProvision
     {
-        return (new AppProvisionApi($this->client, $spaceId))
+        return new AppProvisionApi($this->client, $spaceId)
             ->install($appId)->data();
     }
 }

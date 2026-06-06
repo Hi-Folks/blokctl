@@ -88,7 +88,7 @@ final readonly class StoryMoveAction
         // Use a minimal PUT instead of reconstructing the full story payload.
         // StoryApi::update() sends the complete object; for folders the API
         // rejects it because folders lack content.component in their payload.
-        $putResponse = (new ManagementApi($this->client))
+        $putResponse = new ManagementApi($this->client)
             ->put(sprintf('spaces/%s/stories/%s', $spaceId, $storyId), [
                 'story' => ['parent_id' => $folderId],
             ]);

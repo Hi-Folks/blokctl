@@ -26,7 +26,7 @@ final readonly class ComponentsUsageAction
         int $perPage = 25,
     ): ComponentsUsageResult {
         // Retrieve the preview token from the space via Management API
-        $space = (new SpaceApi($this->client))->get($spaceId)->data();
+        $space = new SpaceApi($this->client)->get($spaceId)->data();
         $token = $space->firstToken();
 
         if ($token === '') {

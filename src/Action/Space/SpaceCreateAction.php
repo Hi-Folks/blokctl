@@ -39,7 +39,7 @@ final readonly class SpaceCreateAction
             }
         }
 
-        $response = (new ManagementApi($this->client))->post('spaces', $payload);
+        $response = new ManagementApi($this->client)->post('spaces', $payload);
         if (!$response->isOk()) {
             throw new \RuntimeException(
                 'Failed to create space: ' . $response->getErrorMessage(),

@@ -20,7 +20,7 @@ class SpacePreviewListCommand extends AbstractCommand
         InputInterface $input,
         OutputInterface $output,
     ): int {
-        $result = (new SpacePreviewListAction($this->client))
+        $result = new SpacePreviewListAction($this->client)
             ->execute($this->spaceId);
 
         Render::titleSection('Preview URLs / Frontend environments');

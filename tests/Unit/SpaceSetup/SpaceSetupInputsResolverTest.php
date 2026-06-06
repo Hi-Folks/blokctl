@@ -13,7 +13,7 @@ final class SpaceSetupInputsResolverTest extends TestCase
     #[Test]
     public function resolves_defaults_and_cli_overrides(): void
     {
-        $inputs = (new SpaceSetupInputsResolver())->resolve([
+        $inputs = new SpaceSetupInputsResolver()->resolve([
             'inputs' => [
                 'customer_name' => [
                     'required' => true,
@@ -44,7 +44,7 @@ final class SpaceSetupInputsResolverTest extends TestCase
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Required setup input is missing: customer_name');
 
-        (new SpaceSetupInputsResolver())->resolve([
+        new SpaceSetupInputsResolver()->resolve([
             'inputs' => [
                 'customer_name' => [
                     'required' => true,
@@ -59,7 +59,7 @@ final class SpaceSetupInputsResolverTest extends TestCase
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Unknown setup input: missing');
 
-        (new SpaceSetupInputsResolver())->resolve([
+        new SpaceSetupInputsResolver()->resolve([
             'inputs' => [],
         ], ['missing=value']);
     }
@@ -70,7 +70,7 @@ final class SpaceSetupInputsResolverTest extends TestCase
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Expected NAME=VALUE');
 
-        (new SpaceSetupInputsResolver())->resolve([
+        new SpaceSetupInputsResolver()->resolve([
             'inputs' => [],
         ], ['invalid']);
     }

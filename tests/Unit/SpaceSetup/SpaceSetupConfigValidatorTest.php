@@ -14,9 +14,9 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     #[Test]
     public function validates_example_yaml_configuration(): void
     {
-        $config = (new SpaceSetupConfigLoader())->load('examples/demo-space.yaml');
+        $config = new SpaceSetupConfigLoader()->load('examples/demo-space.yaml');
 
-        $result = (new SpaceSetupConfigValidator())->validate($config);
+        $result = new SpaceSetupConfigValidator()->validate($config);
 
         $this->assertTrue($result->isValid());
         $this->assertSame([], $result->errors);
@@ -25,7 +25,7 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     #[Test]
     public function rejects_configuration_without_version(): void
     {
-        $result = (new SpaceSetupConfigValidator())->validate([
+        $result = new SpaceSetupConfigValidator()->validate([
             'apps' => [
                 'install' => ['backups'],
             ],
@@ -38,7 +38,7 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     #[Test]
     public function rejects_unknown_properties(): void
     {
-        $result = (new SpaceSetupConfigValidator())->validate([
+        $result = new SpaceSetupConfigValidator()->validate([
             'version' => 1,
             'apps' => [
                 'continue_on_eror' => true,
@@ -54,7 +54,7 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     #[Test]
     public function rejects_missing_required_component_field_type(): void
     {
-        $result = (new SpaceSetupConfigValidator())->validate([
+        $result = new SpaceSetupConfigValidator()->validate([
             'version' => 1,
             'components' => [
                 'fields' => [
@@ -74,7 +74,7 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     #[Test]
     public function rejects_invalid_property_types(): void
     {
-        $result = (new SpaceSetupConfigValidator())->validate([
+        $result = new SpaceSetupConfigValidator()->validate([
             'version' => 1,
             'demo_mode' => [
                 'remove' => 'yes',
@@ -89,7 +89,7 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     #[Test]
     public function accepts_namespaced_expressions_before_resolution(): void
     {
-        $result = (new SpaceSetupConfigValidator())->validate([
+        $result = new SpaceSetupConfigValidator()->validate([
             'version' => 1,
             'inputs' => [
                 'enabled' => [

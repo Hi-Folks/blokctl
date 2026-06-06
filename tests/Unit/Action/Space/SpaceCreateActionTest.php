@@ -20,7 +20,7 @@ final class SpaceCreateActionTest extends TestCase
             $this->mockResponse('one-space-created'),
         );
 
-        $result = (new SpaceCreateAction($client))->execute(
+        $result = new SpaceCreateAction($client)->execute(
             name: 'NEW SPACE FROM TEMPLATE',
             isDemo: true,
         );
@@ -38,7 +38,7 @@ final class SpaceCreateActionTest extends TestCase
         $response = new MockResponse($this->mockData('one-space-created'));
         $client = ManagementApiClient::initTest(new MockHttpClient([$response]));
 
-        $result = (new SpaceCreateAction($client))->execute(
+        $result = new SpaceCreateAction($client)->execute(
             name: 'NEW SPACE FROM TEMPLATE',
             duplicateFrom: '286863409930127',
             isDemo: true,

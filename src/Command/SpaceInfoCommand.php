@@ -20,7 +20,7 @@ class SpaceInfoCommand extends AbstractCommand
         InputInterface $input,
         OutputInterface $output,
     ): int {
-        $result = (new SpaceInfoAction($this->client))->execute($this->spaceId);
+        $result = new SpaceInfoAction($this->client)->execute($this->spaceId);
         $space = $result->space;
         $user = $result->user;
 

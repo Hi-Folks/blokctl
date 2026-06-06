@@ -68,7 +68,7 @@ class ComponentShowCommand extends AbstractCommand
         }
 
         try {
-            $result = (new ComponentShowAction($this->client))->execute(
+            $result = new ComponentShowAction($this->client)->execute(
                 spaceId: $this->spaceId,
                 id: $id,
                 name: $name,

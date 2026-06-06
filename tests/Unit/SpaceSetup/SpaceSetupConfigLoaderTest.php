@@ -13,7 +13,7 @@ final class SpaceSetupConfigLoaderTest extends TestCase
     #[Test]
     public function loads_yaml_configuration(): void
     {
-        $config = (new SpaceSetupConfigLoader())->load('examples/demo-space.yaml');
+        $config = new SpaceSetupConfigLoader()->load('examples/demo-space.yaml');
 
         $preview = $config['preview'] ?? null;
         $this->assertIsArray($preview);
@@ -38,7 +38,7 @@ final class SpaceSetupConfigLoaderTest extends TestCase
         $path = $this->temporaryConfigFile('{"apps":{"install":["backups"]}}', '.json');
 
         try {
-            $config = (new SpaceSetupConfigLoader())->load($path);
+            $config = new SpaceSetupConfigLoader()->load($path);
         } finally {
             unlink($path);
         }
@@ -54,7 +54,7 @@ final class SpaceSetupConfigLoaderTest extends TestCase
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Setup configuration file not found');
 
-        (new SpaceSetupConfigLoader())->load('missing-space-setup.yaml');
+        new SpaceSetupConfigLoader()->load('missing-space-setup.yaml');
     }
 
     #[Test]
@@ -66,7 +66,7 @@ final class SpaceSetupConfigLoaderTest extends TestCase
         $this->expectExceptionMessage('Setup configuration must contain an object at the top level');
 
         try {
-            (new SpaceSetupConfigLoader())->load($path);
+            new SpaceSetupConfigLoader()->load($path);
         } finally {
             unlink($path);
         }

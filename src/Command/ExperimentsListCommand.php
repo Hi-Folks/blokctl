@@ -49,7 +49,7 @@ class ExperimentsListCommand extends AbstractCommand
         $perPageOption = $input->getOption('per-page');
 
         try {
-            $result = (new ExperimentsListAction($this->client))->execute(
+            $result = new ExperimentsListAction($this->client)->execute(
                 spaceId: $this->spaceId,
                 page: (int) $pageOption,
                 perPage: (int) $perPageOption,

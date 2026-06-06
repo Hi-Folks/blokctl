@@ -39,8 +39,8 @@ class SpaceSetupValidateCommand extends Command
         }
 
         try {
-            $config = (new SpaceSetupConfigLoader())->load($configPath);
-            $result = (new SpaceSetupConfigValidator())->validate($config);
+            $config = new SpaceSetupConfigLoader()->load($configPath);
+            $result = new SpaceSetupConfigValidator()->validate($config);
         } catch (\Exception $exception) {
             $output->writeln('<error>' . $exception->getMessage() . '</error>');
             return self::FAILURE;

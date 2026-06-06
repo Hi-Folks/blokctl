@@ -26,7 +26,7 @@ final readonly class StoryCreateAction
         string $folderSlug,
     ): int {
         $params = new StoriesParams(folderOnly: true, withSlug: $folderSlug);
-        $folders = (new StoryApi($this->client, $spaceId))->page($params)->data();
+        $folders = new StoryApi($this->client, $spaceId)->page($params)->data();
 
         if (count($folders) !== 1) {
             throw new \RuntimeException(

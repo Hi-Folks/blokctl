@@ -21,7 +21,7 @@ final class ExperimentsListActionTest extends TestCase
             ]),
         );
 
-        $result = (new ExperimentsListAction($client))->execute(
+        $result = new ExperimentsListAction($client)->execute(
             spaceId: '222',
             page: 1,
             perPage: 25,

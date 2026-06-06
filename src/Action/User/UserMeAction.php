@@ -15,7 +15,7 @@ final readonly class UserMeAction
 
     public function execute(): UserMeResult
     {
-        $user = (new UserApi($this->client))->me()->data();
+        $user = new UserApi($this->client)->me()->data();
 
         return new UserMeResult(
             user: $user,

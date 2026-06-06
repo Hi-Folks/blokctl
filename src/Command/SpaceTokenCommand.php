@@ -33,7 +33,7 @@ class SpaceTokenCommand extends AbstractCommand
         InputInterface $input,
         OutputInterface $output,
     ): int {
-        $result = (new SpaceTokenAction($this->client))->execute($this->spaceId);
+        $result = new SpaceTokenAction($this->client)->execute($this->spaceId);
 
         if ($result->token === null || $result->token === '') {
             if (!$input->getOption('only-token')) {

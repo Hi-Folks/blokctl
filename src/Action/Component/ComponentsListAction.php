@@ -26,7 +26,7 @@ final readonly class ComponentsListAction
             inGroup: $inGroup,
         );
 
-        $components = (new ComponentApi($this->client, $spaceId))
+        $components = new ComponentApi($this->client, $spaceId)
             ->all($params)->data();
 
         return new ComponentsListResult(

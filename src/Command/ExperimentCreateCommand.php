@@ -62,7 +62,7 @@ class ExperimentCreateCommand extends AbstractCommand
         }
 
         try {
-            $result = (new ExperimentCreateAction($this->client))->execute(
+            $result = new ExperimentCreateAction($this->client)->execute(
                 spaceId: $this->spaceId,
                 name: $name,
                 displayName: $displayName,

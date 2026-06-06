@@ -84,8 +84,8 @@ class SpaceSetupCommand extends Command
                 return self::FAILURE;
             }
 
-            $config = (new SpaceSetupConfigLoader())->load($configPath);
-            $validation = (new SpaceSetupConfigValidator())->validate($config);
+            $config = new SpaceSetupConfigLoader()->load($configPath);
+            $validation = new SpaceSetupConfigValidator()->validate($config);
             if (!$validation->isValid()) {
                 Render::error('Invalid space setup configuration:');
                 foreach ($validation->errors as $error) {
@@ -104,12 +104,12 @@ class SpaceSetupCommand extends Command
 
             $dryRun = (bool) $input->getOption('dry-run');
 
-            $spaceId = (new SpaceSetupTargetResolver())->resolve(
+            $spaceId = new SpaceSetupTargetResolver()->resolve(
                 existingSpaceId: $spaceId,
                 duplicateFrom: $duplicateFrom,
                 newSpaceName: $newSpaceName,
                 dryRun: $dryRun,
-                duplicate: fn(string $sourceSpaceId, string $name): string => (new SpaceCreateAction($this->client))->execute(
+                duplicate: fn(string $sourceSpaceId, string $name): string => new SpaceCreateAction($this->client)->execute(
                     name: $name,
                     duplicateFrom: $sourceSpaceId,
                     isDemo: (bool) $input->getOption('demo'),
@@ -119,7 +119,7 @@ class SpaceSetupCommand extends Command
 
             /** @var string[] $inputOverrides */
             $inputOverrides = $input->getOption('set');
-            $inputs = (new SpaceSetupInputsResolver())->resolve($config, $inputOverrides);
+            $inputs = new SpaceSetupInputsResolver()->resolve($config, $inputOverrides);
             $environment = getenv();
             if (!is_array($environment)) {
                 $environment = [];
@@ -137,7 +137,7 @@ class SpaceSetupCommand extends Command
             ]);
             $config = $resolver->resolveConfig($config);
 
-            $resolvedValidation = (new SpaceSetupConfigValidator())->validate($config);
+            $resolvedValidation = new SpaceSetupConfigValidator()->validate($config);
             if (!$resolvedValidation->isValid()) {
                 Render::error('Resolved space setup configuration is invalid:');
                 foreach ($resolvedValidation->errors as $error) {
@@ -350,7 +350,7 @@ class SpaceSetupCommand extends Command
                     );
                 }
 
-                $result = (new StoriesTagsAssignAction($this->client))->execute($spaceId, $storyIds, $storySlugs, $tags);
+                $result = new StoriesTagsAssignAction($this->client)->execute($spaceId, $storyIds, $storySlugs, $tags);
                 if ($result->errors !== []) {
                     throw new \RuntimeException(implode(' | ', $result->errors));
                 }
@@ -376,7 +376,7 @@ class SpaceSetupCommand extends Command
             return '';
         }
 
-        $token = (new SpaceTokenAction($this->client))->execute($spaceId)->token;
+        $token = new SpaceTokenAction($this->client)->execute($spaceId)->token;
         if ($token === null || $token === '') {
             throw new \RuntimeException('Unable to resolve the preview token for space ' . $spaceId . '.');
         }

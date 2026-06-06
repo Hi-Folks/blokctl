@@ -57,7 +57,7 @@ class AssetsListCommand extends AbstractCommand
         $perPageOption = $input->getOption('per-page');
 
         try {
-            $result = (new AssetsListAction($this->client))->execute(
+            $result = new AssetsListAction($this->client)->execute(
                 spaceId: $this->spaceId,
                 search: $search,
                 page: (int) $pageOption,

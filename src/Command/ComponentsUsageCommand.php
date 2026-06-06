@@ -46,7 +46,7 @@ class ComponentsUsageCommand extends AbstractCommand
         /** @var string $perPageOption */
         $perPageOption = $input->getOption('per-page');
 
-        $result = (new ComponentsUsageAction($this->client))->execute(
+        $result = new ComponentsUsageAction($this->client)->execute(
             spaceId: $this->spaceId,
             region: $this->region,
             startsWith: $startsWith,

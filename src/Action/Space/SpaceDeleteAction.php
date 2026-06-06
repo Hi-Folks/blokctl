@@ -20,9 +20,9 @@ final readonly class SpaceDeleteAction
      */
     public function preflight(string $spaceId): SpaceDeleteResult
     {
-        $space = (new SpaceApi($this->client))->get($spaceId)->data();
-        $user = (new UserApi($this->client))->me()->data();
-        $collaborators = (new CollaboratorApi($this->client, $spaceId))
+        $space = new SpaceApi($this->client)->get($spaceId)->data();
+        $user = new UserApi($this->client)->me()->data();
+        $collaborators = new CollaboratorApi($this->client, $spaceId)
             ->page()->data();
 
         return new SpaceDeleteResult(
@@ -48,6 +48,6 @@ final readonly class SpaceDeleteAction
             );
         }
 
-        (new SpaceApi($this->client))->delete($spaceId);
+        new SpaceApi($this->client)->delete($spaceId);
     }
 }

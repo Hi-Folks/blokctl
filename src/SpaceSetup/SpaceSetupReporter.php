@@ -100,7 +100,7 @@ final class SpaceSetupReporter
             color: $result->status->color(),
             detail: $result->detail === null
                 ? null
-                : (new SpaceSetupValueMasker())->mask($result->detail),
+                : new SpaceSetupValueMasker()->mask($result->detail),
         );
     }
 }

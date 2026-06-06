@@ -30,7 +30,7 @@ final readonly class SpaceSetupConfigValidator
 
         $data = json_decode(json_encode($config, JSON_THROW_ON_ERROR), false, 512, JSON_THROW_ON_ERROR);
 
-        $result = (new Validator(null, 100, false))->validate($data, $schema);
+        $result = new Validator(null, 100, false)->validate($data, $schema);
         if ($result->isValid()) {
             return new SpaceSetupConfigValidationResult([]);
         }
@@ -40,7 +40,7 @@ final readonly class SpaceSetupConfigValidator
             return new SpaceSetupConfigValidationResult(['Configuration is invalid.']);
         }
 
-        $formatted = (new ErrorFormatter())->formatKeyed($error);
+        $formatted = new ErrorFormatter()->formatKeyed($error);
         $errors = [];
 
         foreach ($formatted as $pointer => $messages) {

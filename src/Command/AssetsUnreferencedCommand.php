@@ -22,7 +22,7 @@ class AssetsUnreferencedCommand extends AbstractCommand
         OutputInterface $output,
     ): int {
         try {
-            $result = (new AssetsUnreferencedAction($this->client))->execute(
+            $result = new AssetsUnreferencedAction($this->client)->execute(
                 spaceId: $this->spaceId,
                 region: $this->region,
             );

@@ -86,7 +86,7 @@ class StoryShowCommand extends AbstractCommand
         }
 
         try {
-            $result = (new StoryShowAction($this->client))->execute(
+            $result = new StoryShowAction($this->client)->execute(
                 spaceId: $this->spaceId,
                 id: $id,
                 slug: $slug,

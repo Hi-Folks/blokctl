@@ -63,7 +63,7 @@ final readonly class AssetsUnreferencedAction
         }
 
         // Step 2: Get preview token and set up CDN client
-        $token = $previewToken ?? (new SpaceApi($this->client))->get($spaceId)->data()->firstToken();
+        $token = $previewToken ?? new SpaceApi($this->client)->get($spaceId)->data()->firstToken();
 
         if ($token === '') {
             throw new \RuntimeException('No preview access token found for this space.');

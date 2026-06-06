@@ -15,7 +15,7 @@ final readonly class SpaceTokenAction
 
     public function execute(string $spaceId): SpaceTokenResult
     {
-        $space = (new SpaceApi($this->client))->get($spaceId)->data();
+        $space = new SpaceApi($this->client)->get($spaceId)->data();
 
         return new SpaceTokenResult(
             space: $space,

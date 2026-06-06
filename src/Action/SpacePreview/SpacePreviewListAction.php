@@ -15,7 +15,7 @@ final readonly class SpacePreviewListAction
 
     public function execute(string $spaceId): SpacePreviewListResult
     {
-        $space = (new SpaceApi($this->client))->get($spaceId)->data();
+        $space = new SpaceApi($this->client)->get($spaceId)->data();
 
         return new SpacePreviewListResult(
             defaultDomain: $space->domain(),

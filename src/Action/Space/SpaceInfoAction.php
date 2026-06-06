@@ -16,8 +16,8 @@ final readonly class SpaceInfoAction
 
     public function execute(string $spaceId): SpaceInfoResult
     {
-        $space = (new SpaceApi($this->client))->get($spaceId)->data();
-        $user = (new UserApi($this->client))->me()->data();
+        $space = new SpaceApi($this->client)->get($spaceId)->data();
+        $user = new UserApi($this->client)->me()->data();
 
         return new SpaceInfoResult(
             space: $space,

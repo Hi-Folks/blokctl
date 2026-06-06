@@ -47,7 +47,7 @@ final readonly class ExperimentCreateAction
             $experiment->setStoryIds($storyIds);
         }
 
-        $response = (new ExperimentApi($this->client, $spaceId))
+        $response = new ExperimentApi($this->client, $spaceId)
             ->create($experiment);
 
         if (!$response->isOk()) {

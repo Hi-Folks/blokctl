@@ -55,7 +55,7 @@ class UserMeCommand extends Command
         }
 
         $client = new ManagementApiClient($token, region: $region, shouldRetry: true);
-        $result = (new UserMeAction($client))->execute();
+        $result = new UserMeAction($client)->execute();
         $user = $result->user;
 
         Render::title('Current user');
