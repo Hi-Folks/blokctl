@@ -2,6 +2,9 @@
 
 version: 1
 
+execution:
+  mode: reconcile
+
 inputs:
   customer:
     required: true

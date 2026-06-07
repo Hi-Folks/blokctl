@@ -21,6 +21,9 @@
     "inputs": {
       "$ref": "#/$defs/inputs"
     },
+    "execution": {
+      "$ref": "#/$defs/execution"
+    },
     "space": {
       "$ref": "#/$defs/space"
     },
@@ -109,13 +112,28 @@
         }
       ]
     },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "const": "reconcile",
+          "default": "reconcile"
+        },
+        "continue_on_error": {
+          "$ref": "#/$defs/booleanOrExpression",
+          "default": false
+        }
+      }
+    },
     "space": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "name",
-        "duplicate_from"
-      ],
+      "dependentRequired": {
+        "duplicate_from": [
+          "name"
+        ]
+      },
       "properties": {
         "name": {
           "$ref": "#/$defs/nonEmptyString"

@@ -2,6 +2,13 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
+## 0.10.0 - WIP
+
+- Adding default reconcile-mode provisioning that preserves unmanaged resources and never removes resources omitted from setup configuration.
+- Skipping already-installed apps, matching component fields, unchanged preview URLs, existing story tags, assigned workflows, and removed demo mode.
+- Updating only explicitly configured component field properties, merging story tags, and preserving unmanaged preview environments.
+- Adding `execution.mode: reconcile` and `execution.continue_on_error` setup configuration.
+
 ## 0.9.0 - 2026-06-07
 
 - Adding `space:create`: Create a new Storyblok space or duplicate an existing space as a reusable demo template.

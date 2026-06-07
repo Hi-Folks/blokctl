@@ -26,12 +26,14 @@ final readonly class StoriesTagsAssignAction
         array $storyIds,
         array $storySlugs,
         array $tags,
+        bool $merge = false,
     ): StoriesTagsAssignResult {
         $storyApi = new StoryApi($this->client, $spaceId);
 
         $resolvedIds = $storyIds;
         $errors = [];
         $tagged = [];
+        $skipped = [];
 
         // Resolve slugs to IDs
         foreach ($storySlugs as $slug) {
@@ -59,7 +61,23 @@ final readonly class StoriesTagsAssignAction
         foreach ($resolvedIds as $storyId) {
             try {
                 $story = $storyApi->get($storyId)->data();
-                $story->setTagsFromArray($tags);
+                $existingTags = array_values(array_filter(
+                    $story->tagListAsArray(),
+                    is_string(...),
+                ));
+                $targetTags = $merge
+                    ? array_values(array_unique([...$existingTags, ...$tags]))
+                    : $tags;
+
+                if ($merge && $targetTags === $existingTags) {
+                    $skipped[] = [
+                        'name' => $story->name(),
+                        'tags' => $story->tagListAsString(),
+                    ];
+                    continue;
+                }
+
+                $story->setTagsFromArray($targetTags);
                 $storyEdited = $storyApi->update($storyId, $story)->data();
                 $tagged[] = [
                     'name' => $storyEdited->name(),
@@ -74,6 +92,7 @@ final readonly class StoriesTagsAssignAction
         return new StoriesTagsAssignResult(
             tagged: $tagged,
             errors: $errors,
+            skipped: $skipped,
         );
     }
 }

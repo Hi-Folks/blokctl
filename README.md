@@ -216,12 +216,17 @@ php bin/blokctl space:setup-validate --config examples/demo-space.yaml
 The setup config supports JSON and YAML and is validated against [space-setup-schema.json](space-setup-schema.json) before any space is created or modified. The example [examples/demo-space.yaml](examples/demo-space.yaml) mirrors the demo setup script: preview URLs, demo-mode removal, workflow assignment, app installation, component field additions, and story tag assignments. See [space-setup-config.md](space-setup-config.md) for the full configuration syntax.
 
 ```yaml
+execution:
+  mode: reconcile
+
 space:
   name: "Customer Demo"
   duplicate_from: "286863409930127"
   in_org: true
   demo: false
 ```
+
+Reconcile mode is the default. Repeated setup runs preserve unmanaged resources, skip matching state, merge story tags and preview environments, and update only explicitly configured component field properties. Resources omitted from the config are never removed automatically.
 
 | Option | Description |
 |---|---|
@@ -231,9 +236,9 @@ space:
 | `--continue-on-error` | Continue after a non-fatal step failure |
 | `--set` | Override a declared setup input as `NAME=VALUE` (repeatable) |
 
-Use either `-S` with a config that does not define `space`, or define duplication settings in the config's `space` section. When `space.duplicate_from` is configured, `space:setup` creates the new space first and applies the configured changes to the new space ID.
+Use `-S` to reconcile an existing space, or configure `space.duplicate_from` and `space.name` to create a duplicated target first. These targeting modes are mutually exclusive. Other setup sections work identically with either target mode.
 
-With `--dry-run` and a configured `space.duplicate_from`, no space is created. The complete setup plan is rendered using `NEW_SPACE_ID` and `PREVIEW_TOKEN` placeholders.
+With `--dry-run` and a configured `space.duplicate_from`, no space is created. The complete desired setup plan is rendered using `NEW_SPACE_ID` and `PREVIEW_TOKEN` placeholders. Dry-run does not inspect the current target state, so real execution may report matching operations as `SKIPPED`.
 
 Both dry-run and real execution use compact operation statuses such as `PLANNED`, `UPDATED`, `INSTALLED`, `CREATED`, `REMOVED`, `SKIPPED`, and `FAILED`, followed by a final summary. Preview tokens are masked in rendered URLs.
 

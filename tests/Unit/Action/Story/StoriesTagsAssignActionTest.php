@@ -70,4 +70,24 @@ final class StoriesTagsAssignActionTest extends TestCase
         $this->assertCount(1, $result->errors);
         $this->assertStringContainsString('not found', $result->errors[0]);
     }
+
+    #[Test]
+    public function execute_skips_story_when_merged_tags_already_exist(): void
+    {
+        $client = $this->createMockClient(
+            $this->mockResponse('one-story'),
+        );
+
+        $result = new StoriesTagsAssignAction($client)->execute(
+            spaceId: '680',
+            storyIds: ['440448565'],
+            storySlugs: [],
+            tags: ['tag1'],
+            merge: true,
+        );
+
+        $this->assertSame([], $result->tagged);
+        $this->assertCount(1, $result->skipped);
+        $this->assertSame([], $result->errors);
+    }
 }

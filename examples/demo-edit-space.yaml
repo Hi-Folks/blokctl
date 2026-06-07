@@ -52,6 +52,7 @@ tags:
         - site-config
     tags:
       - Configuration
+      - Common
 
   - stories:
       slugs:

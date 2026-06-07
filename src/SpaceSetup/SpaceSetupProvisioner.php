@@ -6,11 +6,16 @@ namespace Blokctl\SpaceSetup;
 
 use Blokctl\Action\AppProvision\AppProvisionInstallAction;
 use Blokctl\Action\Component\ComponentFieldAddAction;
+use Blokctl\Action\Component\ComponentFieldAddResult;
 use Blokctl\Action\Space\SpaceDemoRemoveAction;
 use Blokctl\Action\SpacePreview\SpacePreviewSetAction;
 use Blokctl\Action\Story\StoriesTagsAssignAction;
 use Blokctl\Action\Story\StoriesWorkflowAssignAction;
+use Storyblok\ManagementApi\Data\AppProvision;
+use Storyblok\ManagementApi\Data\Component;
 use Storyblok\ManagementApi\Data\SpaceEnvironment;
+use Storyblok\ManagementApi\Endpoints\AppProvisionApi;
+use Storyblok\ManagementApi\Endpoints\ComponentApi;
 use Storyblok\ManagementApi\ManagementApiClient;
 
 final readonly class SpaceSetupProvisioner
@@ -70,7 +75,7 @@ final readonly class SpaceSetupProvisioner
                     throw new \RuntimeException('preview.default is required when preview is enabled.');
                 }
 
-                $environments = [];
+                $configuredEnvironments = [];
                 foreach ($environmentConfigs as $environment) {
                     if (!is_array($environment)) {
                         continue;
@@ -82,18 +87,43 @@ final readonly class SpaceSetupProvisioner
                         throw new \RuntimeException('Each preview environment requires name and url.');
                     }
 
-                    $environments[] = new SpaceEnvironment($name, $url);
+                    $configuredEnvironments[] = new SpaceEnvironment($name, $url);
                 }
 
                 if (!$dryRun) {
                     $action = new SpacePreviewSetAction($this->client);
-                    $action->execute($spaceId, $action->preflight($spaceId), $defaultUrl, $environments);
+                    $preflight = $action->preflight($spaceId);
+                    $environments = $this->mergeEnvironments(
+                        $preflight->space->environments()->toArray(),
+                        $configuredEnvironments,
+                    );
+
+                    if (
+                        $preflight->space->domain() === $defaultUrl
+                        && $environments === $preflight->space->environments()->toArray()
+                    ) {
+                        return new SpaceSetupOperationResult(
+                            SpaceSetupOperationStatus::Skipped,
+                            'Configure preview URLs',
+                            'Preview URLs already match.',
+                        );
+                    }
+
+                    $action->execute(
+                        $spaceId,
+                        $preflight,
+                        $defaultUrl,
+                        array_map(
+                            SpaceEnvironment::make(...),
+                            $environments,
+                        ),
+                    );
                 }
 
                 return new SpaceSetupOperationResult(
                     SpaceSetupOperationStatus::Updated,
                     'Configure preview URLs',
-                    $defaultUrl . ' (' . count($environments) . ' environments)',
+                    $defaultUrl . ' (' . count($configuredEnvironments) . ' configured environments)',
                 );
             },
         );
@@ -194,9 +224,27 @@ final readonly class SpaceSetupProvisioner
         bool $continueOnError,
     ): void {
         $apps = $this->arrayValue($config['apps'] ?? []);
+        $installedSlugs = [];
+        if (!$dryRun && $this->stringListValue($apps['install'] ?? []) !== []) {
+            $provisions = new AppProvisionApi($this->client, $spaceId)->page()->data();
+            foreach ($provisions as $provision) {
+                if ($provision instanceof AppProvision) {
+                    $installedSlugs[] = $provision->slug();
+                }
+            }
+        }
+
         foreach ($this->stringListValue($apps['install'] ?? []) as $slug) {
-            $reporter->run('Install app: ' . $slug, SpaceSetupOperationStatus::Installed, $continueOnError || $this->boolValue($apps['continue_on_error'] ?? false), function () use ($spaceId, $slug, $dryRun): ?SpaceSetupOperationResult {
+            $reporter->run('Install app: ' . $slug, SpaceSetupOperationStatus::Installed, $continueOnError || $this->boolValue($apps['continue_on_error'] ?? false), function () use ($spaceId, $slug, $dryRun, $installedSlugs): ?SpaceSetupOperationResult {
                 if (!$dryRun) {
+                    if (in_array($slug, $installedSlugs, true)) {
+                        return new SpaceSetupOperationResult(
+                            SpaceSetupOperationStatus::Skipped,
+                            'Install app: ' . $slug,
+                            'App is already installed.',
+                        );
+                    }
+
                     $action = new AppProvisionInstallAction($this->client);
                     $action->execute($spaceId, $action->resolveBySlug($spaceId, $slug));
                 }
@@ -235,22 +283,7 @@ final readonly class SpaceSetupProvisioner
                     return null;
                 }
 
-                $action = new ComponentFieldAddAction($this->client);
-                $preflight = $action->preflight($spaceId, $componentName, $fieldName);
-                $action->execute(
-                    spaceId: $spaceId,
-                    preflight: $preflight,
-                    fieldName: $fieldName,
-                    type: $type,
-                    tabName: $tab,
-                    fieldType: $this->nullableStringValue($field['field_type'] ?? $field['fieldType'] ?? null),
-                    pos: $this->nullableIntValue($field['pos'] ?? null),
-                    displayName: $this->nullableStringValue($field['display_name'] ?? $field['displayName'] ?? null),
-                    required: $this->boolValue($field['required'] ?? false),
-                    translatable: $this->boolValue($field['translatable'] ?? false),
-                );
-
-                return null;
+                return $this->reconcileComponentField($spaceId, $componentName, $fieldName, $type, $tab, $field);
             });
         }
     }
@@ -292,18 +325,235 @@ final readonly class SpaceSetupProvisioner
                     );
                 }
 
-                $result = new StoriesTagsAssignAction($this->client)->execute($spaceId, $storyIds, $storySlugs, $tags);
+                $result = new StoriesTagsAssignAction($this->client)->execute($spaceId, $storyIds, $storySlugs, $tags, merge: true);
                 if ($result->errors !== []) {
                     throw new \RuntimeException(implode(' | ', $result->errors));
+                }
+
+                if ($result->tagged === []) {
+                    return new SpaceSetupOperationResult(
+                        SpaceSetupOperationStatus::Skipped,
+                        $label,
+                        count($result->skipped) . ' stories already have the requested tags.',
+                    );
                 }
 
                 return new SpaceSetupOperationResult(
                     SpaceSetupOperationStatus::Updated,
                     $label,
-                    count($result->tagged) . ' stories tagged.',
+                    count($result->tagged) . ' stories tagged; ' . count($result->skipped) . ' unchanged.',
                 );
             });
         }
+    }
+
+    /**
+     * @param array<int|string, mixed> $existing
+     * @param SpaceEnvironment[] $configured
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function mergeEnvironments(array $existing, array $configured): array
+    {
+        $merged = [];
+        $indexesByName = [];
+
+        foreach ($existing as $environment) {
+            if (!is_array($environment)) {
+                continue;
+            }
+
+            $name = $this->stringValue($environment['name'] ?? '');
+            if ($name !== '') {
+                $indexesByName[$name] = count($merged);
+            }
+
+            $merged[] = $environment;
+        }
+
+        foreach ($configured as $environment) {
+            $data = $environment->toArray();
+            $name = $environment->name();
+            if (array_key_exists($name, $indexesByName)) {
+                $merged[$indexesByName[$name]] = $data;
+                continue;
+            }
+
+            $indexesByName[$name] = count($merged);
+            $merged[] = $data;
+        }
+
+        return $merged;
+    }
+
+    /**
+     * @param array<string, mixed> $field
+     */
+    private function reconcileComponentField(
+        string $spaceId,
+        string $componentName,
+        string $fieldName,
+        string $type,
+        string $tab,
+        array $field,
+    ): SpaceSetupOperationResult {
+        $componentApi = new ComponentApi($this->client, $spaceId);
+        $component = $this->findComponent($componentApi, $componentName);
+        $schema = $component->getSchema();
+        $label = 'Add component field: ' . $componentName . '.' . $fieldName;
+
+        if (!array_key_exists($fieldName, $schema)) {
+            new ComponentFieldAddAction($this->client)->execute(
+                spaceId: $spaceId,
+                preflight: new ComponentFieldAddResult($component, $schema),
+                fieldName: $fieldName,
+                type: $type,
+                tabName: $tab,
+                fieldType: $this->nullableStringValue($field['field_type'] ?? $field['fieldType'] ?? null),
+                pos: $this->nullableIntValue($field['pos'] ?? null),
+                displayName: $this->nullableStringValue($field['display_name'] ?? $field['displayName'] ?? null),
+                required: $this->boolValue($field['required'] ?? false),
+                translatable: $this->boolValue($field['translatable'] ?? false),
+            );
+
+            return new SpaceSetupOperationResult(SpaceSetupOperationStatus::Created, $label);
+        }
+
+        $existingField = $schema[$fieldName];
+        $changed = $this->applyDeclaredFieldProperties($existingField, $field, $type);
+        $schema[$fieldName] = $existingField;
+
+        if (array_key_exists('tab', $field)) {
+            $changed = $this->assignFieldToTab($schema, $fieldName, $tab, $component) || $changed;
+        }
+
+        if (!$changed) {
+            return new SpaceSetupOperationResult(
+                SpaceSetupOperationStatus::Skipped,
+                $label,
+                'Component field already matches.',
+            );
+        }
+
+        $component->setSchema($schema);
+        $componentApi->update($component->id(), $component);
+
+        return new SpaceSetupOperationResult(
+            SpaceSetupOperationStatus::Updated,
+            $label,
+            'Updated explicitly configured field properties.',
+        );
+    }
+
+    private function findComponent(ComponentApi $componentApi, string $componentName): Component
+    {
+        $components = $componentApi->all()->data();
+        foreach ($components as $component) {
+            if ($component instanceof Component && $component->name() === $componentName) {
+                return $componentApi->get($component->id())->data();
+            }
+        }
+
+        throw new \RuntimeException('Component "' . $componentName . '" not found.');
+    }
+
+    /**
+     * @param array<mixed> $existing
+     * @param array<string, mixed> $declared
+     */
+    private function applyDeclaredFieldProperties(array &$existing, array $declared, string $type): bool
+    {
+        $changed = $this->setWhenDifferent($existing, 'type', $type);
+        $aliases = [
+            'field_type' => ['field_type', 'fieldType'],
+            'display_name' => ['display_name', 'displayName'],
+            'pos' => ['pos'],
+            'required' => ['required'],
+            'translatable' => ['translatable'],
+        ];
+
+        foreach ($aliases as $target => $sourceKeys) {
+            foreach ($sourceKeys as $sourceKey) {
+                if (!array_key_exists($sourceKey, $declared)) {
+                    continue;
+                }
+
+                $value = $declared[$sourceKey];
+                if ($target === 'pos') {
+                    $value = $this->nullableIntValue($value);
+                } elseif (in_array($target, ['required', 'translatable'], true)) {
+                    $value = $this->boolValue($value);
+                } else {
+                    $value = $this->nullableStringValue($value);
+                }
+
+                $changed = $this->setWhenDifferent($existing, $target, $value) || $changed;
+                break;
+            }
+        }
+
+        return $changed;
+    }
+
+    /**
+     * @param array<mixed> $values
+     */
+    private function setWhenDifferent(array &$values, string $key, mixed $value): bool
+    {
+        if (array_key_exists($key, $values) && $values[$key] === $value) {
+            return false;
+        }
+
+        $values[$key] = $value;
+        return true;
+    }
+
+    /**
+     * @param array<string, array<mixed>> $schema
+     */
+    private function assignFieldToTab(array &$schema, string $fieldName, string $tabName, Component $component): bool
+    {
+        if ($component->getFieldTab($fieldName) === $tabName) {
+            return false;
+        }
+
+        $targetTabKey = null;
+        foreach ($schema as $key => &$entry) {
+            if (($entry['type'] ?? '') !== 'tab') {
+                continue;
+            }
+
+            $keys = is_array($entry['keys'] ?? null) ? $entry['keys'] : [];
+            $entry['keys'] = array_values(array_filter(
+                $keys,
+                static fn(mixed $key): bool => $key !== $fieldName,
+            ));
+
+            if (($entry['display_name'] ?? '') === $tabName) {
+                $targetTabKey = $key;
+            }
+        }
+
+        unset($entry);
+
+        if ($targetTabKey === null) {
+            $targetTabKey = 'tab-' . bin2hex(random_bytes(16));
+            $schema[$targetTabKey] = [
+                'display_name' => $tabName,
+                'keys' => [],
+                'pos' => $component->maxPos() + 1,
+                'type' => 'tab',
+            ];
+        }
+
+        $rawKeys = $schema[$targetTabKey]['keys'] ?? [];
+        $keys = is_array($rawKeys)
+            ? array_values(array_filter($rawKeys, is_string(...)))
+            : [];
+        $keys[] = $fieldName;
+        $schema[$targetTabKey]['keys'] = array_values(array_unique($keys));
+
+        return true;
     }
 
     /**

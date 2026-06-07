@@ -28,6 +28,8 @@ php bin/blokctl space:setup --config examples/demo-space.yaml --dry-run
 
 During a duplicate dry-run, `${{ space.id }}` resolves to `NEW_SPACE_ID` and `${{ space.preview_token }}` resolves to `PREVIEW_TOKEN`.
 
+Dry-run renders the complete desired setup without inspecting current target state. During real execution, reconcile mode may report planned operations as `SKIPPED` when the space already matches.
+
 Dry-run and real execution share the same compact operation report:
 
 ```text
@@ -119,7 +121,7 @@ When an expression is embedded in other text, it must resolve to a scalar value 
 
 ## `space`
 
-Duplicates a template space before applying the setup. Omit this section when targeting an existing space with `-S`.
+Defines optional target-creation settings. Configure `duplicate_from` and `name` to duplicate a template before applying the setup. When targeting an existing space with `-S`, omit `duplicate_from`; the other setup sections are applied directly to that space.
 
 ```yaml
 space:
@@ -131,8 +133,8 @@ space:
 
 | Key | Required | Description |
 |---|---:|---|
-| `name` | Yes | Name of the duplicated space. |
-| `duplicate_from` | Yes | Source template space ID. |
+| `name` | Conditional | Name of the duplicated space. Required when `duplicate_from` is configured. |
+| `duplicate_from` | No | Source template space ID. Omit when targeting an existing space with `-S`. |
 | `in_org` | No | Create the duplicated space inside the current organization. Defaults to `false`. |
 | `demo` | No | Mark the duplicated space as a demo/example space. Defaults to `false`. |
 
@@ -146,7 +148,8 @@ Except for `version`, all top-level sections are optional. If a section is omitt
 |---|---|
 | `version` | Required configuration schema version. Currently `1`. |
 | `inputs` | Reusable runtime input definitions with defaults and required values. |
-| `space` | Duplicate a template space before applying the setup. Omit when using `-S`. |
+| `execution` | Execution behavior. Reconcile mode is the default. |
+| `space` | Optional target-creation settings. Omit `space.duplicate_from` when using `-S`. |
 | `continue_on_error` | Global boolean. Continue after a failed step. |
 | `preview` | Set the default preview URL and frontend environments. |
 | `demo_mode` | Remove demo/example mode. |
@@ -160,12 +163,14 @@ Except for `version`, all top-level sections are optional. If a section is omitt
 ```yaml
 version: 1
 
+execution:
+  mode: reconcile
+  continue_on_error: false
+
 inputs:
   frontend_host:
     description: "Frontend host used by the default preview URL"
     default: "storyblok-demo-default-se.netlify.app"
-
-continue_on_error: false
 
 space:
   name: "Storyblok Customer Demo"
@@ -222,6 +227,30 @@ tags:
       - Marketing
 ```
 
+## `execution`
+
+Controls how setup operations are applied. The only supported mode is `reconcile`, and it is used by default when `execution` is omitted.
+
+```yaml
+execution:
+  mode: reconcile
+  continue_on_error: false
+```
+
+Reconcile mode:
+
+- Preserves resources and values not managed by the configuration.
+- Adds missing configured resources.
+- Updates only explicitly configured values that differ.
+- Skips resources that already match.
+- Never removes resources merely because they are absent from the configuration.
+- Merges story tags and preview environments instead of replacing unmanaged values.
+
+| Key | Required | Description |
+|---|---:|---|
+| `mode` | No | Must be `reconcile`. Defaults to `reconcile`. |
+| `continue_on_error` | No | Continue after failed operations while still returning a non-zero exit code. |
+
 ## `inputs`
 
 Declares runtime values that can have defaults or be supplied through `--set`.
@@ -266,6 +295,8 @@ preview:
 | `environments` | No | List of extra frontend environments. |
 | `environments[].name` | Yes | Environment display name. |
 | `environments[].url` | Yes | Environment preview URL. |
+
+Configured preview environments are reconciled by name. Matching environments are updated, missing environments are added, and unmanaged environments are preserved.
 
 ## `demo_mode`
 
@@ -312,6 +343,8 @@ apps:
 | `continue_on_error` | No | Boolean. Useful because some apps may not be available for every space. |
 | `install` | Yes | List of app slugs to install. |
 
+Apps that are already installed are reported as `SKIPPED`.
+
 ## `components`
 
 Adds fields to existing components.
@@ -336,13 +369,13 @@ components:
 | `fields[].field` | Yes | Field technical name. |
 | `fields[].type` | Yes | Storyblok field type, such as `text`, `richtext`, `asset`, `bloks`, `custom`, or `plugin`. |
 | `fields[].field_type` | No | Plugin/custom field type, for example `sb-ai-seo`. |
-| `fields[].tab` | No | Tab display name. Defaults to `General`. |
+| `fields[].tab` | No | Tab display name. Defaults to `General` when creating a field. Existing fields move only when this property is declared. |
 | `fields[].pos` | No | Numeric field position. |
 | `fields[].display_name` | No | Human-readable field label. |
-| `fields[].required` | No | Boolean. Defaults to `false`. |
-| `fields[].translatable` | No | Boolean. Defaults to `false`. |
+| `fields[].required` | No | Boolean. Defaults to `false` when creating a field. Existing fields change only when declared. |
+| `fields[].translatable` | No | Boolean. Defaults to `false` when creating a field. Existing fields change only when declared. |
 
-The command fails if the component does not exist or the field already exists, unless `--continue-on-error` is used.
+Missing fields are created. Existing fields are compared using only properties declared in the setup config: matching fields are skipped and differing declared properties are updated. Unmanaged field properties are preserved.
 
 ## `tags`
 
@@ -373,6 +406,8 @@ tags:
 
 Each tag group needs at least one story slug or story ID.
 
+Configured tags are merged with existing story tags. Existing tags are preserved, and stories that already contain every requested tag are reported as `SKIPPED`.
+
 ## Duplication and Setup
 
 When `space.duplicate_from` is configured, `space:setup` does this in order:
@@ -389,5 +424,11 @@ php bin/blokctl space:setup --config examples/demo-space.yaml
 ```
 
 Do not pass `-S` when the config defines `space.duplicate_from`; these modes are mutually exclusive.
+
+To reconcile an existing space, pass its ID and omit `space.duplicate_from`:
+
+```bash
+php bin/blokctl space:setup -S 290817118944379 --config examples/demo-space.yaml
+```
 
 With `--dry-run`, duplication is skipped and the complete setup plan is rendered using placeholder target-space values.

@@ -152,7 +152,9 @@ class SpaceSetupCommand extends Command
                 return self::FAILURE;
             }
 
-            $continueOnError = (bool) $input->getOption('continue-on-error') || $this->boolValue($config['continue_on_error'] ?? false);
+            $execution = $this->arrayValue($config['execution'] ?? []);
+            $continueOnError = (bool) $input->getOption('continue-on-error')
+                || $this->boolValue($execution['continue_on_error'] ?? $config['continue_on_error'] ?? false);
             $mode = $this->hasValue($duplicateFrom)
                 ? 'Duplicate from ' . $duplicateFrom . ' as "' . $newSpaceName . '"'
                 : 'Existing space';

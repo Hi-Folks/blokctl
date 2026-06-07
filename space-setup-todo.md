@@ -45,22 +45,21 @@ Related documentation:
 
 ## Priority 2: Idempotency and Reliability
 
-- [ ] Add execution settings:
+- [x] Add default reconcile execution mode and scoped `continue_on_error`:
 
   ```yaml
   execution:
     mode: reconcile
-    retries: 3
-    timeout_seconds: 300
     continue_on_error: false
   ```
 
-- [ ] Make every setup step idempotent.
-- [ ] Skip apps that are already installed.
-- [ ] Skip component fields that already match the requested definition.
-- [ ] Update component fields when requested configuration differs.
-- [ ] Reconcile preview environments without unintentionally replacing existing entries.
-- [ ] Skip tags already assigned to stories.
+- [ ] Add execution retry and timeout settings.
+- [x] Make every currently supported setup step idempotent.
+- [x] Skip apps that are already installed.
+- [x] Skip component fields that already match the requested definition.
+- [x] Update component fields when requested configuration differs.
+- [x] Reconcile preview environments without unintentionally replacing existing entries.
+- [x] Skip tags already assigned to stories.
 - [ ] Reuse folders and datasources that already exist.
 - [ ] Add retry handling for rate limits and temporary API failures.
 - [ ] Add readiness polling after duplication before applying setup.
@@ -193,7 +192,7 @@ Related documentation:
 
 - [x] Store duplication settings in config for `space:setup`; keep CLI options on `space:create`.
 - [ ] Decide whether `space:setup` should support blank-space creation in addition to duplication.
-- [ ] Decide whether reconcile is the default mode or must be explicitly enabled.
+- [x] Make reconcile the default execution mode.
 - [ ] Define how destructive operations are represented and confirmed.
 - [x] Define whether unresolved variables fail setup or resolve to empty strings: unresolved variables fail setup.
 - [ ] Define whether IDs are permitted in portable templates or names/slugs are required.

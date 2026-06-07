@@ -10,7 +10,9 @@ use Blokctl\SpaceSetup\SpaceSetupProvisioner;
 use Blokctl\SpaceSetup\SpaceSetupReporter;
 use PHPUnit\Framework\Attributes\Test;
 use Storyblok\ManagementApi\ManagementApiClient;
+use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\Console\Output\NullOutput;
+use Symfony\Component\HttpClient\Response\MockResponse;
 use Tests\TestCase;
 
 use function Termwind\renderUsing;
@@ -45,7 +47,7 @@ final class SpaceSetupProvisionerTest extends TestCase
         ]);
 
         $this->assertPlanned($result, 'Configure preview URLs');
-        $this->assertSame('https://demo.example.com (1 environments)', $result->detail);
+        $this->assertSame('https://demo.example.com (1 configured environments)', $result->detail);
     }
 
     #[Test]
@@ -234,6 +236,7 @@ final class SpaceSetupProvisionerTest extends TestCase
     {
         $reporter = $this->provisionWithClient(
             $this->createMockClient(
+                $this->mockResponse('list-app-provisions'),
                 $this->mockResponse('list-apps'),
                 $this->mockResponse('one-app-provision'),
             ),
@@ -293,7 +296,174 @@ final class SpaceSetupProvisionerTest extends TestCase
         );
 
         $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Updated, 'Assign tags: Landing');
-        $this->assertSame('1 stories tagged.', $reporter->results()[0]->detail);
+        $this->assertSame('1 stories tagged; 0 unchanged.', $reporter->results()[0]->detail);
+    }
+
+    #[Test]
+    public function skips_apps_that_are_already_installed(): void
+    {
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                $this->mockResponse('list-app-provisions'),
+            ),
+            [
+                'apps' => [
+                    'install' => ['activity'],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Skipped, 'Install app: activity');
+    }
+
+    #[Test]
+    public function skips_component_fields_that_already_match_declared_properties(): void
+    {
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                $this->mockResponse('list-components'),
+                $this->mockResponse('one-article-page'),
+            ),
+            [
+                'components' => [
+                    'fields' => [
+                        [
+                            'component' => 'article-page',
+                            'field' => 'title',
+                            'type' => 'text',
+                        ],
+                    ],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Skipped, 'Add component field: article-page.title');
+    }
+
+    #[Test]
+    public function updates_only_declared_component_field_properties(): void
+    {
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                $this->mockResponse('list-components'),
+                $this->mockResponse('one-article-page'),
+                $this->mockResponse('one-article-page'),
+            ),
+            [
+                'components' => [
+                    'fields' => [
+                        [
+                            'component' => 'article-page',
+                            'field' => 'title',
+                            'type' => 'text',
+                            'required' => true,
+                        ],
+                    ],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Updated, 'Add component field: article-page.title');
+    }
+
+    #[Test]
+    public function skips_story_tags_that_are_already_present(): void
+    {
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                $this->mockResponse('one-story'),
+            ),
+            [
+                'tags' => [
+                    [
+                        'stories' => [
+                            'ids' => ['440448565'],
+                        ],
+                        'tags' => ['tag1'],
+                    ],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Skipped, 'Assign tags: tag1');
+    }
+
+    #[Test]
+    public function skips_preview_urls_that_already_match(): void
+    {
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                $this->mockResponse('one-space'),
+            ),
+            [
+                'preview' => [
+                    'default' => 'https://example.storyblok.com',
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Skipped, 'Configure preview URLs');
+    }
+
+    #[Test]
+    public function preserves_unmanaged_preview_environments(): void
+    {
+        $space = json_decode($this->mockData('one-space'), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertIsArray($space);
+        $spaceData = $space['space'] ?? null;
+        $this->assertIsArray($spaceData);
+        $spaceData['environments'] = [
+            [
+                'name' => 'Production',
+                'location' => 'https://production.example.com',
+            ],
+        ];
+        $space['space'] = $spaceData;
+        $response = json_encode($space, JSON_THROW_ON_ERROR);
+        $updatePayload = [];
+        $requestNumber = 0;
+
+        $httpClient = new MockHttpClient(
+            static function (string $method, string $url, array $options) use (&$requestNumber, &$updatePayload, $response): MockResponse {
+                ++$requestNumber;
+                if ($method === 'PUT') {
+                    $body = $options['body'] ?? '';
+                    if (is_string($body)) {
+                        $updatePayload = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+                    }
+                }
+
+                return new MockResponse($response);
+            },
+        );
+
+        $reporter = $this->provisionWithClient(
+            ManagementApiClient::initTest($httpClient),
+            [
+                'preview' => [
+                    'default' => 'https://demo.example.com',
+                    'environments' => [
+                        [
+                            'name' => 'Local',
+                            'url' => 'https://localhost:3000',
+                        ],
+                    ],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Updated, 'Configure preview URLs');
+        $this->assertIsArray($updatePayload);
+        $updatedSpace = $updatePayload['space'] ?? null;
+        $this->assertIsArray($updatedSpace);
+        $environments = $updatedSpace['environments'] ?? null;
+        $this->assertIsArray($environments);
+        $production = $environments[0] ?? null;
+        $local = $environments[1] ?? null;
+        $this->assertIsArray($production);
+        $this->assertIsArray($local);
+        $this->assertSame('Production', $production['name'] ?? null);
+        $this->assertSame('Local', $local['name'] ?? null);
     }
 
     /**

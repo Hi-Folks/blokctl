@@ -122,6 +122,51 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     }
 
     #[Test]
+    public function accepts_space_configuration_without_duplication(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'space' => [
+                'name' => 'Existing Customer Demo',
+            ],
+            'apps' => [
+                'install' => ['backups'],
+            ],
+        ]);
+
+        $this->assertTrue($result->isValid());
+    }
+
+    #[Test]
+    public function accepts_reconcile_execution_mode(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'execution' => [
+                'mode' => 'reconcile',
+                'continue_on_error' => false,
+            ],
+        ]);
+
+        $this->assertTrue($result->isValid());
+    }
+
+    #[Test]
+    public function rejects_unsupported_execution_modes(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'execution' => [
+                'mode' => 'replace',
+            ],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertErrorsContain($result->errors, '$.execution.mode');
+        $this->assertErrorsContain($result->errors, 'const');
+    }
+
+    #[Test]
     public function accepts_namespaced_expressions_before_resolution(): void
     {
         $result = new SpaceSetupConfigValidator()->validate([
