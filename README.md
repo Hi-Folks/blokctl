@@ -1,5 +1,3 @@
-# blokctl
-
 <h1 align="center">
     blokctl
 </h1>
