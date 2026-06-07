@@ -1,3 +1,8 @@
+<p align="center">
+    <img width="800" src="https://raw.githubusercontent.com/Hi-Folks/blokctl/refs/heads/main/blokctl-cover.png" alt="PHP Toolkit for Automating
+    and Provisioning Storyblok Spaces">
+</p>
+
 <h1 align="center">
     blokctl
 </h1>
