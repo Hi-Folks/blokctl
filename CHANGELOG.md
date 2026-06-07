@@ -2,7 +2,7 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
-## 0.9.0 - WIP
+## 0.9.0 - 2026-06-07
 
 - Adding `space:create`: Create a new Storyblok space or duplicate an existing space as a reusable demo template.
 - Adding `space:setup`: Provision an existing space or configure duplicate-first provisioning entirely from a version-controlled YAML or JSON file.
