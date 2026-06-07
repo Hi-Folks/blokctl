@@ -13,3 +13,4 @@
 /tmp/test-results
 /docs/*
 test-push-results.sh
+.DS_Store
