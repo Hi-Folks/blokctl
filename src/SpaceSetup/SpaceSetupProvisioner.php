@@ -37,12 +37,17 @@ final readonly class SpaceSetupProvisioner
         $reporter = new SpaceSetupReporter($dryRun);
         $reporter->start($spaceId, $mode);
 
-        $this->provisionPreview($reporter, $spaceId, $config, $dryRun, $continueOnError);
-        $this->provisionDemoMode($reporter, $spaceId, $config, $dryRun, $continueOnError);
-        $this->provisionWorkflow($reporter, $spaceId, $config, $dryRun, $continueOnError);
-        $this->provisionApps($reporter, $spaceId, $config, $dryRun, $continueOnError);
-        $this->provisionComponentFields($reporter, $spaceId, $config, $dryRun, $continueOnError);
-        $this->provisionTags($reporter, $spaceId, $config, $dryRun, $continueOnError);
+        try {
+            $this->provisionPreview($reporter, $spaceId, $config, $dryRun, $continueOnError);
+            $this->provisionDemoMode($reporter, $spaceId, $config, $dryRun, $continueOnError);
+            $this->provisionWorkflow($reporter, $spaceId, $config, $dryRun, $continueOnError);
+            $this->provisionApps($reporter, $spaceId, $config, $dryRun, $continueOnError);
+            $this->provisionComponentFields($reporter, $spaceId, $config, $dryRun, $continueOnError);
+            $this->provisionTags($reporter, $spaceId, $config, $dryRun, $continueOnError);
+        } catch (\Exception $exception) {
+            $reporter->finish();
+            throw new SpaceSetupProvisioningException($reporter, $exception);
+        }
 
         $reporter->finish();
 

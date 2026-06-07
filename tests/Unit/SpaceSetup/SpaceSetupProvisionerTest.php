@@ -7,6 +7,7 @@ namespace Tests\Unit\SpaceSetup;
 use Blokctl\SpaceSetup\SpaceSetupOperationResult;
 use Blokctl\SpaceSetup\SpaceSetupOperationStatus;
 use Blokctl\SpaceSetup\SpaceSetupProvisioner;
+use Blokctl\SpaceSetup\SpaceSetupProvisioningException;
 use Blokctl\SpaceSetup\SpaceSetupReporter;
 use PHPUnit\Framework\Attributes\Test;
 use Storyblok\ManagementApi\ManagementApiClient;
@@ -170,6 +171,35 @@ final class SpaceSetupProvisionerTest extends TestCase
         $this->assertSame(SpaceSetupOperationStatus::Planned, $results[0]->status);
         $this->assertSame(SpaceSetupOperationStatus::Failed, $results[1]->status);
         $this->assertTrue($reporter->hasFailures());
+    }
+
+    #[Test]
+    public function preserves_partial_report_when_failure_stops_provisioning(): void
+    {
+        try {
+            $this->provision([
+                'components' => [
+                    'fields' => [
+                        [
+                            'component' => 'article-page',
+                            'field' => 'SEO',
+                        ],
+                    ],
+                ],
+                'tags' => [
+                    [
+                        'stories' => ['slugs' => ['home']],
+                        'tags' => ['Marketing'],
+                    ],
+                ],
+            ]);
+            $this->fail('Expected provisioning to stop.');
+        } catch (SpaceSetupProvisioningException $spaceSetupProvisioningException) {
+            $results = $spaceSetupProvisioningException->reporter->results();
+            $this->assertCount(1, $results);
+            $this->assertSame(SpaceSetupOperationStatus::Failed, $results[0]->status);
+            $this->assertSame('Add component field: article-page.SEO', $results[0]->label);
+        }
     }
 
     #[Test]

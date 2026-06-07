@@ -1,0 +1,87 @@
+{
+    "schema_version": 1,
+    "status": "completed",
+    "dry_run": false,
+    "target": {
+        "space_id": "293039508198109",
+        "mode": "duplicate"
+    },
+    "operations": [
+        {
+            "status": "updated",
+            "label": "Configure preview URLs",
+            "detail": "https://storyblok-demo-default-se.netlify.app/?token=********&path= (1 configured environments)"
+        },
+        {
+            "status": "skipped",
+            "label": "Remove demo mode",
+            "detail": "Space is not in demo mode."
+        },
+        {
+            "status": "updated",
+            "label": "Assign workflow stages",
+            "detail": "29 stories assigned."
+        },
+        {
+            "status": "installed",
+            "label": "Install app: releases_only",
+            "detail": null
+        },
+        {
+            "status": "installed",
+            "label": "Install app: storyblok-gmbh@ai-seo",
+            "detail": null
+        },
+        {
+            "status": "installed",
+            "label": "Install app: replace_asset",
+            "detail": null
+        },
+        {
+            "status": "installed",
+            "label": "Install app: export",
+            "detail": null
+        },
+        {
+            "status": "installed",
+            "label": "Install app: import",
+            "detail": null
+        },
+        {
+            "status": "installed",
+            "label": "Install app: backups",
+            "detail": null
+        },
+        {
+            "status": "created",
+            "label": "Add component field: article-page.SEO",
+            "detail": null
+        },
+        {
+            "status": "updated",
+            "label": "Assign tags: Configuration",
+            "detail": "2 stories tagged; 0 unchanged."
+        },
+        {
+            "status": "updated",
+            "label": "Assign tags: Landing, Marketing",
+            "detail": "2 stories tagged; 0 unchanged."
+        }
+    ],
+    "summary": {
+        "planned": 0,
+        "updated": 4,
+        "installed": 6,
+        "created": 1,
+        "removed": 0,
+        "skipped": 1,
+        "failed": 0
+    },
+    "duplication": {
+        "source_space_id": "286863409930127",
+        "new_space_name": "Storyblok Customer Demo",
+        "performed": true,
+        "readiness_checks": 1,
+        "readiness_elapsed_seconds": 0.121
+    }
+}

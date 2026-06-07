@@ -9,6 +9,7 @@ All notable changes to `blokctl` will be documented in this file.
 - Updating only explicitly configured component field properties, merging story tags, and preserving unmanaged preview environments.
 - Adding `execution.mode: reconcile` and `execution.continue_on_error` setup configuration.
 - Waiting for duplicated spaces to finish pending background tasks before applying setup configuration.
+- Adding optional machine-readable JSON reports for successful, planned, and partially failed setup runs.
 
 ## 0.9.0 - 2026-06-07
 

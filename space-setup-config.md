@@ -46,6 +46,23 @@ Real execution replaces `PLANNED` with outcomes such as `UPDATED`, `INSTALLED`, 
 
 Setup exits with a non-zero status when any operation fails. Enabling `continue_on_error` allows later operations to run, but does not hide the failed setup outcome from scripts or CI jobs.
 
+Write a machine-readable JSON report for automation and subsequent workflow steps:
+
+```bash
+php bin/blokctl space:setup --config examples/demo-space.yaml --report setup-result.json
+```
+
+The report contains:
+
+- Stable report `schema_version`.
+- Final `completed`, `failed`, or `planned` status.
+- Target space ID and setup mode.
+- Duplication source and readiness details when applicable.
+- Every provisioning operation with its status and masked detail.
+- Summary counts for every operation status.
+
+Reports are written for successful setups, dry runs, continued failures, and failures that stop provisioning early. Preview tokens in operation details are masked.
+
 Validate a config without accessing Storyblok:
 
 ```bash

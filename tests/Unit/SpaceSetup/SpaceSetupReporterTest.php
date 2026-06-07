@@ -72,6 +72,9 @@ final class SpaceSetupReporterTest extends TestCase
         $this->assertSame(SpaceSetupOperationStatus::Skipped, $results[1]->status);
         $this->assertSame('Already removed.', $results[1]->detail);
         $this->assertFalse($reporter->hasFailures());
+        $this->assertSame(1, $reporter->counts()['installed']);
+        $this->assertSame(1, $reporter->counts()['skipped']);
+        $this->assertSame(0, $reporter->counts()['failed']);
     }
 
     #[Test]

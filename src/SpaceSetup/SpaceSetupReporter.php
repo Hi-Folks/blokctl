@@ -96,6 +96,23 @@ final class SpaceSetupReporter
         return array_any($this->results, fn($result): bool => $result->status === SpaceSetupOperationStatus::Failed);
     }
 
+    /**
+     * @return array<string, int>
+     */
+    public function counts(): array
+    {
+        $counts = [];
+        foreach (SpaceSetupOperationStatus::cases() as $status) {
+            $counts[strtolower($status->value)] = 0;
+        }
+
+        foreach ($this->results as $result) {
+            ++$counts[strtolower($result->status->value)];
+        }
+
+        return $counts;
+    }
+
     private function record(SpaceSetupOperationResult $result): void
     {
         $this->results[] = $result;

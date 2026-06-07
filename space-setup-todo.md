@@ -63,7 +63,7 @@ Related documentation:
 - [x] Rely on retry handling provided by the PHP Management Client.
 - [x] Add readiness polling after duplication before applying setup.
 - [x] Detect and report pending duplication/background tasks.
-- [ ] Produce a machine-readable setup report with space ID, URLs, token, successful steps, skipped steps, and failures.
+- [x] Produce a machine-readable setup report with space ID, duplication details, successful steps, skipped steps, and failures.
 - [ ] Define rollback behavior when duplication succeeds but setup fails.
 
 ## Priority 3: Customer Personalization

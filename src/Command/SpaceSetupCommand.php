@@ -11,7 +11,11 @@ use Blokctl\Render;
 use Blokctl\SpaceSetup\SpaceSetupConfigLoader;
 use Blokctl\SpaceSetup\SpaceSetupConfigValidator;
 use Blokctl\SpaceSetup\SpaceSetupInputsResolver;
+use Blokctl\SpaceSetup\SpaceSetupOperationStatus;
 use Blokctl\SpaceSetup\SpaceSetupProvisioner;
+use Blokctl\SpaceSetup\SpaceSetupProvisioningException;
+use Blokctl\SpaceSetup\SpaceSetupReporter;
+use Blokctl\SpaceSetup\SpaceSetupReportWriter;
 use Blokctl\SpaceSetup\SpaceSetupTargetResolver;
 use Blokctl\SpaceSetup\SpaceSetupVariableResolver;
 use Storyblok\ManagementApi\Data\Enum\Region;
@@ -30,6 +34,15 @@ class SpaceSetupCommand extends Command
 {
     private ManagementApiClient $client;
 
+    /**
+     * @var array<string, mixed>|null
+     */
+    private array|null $duplicationReport = null;
+
+    private string|null $reportTargetSpaceId = null;
+
+    private string $reportTargetMode = 'unresolved';
+
     #[\Override]
     protected function configure(): void
     {
@@ -38,6 +51,7 @@ class SpaceSetupCommand extends Command
             ->addOption('config', 'c', InputOption::VALUE_REQUIRED, 'JSON or YAML setup configuration file')
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Print the planned setup without changing Storyblok')
             ->addOption('continue-on-error', null, InputOption::VALUE_NONE, 'Continue running setup steps after a non-fatal step failure')
+            ->addOption('report', null, InputOption::VALUE_REQUIRED, 'Write a machine-readable JSON setup report')
             ->addOption('set', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Override a setup input as NAME=VALUE (repeatable)')
             ->addOption('region', 'R', InputOption::VALUE_REQUIRED, 'The Storyblok region (' . implode(', ', Region::values()) . ')');
     }
@@ -64,6 +78,15 @@ class SpaceSetupCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $this->duplicationReport = null;
+        /** @var string|null $reportPath */
+        $reportPath = $input->getOption('report');
+        /** @var string|null $spaceId */
+        $spaceId = $input->getOption('space-id');
+        $dryRun = (bool) $input->getOption('dry-run');
+        $this->reportTargetSpaceId = $spaceId;
+        $this->reportTargetMode = $this->hasValue($spaceId) ? 'existing' : 'unresolved';
+
         try {
             /** @var string|null $configPath */
             $configPath = $input->getOption('config');
@@ -82,10 +105,6 @@ class SpaceSetupCommand extends Command
 
                 return self::FAILURE;
             }
-
-            /** @var string|null $spaceId */
-            $spaceId = $input->getOption('space-id');
-            $dryRun = (bool) $input->getOption('dry-run');
 
             /** @var string[] $inputOverrides */
             $inputOverrides = $input->getOption('set');
@@ -119,6 +138,15 @@ class SpaceSetupCommand extends Command
             $spaceConfig = $this->arrayValue($preflightConfig['space'] ?? []);
             $duplicateFrom = $this->nullableStringValue($spaceConfig['duplicate_from'] ?? null);
             $newSpaceName = $this->nullableStringValue($spaceConfig['name'] ?? null);
+            if ($this->hasValue($duplicateFrom)) {
+                $this->reportTargetMode = 'duplicate';
+                $this->duplicationReport = [
+                    'source_space_id' => $duplicateFrom,
+                    'new_space_name' => $newSpaceName,
+                    'performed' => false,
+                ];
+            }
+
             $spaceId = new SpaceSetupTargetResolver()->resolve(
                 existingSpaceId: $spaceId,
                 duplicateFrom: $duplicateFrom,
@@ -130,6 +158,7 @@ class SpaceSetupCommand extends Command
                     spaceConfig: $spaceConfig,
                 ),
             );
+            $this->reportTargetSpaceId = $spaceId;
 
             $resolver = new SpaceSetupVariableResolver([
                 ...$baseVariables,
@@ -158,10 +187,11 @@ class SpaceSetupCommand extends Command
             $mode = $this->hasValue($duplicateFrom)
                 ? 'Duplicate from ' . $duplicateFrom . ' as "' . $newSpaceName . '"'
                 : 'Existing space';
-            return $this->runSetup($spaceId, $config, $dryRun, $continueOnError, $mode)
+            return $this->runSetup($spaceId, $config, $dryRun, $continueOnError, $mode, $reportPath)
                 ? self::SUCCESS
                 : self::FAILURE;
         } catch (\Exception $exception) {
+            $this->writeFailureReport($reportPath, $dryRun, $exception);
             Render::error($exception->getMessage());
             return self::FAILURE;
         }
@@ -176,16 +206,78 @@ class SpaceSetupCommand extends Command
         bool $dryRun,
         bool $continueOnError,
         string $mode,
+        string|null $reportPath,
     ): bool {
-        $reporter = new SpaceSetupProvisioner($this->client)->run(
-            $spaceId,
-            $config,
-            $dryRun,
-            $continueOnError,
-            $mode,
+        try {
+            $reporter = new SpaceSetupProvisioner($this->client)->run(
+                $spaceId,
+                $config,
+                $dryRun,
+                $continueOnError,
+                $mode,
+            );
+        } catch (SpaceSetupProvisioningException $spaceSetupProvisioningException) {
+            $this->writeReport($reportPath, $spaceSetupProvisioningException->reporter, $spaceId, $dryRun);
+            Render::error($spaceSetupProvisioningException->getMessage());
+            return false;
+        }
+
+        $this->writeReport($reportPath, $reporter, $spaceId, $dryRun);
+        return !$reporter->hasFailures();
+    }
+
+    private function writeReport(
+        string|null $path,
+        SpaceSetupReporter $reporter,
+        string|null $spaceId,
+        bool $dryRun,
+    ): void {
+        if ($path === null || $path === '') {
+            return;
+        }
+
+        new SpaceSetupReportWriter()->write(
+            path: $path,
+            reporter: $reporter,
+            dryRun: $dryRun,
+            target: [
+                'space_id' => $spaceId,
+                'mode' => $this->reportTargetMode,
+            ],
+            duplication: $this->duplicationReport,
+        );
+        Render::labelValue('JSON report', $path);
+    }
+
+    private function writeFailureReport(
+        string|null $path,
+        bool $dryRun,
+        \Exception $exception,
+    ): void {
+        if ($path === null || $path === '') {
+            return;
+        }
+
+        $reporter = new SpaceSetupReporter($dryRun);
+        $reporter->run(
+            'Prepare space setup',
+            SpaceSetupOperationStatus::Updated,
+            true,
+            static function () use ($exception): never {
+                throw $exception;
+            },
         );
 
-        return !$reporter->hasFailures();
+        try {
+            $this->writeReport(
+                $path,
+                $reporter,
+                $this->reportTargetSpaceId,
+                $dryRun,
+            );
+        } catch (\Exception $reportException) {
+            Render::error($reportException->getMessage());
+        }
     }
 
     /**
@@ -220,6 +312,12 @@ class SpaceSetupCommand extends Command
             isDemo: $this->boolValue($spaceConfig['demo'] ?? false),
             inOrg: $this->boolValue($spaceConfig['in_org'] ?? false),
         )->space->id();
+        $this->reportTargetSpaceId = $spaceId;
+        $this->duplicationReport = [
+            'source_space_id' => $sourceSpaceId,
+            'new_space_name' => $name,
+            'performed' => true,
+        ];
 
         $readiness = $this->arrayValue($spaceConfig['readiness'] ?? []);
         Render::title('SPACE DUPLICATION');
@@ -235,6 +333,11 @@ class SpaceSetupCommand extends Command
             label: 'Duplication completed',
             detail: $result->attempts . ' readiness check(s)',
         );
+        $this->duplicationReport = [
+            ...$this->duplicationReport,
+            'readiness_checks' => $result->attempts,
+            'readiness_elapsed_seconds' => round($result->elapsedSeconds, 3),
+        ];
 
         return $spaceId;
     }

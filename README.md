@@ -238,6 +238,7 @@ After duplicating a space, setup waits until Storyblok reports that the new spac
 | `--config`, `-c` | JSON or YAML setup configuration file |
 | `--dry-run` | Print the planned setup without changing Storyblok |
 | `--continue-on-error` | Continue after a non-fatal step failure |
+| `--report` | Write a machine-readable JSON setup report |
 | `--set` | Override a declared setup input as `NAME=VALUE` (repeatable) |
 
 Use `-S` to reconcile an existing space, or configure `space.duplicate_from` and `space.name` to create a duplicated target first. These targeting modes are mutually exclusive. Other setup sections work identically with either target mode.
@@ -247,6 +248,14 @@ With `--dry-run` and a configured `space.duplicate_from`, no space is created. T
 Both dry-run and real execution use compact operation statuses such as `PLANNED`, `UPDATED`, `INSTALLED`, `CREATED`, `REMOVED`, `SKIPPED`, and `FAILED`, followed by a final summary. Preview tokens are masked in rendered URLs.
 
 When `--continue-on-error`, `continue_on_error`, or app-specific continuation is enabled, setup continues after failed operations but still exits with a non-zero status so scripts and CI jobs can detect the incomplete setup.
+
+Use `--report` to write the target space, duplication readiness details, individual operation results, and summary counts as JSON:
+
+```bash
+php bin/blokctl space:setup --config examples/demo-space.yaml --report setup-result.json
+```
+
+Reports are also written for dry runs and partial setup failures. Preview tokens are masked.
 
 #### `space:info` — Display space information
 
