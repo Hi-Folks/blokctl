@@ -76,6 +76,17 @@
         }
       ]
     },
+    "positiveIntegerOrExpression": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 1
+        },
+        {
+          "$ref": "#/$defs/expression"
+        }
+      ]
+    },
     "inputs": {
       "type": "object",
       "additionalProperties": {
@@ -148,6 +159,23 @@
         "demo": {
           "$ref": "#/$defs/booleanOrExpression",
           "default": false
+        },
+        "readiness": {
+          "$ref": "#/$defs/spaceReadiness"
+        }
+      }
+    },
+    "spaceReadiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "timeout_seconds": {
+          "$ref": "#/$defs/positiveIntegerOrExpression",
+          "default": 120
+        },
+        "poll_interval_seconds": {
+          "$ref": "#/$defs/positiveIntegerOrExpression",
+          "default": 2
         }
       }
     },

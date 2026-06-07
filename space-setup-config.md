@@ -129,6 +129,9 @@ space:
   duplicate_from: "286863409930127"
   in_org: true
   demo: false
+  readiness:
+    timeout_seconds: 120
+    poll_interval_seconds: 2
 ```
 
 | Key | Required | Description |
@@ -137,8 +140,18 @@ space:
 | `duplicate_from` | No | Source template space ID. Omit when targeting an existing space with `-S`. |
 | `in_org` | No | Create the duplicated space inside the current organization. Defaults to `false`. |
 | `demo` | No | Mark the duplicated space as a demo/example space. Defaults to `false`. |
+| `readiness` | No | Readiness polling settings used after duplication. |
 
 `space.demo: true` cannot be combined with `demo_mode.remove: true`.
+
+After duplication, `space:setup` polls the new space until Storyblok reports `has_pending_tasks: false`. This prevents provisioning steps from running while duplication background tasks are still active. Existing-space setup and dry runs do not poll.
+
+| Readiness key | Required | Description |
+|---|---:|---|
+| `timeout_seconds` | No | Maximum time to wait for pending tasks. Defaults to `120`. |
+| `poll_interval_seconds` | No | Delay between readiness checks. Defaults to `2`. |
+
+Readiness polling is separate from HTTP retry handling, which remains managed by the PHP Management Client.
 
 ## Top-Level Keys
 
@@ -177,6 +190,9 @@ space:
   duplicate_from: "286863409930127"
   in_org: true
   demo: false
+  readiness:
+    timeout_seconds: 120
+    poll_interval_seconds: 2
 
 preview:
   enabled: true
@@ -414,8 +430,9 @@ When `space.duplicate_from` is configured, `space:setup` does this in order:
 
 1. Resolve and validate the complete configuration.
 2. Create a new space by duplicating the source space ID.
-3. Store the new space ID.
-4. Apply the config to the new space.
+3. Poll the new space until Storyblok reports that no background tasks are pending.
+4. Store the new space ID.
+5. Apply the config to the new space.
 
 That means `${{ space.id }}` always refers to the final target space, not the source template space.
 

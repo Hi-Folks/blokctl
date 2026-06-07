@@ -12,6 +12,12 @@ inputs:
 
 space:
   name: "Storyblok Customer Demo"
+  duplicate_from: "286863409930127"
+  in_org: true
+  demo: false
+  readiness:
+    timeout_seconds: 120
+    poll_interval_seconds: 2
 
 preview:
   enabled: true

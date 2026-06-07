@@ -138,6 +138,43 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     }
 
     #[Test]
+    public function accepts_space_readiness_settings(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'space' => [
+                'name' => 'Customer Demo',
+                'duplicate_from' => '286863409930127',
+                'readiness' => [
+                    'timeout_seconds' => 180,
+                    'poll_interval_seconds' => 3,
+                ],
+            ],
+        ]);
+
+        $this->assertTrue($result->isValid());
+    }
+
+    #[Test]
+    public function rejects_non_positive_space_readiness_settings(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'space' => [
+                'name' => 'Customer Demo',
+                'duplicate_from' => '286863409930127',
+                'readiness' => [
+                    'timeout_seconds' => 0,
+                ],
+            ],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertErrorsContain($result->errors, '$.space.readiness.timeout_seconds');
+        $this->assertErrorsContain($result->errors, 'greater than or equal to 1');
+    }
+
+    #[Test]
     public function accepts_reconcile_execution_mode(): void
     {
         $result = new SpaceSetupConfigValidator()->validate([

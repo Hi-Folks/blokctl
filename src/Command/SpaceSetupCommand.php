@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Blokctl\Command;
 
 use Blokctl\Action\Space\SpaceCreateAction;
+use Blokctl\Action\Space\SpaceReadinessAction;
 use Blokctl\Action\Space\SpaceTokenAction;
 use Blokctl\Render;
 use Blokctl\SpaceSetup\SpaceSetupConfigLoader;
@@ -123,12 +124,11 @@ class SpaceSetupCommand extends Command
                 duplicateFrom: $duplicateFrom,
                 newSpaceName: $newSpaceName,
                 dryRun: $dryRun,
-                duplicate: fn(string $sourceSpaceId, string $name): string => new SpaceCreateAction($this->client)->execute(
+                duplicate: fn(string $sourceSpaceId, string $name): string => $this->duplicateAndWaitUntilReady(
+                    sourceSpaceId: $sourceSpaceId,
                     name: $name,
-                    duplicateFrom: $sourceSpaceId,
-                    isDemo: $this->boolValue($spaceConfig['demo'] ?? false),
-                    inOrg: $this->boolValue($spaceConfig['in_org'] ?? false),
-                )->space->id(),
+                    spaceConfig: $spaceConfig,
+                ),
             );
 
             $resolver = new SpaceSetupVariableResolver([
@@ -207,6 +207,39 @@ class SpaceSetupCommand extends Command
     }
 
     /**
+     * @param array<string, mixed> $spaceConfig
+     */
+    private function duplicateAndWaitUntilReady(
+        string $sourceSpaceId,
+        string $name,
+        array $spaceConfig,
+    ): string {
+        $spaceId = new SpaceCreateAction($this->client)->execute(
+            name: $name,
+            duplicateFrom: $sourceSpaceId,
+            isDemo: $this->boolValue($spaceConfig['demo'] ?? false),
+            inOrg: $this->boolValue($spaceConfig['in_org'] ?? false),
+        )->space->id();
+
+        $readiness = $this->arrayValue($spaceConfig['readiness'] ?? []);
+        Render::title('SPACE DUPLICATION');
+        Render::labelValue('Space ID', $spaceId);
+        Render::notice('Waiting for duplicated space to become ready.');
+        $result = new SpaceReadinessAction($this->client)->execute(
+            spaceId: $spaceId,
+            timeoutSeconds: $this->intValue($readiness['timeout_seconds'] ?? 120),
+            pollIntervalSeconds: $this->intValue($readiness['poll_interval_seconds'] ?? 2),
+        );
+        Render::operation(
+            status: 'READY',
+            label: 'Duplication completed',
+            detail: $result->attempts . ' readiness check(s)',
+        );
+
+        return $spaceId;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function arrayValue(mixed $value): array
@@ -228,6 +261,11 @@ class SpaceSetupCommand extends Command
     {
         $value = $this->stringValue($value);
         return $value === '' ? null : $value;
+    }
+
+    private function intValue(mixed $value): int
+    {
+        return is_numeric($value) ? (int) $value : 0;
     }
 
     private function boolValue(mixed $value): bool

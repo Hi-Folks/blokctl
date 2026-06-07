@@ -53,7 +53,6 @@ Related documentation:
     continue_on_error: false
   ```
 
-- [ ] Add execution retry and timeout settings.
 - [x] Make every currently supported setup step idempotent.
 - [x] Skip apps that are already installed.
 - [x] Skip component fields that already match the requested definition.
@@ -61,9 +60,9 @@ Related documentation:
 - [x] Reconcile preview environments without unintentionally replacing existing entries.
 - [x] Skip tags already assigned to stories.
 - [ ] Reuse folders and datasources that already exist.
-- [ ] Add retry handling for rate limits and temporary API failures.
-- [ ] Add readiness polling after duplication before applying setup.
-- [ ] Detect and report pending duplication/background tasks.
+- [x] Rely on retry handling provided by the PHP Management Client.
+- [x] Add readiness polling after duplication before applying setup.
+- [x] Detect and report pending duplication/background tasks.
 - [ ] Produce a machine-readable setup report with space ID, URLs, token, successful steps, skipped steps, and failures.
 - [ ] Define rollback behavior when duplication succeeds but setup fails.
 

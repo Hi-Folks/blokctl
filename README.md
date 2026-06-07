@@ -224,9 +224,13 @@ space:
   duplicate_from: "286863409930127"
   in_org: true
   demo: false
+  readiness:
+    timeout_seconds: 120
 ```
 
 Reconcile mode is the default. Repeated setup runs preserve unmanaged resources, skip matching state, merge story tags and preview environments, and update only explicitly configured component field properties. Resources omitted from the config are never removed automatically.
+
+After duplicating a space, setup waits until Storyblok reports that the new space has no pending background tasks. The readiness timeout defaults to 120 seconds and can be configured under `space.readiness`. Existing-space setup and dry runs do not perform readiness polling.
 
 | Option | Description |
 |---|---|
