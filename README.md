@@ -1,5 +1,31 @@
 # blokctl
 
+<h1 align="center">
+    blokctl
+</h1>
+
+<p align=center>
+    <a href="https://packagist.org/packages/hi-folks/blokctl">
+        <img src="https://img.shields.io/packagist/v/hi-folks/blokctl.svg?style=for-the-badge" alt="Latest Version on Packagist">
+    </a>
+    <a href="https://packagist.org/packages/hi-folks/blokctl">
+        <img src="https://img.shields.io/packagist/dt/hi-folks/blokctl.svg?style=for-the-badge" alt="Total Downloads">
+    </a>
+    <br>
+    <img src="https://img.shields.io/packagist/l/hi-folks/blokctl?style=for-the-badge" alt="Packagist License">
+    <br>
+    <img src="https://img.shields.io/packagist/php-v/hi-folks/blokctl?style=for-the-badge" alt="Packagist PHP Version Support">
+    <img src="https://img.shields.io/github/last-commit/hi-folks/blokctl?style=for-the-badge" alt="GitHub last commit">
+</p>
+
+
+<p align=center>
+    <i>
+        An unofficial Storyblok automation toolkit providing a command-line interface, reusable PHP API, and Configuration as Code provisioning.
+    </i>
+</p>
+
+
 > **0.x — Early testing phase**
 >
 > This package is currently at version **0.x**, which means it is under active development and testing. APIs and commands may change without notice.
