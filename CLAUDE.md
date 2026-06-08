@@ -5,11 +5,11 @@ An unofficial Storyblok automation toolkit providing a command-line interface, r
 ## Requirements
 
 - PHP 8.4.1+
-- A `.env` file with `SECRET_KEY` (Storyblok Personal Access Token)
+- A `.env` file with `SECRET_KEY` (Storyblok Management API access token; prefer a scoped Personal Access Token)
 
 ## Safety
 
-Use a **test user** with a **test Personal Access Token** that only has access to a **test space**. Do not use production credentials or spaces.
+Use a **test user** with a **scoped test Personal Access Token** that only has the required Management API permissions and access to a **test space**. Do not use production credentials or spaces.
 
 ## Skills
 

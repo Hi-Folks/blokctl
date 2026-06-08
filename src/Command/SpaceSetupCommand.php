@@ -7,6 +7,7 @@ namespace Blokctl\Command;
 use Blokctl\Action\Space\SpaceCreateAction;
 use Blokctl\Action\Space\SpaceReadinessAction;
 use Blokctl\Action\Space\SpaceTokenAction;
+use Blokctl\ManagementAccessToken;
 use Blokctl\Render;
 use Blokctl\SpaceSetup\SpaceSetupConfigLoader;
 use Blokctl\SpaceSetup\SpaceSetupConfigValidator;
@@ -58,10 +59,7 @@ class SpaceSetupCommand extends Command
 
     protected function initialize(InputInterface $input, OutputInterface $output): void
     {
-        $token = $_ENV['SECRET_KEY'] ?? null;
-        if (!is_string($token) || $token === '') {
-            throw new \RuntimeException('SECRET_KEY not found in environment. Check your .env file.');
-        }
+        $token = ManagementAccessToken::fromEnvironment($_ENV);
 
         /** @var string|null $regionValue */
         $regionValue = $input->getOption('region');

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Blokctl\Command;
 
 use Blokctl\Action\User\UserMeAction;
+use Blokctl\ManagementAccessToken;
 use Blokctl\Render;
 use Storyblok\ManagementApi\Data\Enum\Region;
 use Storyblok\ManagementApi\ManagementApiClient;
@@ -34,12 +35,7 @@ class UserMeCommand extends Command
         InputInterface $input,
         OutputInterface $output,
     ): int {
-        $token = $_ENV['SECRET_KEY'] ?? null;
-        if (!is_string($token) || $token === '') {
-            throw new \RuntimeException(
-                'SECRET_KEY not found in environment. Check your .env file.',
-            );
-        }
+        $token = ManagementAccessToken::fromEnvironment($_ENV);
 
         /** @var string|null $regionValue */
         $regionValue = $input->getOption('region');

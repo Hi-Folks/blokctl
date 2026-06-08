@@ -35,7 +35,7 @@
 >
 > If you'd like to participate in testing, feel free to use it and share your feedback, bug reports, and feature requests via [GitHub Issues](https://github.com/hi-folks/blokctl/issues).
 >
-> **Important:** Since this is a testing phase, please use a **test user** with a **test Personal Access Token** that only has access to a **test space**. Do not use your production credentials or spaces.
+> **Important:** Since this is a testing phase, use a **test user** with a **scoped Personal Access Token** that only has the required Management API permissions and access to a **test space**. Do not use production credentials or spaces.
 
 **An unofficial Storyblok automation toolkit.**
 
@@ -52,7 +52,7 @@ The official [Storyblok CLI](https://www.storyblok.com/docs/libraries/storyblok-
 ## Requirements
 
 - PHP 8.4.1 or higher
-- A Storyblok [Personal Access Token](https://app.storyblok.com/#/me/account?tab=token)
+- A Storyblok [Management API access token](https://www.storyblok.com/docs/concepts/access-tokens#management-api-access-tokens). Prefer a [scoped Personal Access Token](https://www.storyblok.com/cl/scoped-personal-access-tokens) with only the permissions you need.
 
 ## Installation
 
@@ -75,7 +75,7 @@ composer require hi-folks/blokctl
 Create a `.env` file in your project root:
 
 ```env
-SECRET_KEY=your-personal-access-token
+SECRET_KEY=your-scoped-personal-access-token
 ```
 
 You can copy the provided example:
