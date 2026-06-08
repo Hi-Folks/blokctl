@@ -136,9 +136,12 @@ class SpaceSetupCommand extends Command
             }
 
             $spaceConfig = $this->arrayValue($preflightConfig['space'] ?? []);
+            $createNew = $this->boolValue($spaceConfig['create_new'] ?? false);
             $duplicateFrom = $this->nullableStringValue($spaceConfig['duplicate_from'] ?? null);
             $newSpaceName = $this->nullableStringValue($spaceConfig['name'] ?? null);
-            if ($this->hasValue($duplicateFrom)) {
+            if ($createNew) {
+                $this->reportTargetMode = 'create';
+            } elseif ($this->hasValue($duplicateFrom)) {
                 $this->reportTargetMode = 'duplicate';
                 $this->duplicationReport = [
                     'source_space_id' => $duplicateFrom,
@@ -149,9 +152,11 @@ class SpaceSetupCommand extends Command
 
             $spaceId = new SpaceSetupTargetResolver()->resolve(
                 existingSpaceId: $spaceId,
+                createNew: $createNew,
                 duplicateFrom: $duplicateFrom,
                 newSpaceName: $newSpaceName,
                 dryRun: $dryRun,
+                create: fn(string $name): string => $this->createBlankSpace($name, $spaceConfig),
                 duplicate: fn(string $sourceSpaceId, string $name): string => $this->duplicateAndWaitUntilReady(
                     sourceSpaceId: $sourceSpaceId,
                     name: $name,
@@ -184,9 +189,11 @@ class SpaceSetupCommand extends Command
             $execution = $this->arrayValue($config['execution'] ?? []);
             $continueOnError = (bool) $input->getOption('continue-on-error')
                 || $this->boolValue($execution['continue_on_error'] ?? $config['continue_on_error'] ?? false);
-            $mode = $this->hasValue($duplicateFrom)
-                ? 'Duplicate from ' . $duplicateFrom . ' as "' . $newSpaceName . '"'
-                : 'Existing space';
+            $mode = match (true) {
+                $createNew => 'Create blank space as "' . $newSpaceName . '"',
+                $this->hasValue($duplicateFrom) => 'Duplicate from ' . $duplicateFrom . ' as "' . $newSpaceName . '"',
+                default => 'Existing space',
+            };
             return $this->runSetup($spaceId, $config, $dryRun, $continueOnError, $mode, $reportPath)
                 ? self::SUCCESS
                 : self::FAILURE;
@@ -296,6 +303,28 @@ class SpaceSetupCommand extends Command
         }
 
         return $token;
+    }
+
+    /**
+     * @param array<string, mixed> $spaceConfig
+     */
+    private function createBlankSpace(string $name, array $spaceConfig): string
+    {
+        $spaceId = new SpaceCreateAction($this->client)->execute(
+            name: $name,
+            isDemo: $this->boolValue($spaceConfig['demo'] ?? false),
+            inOrg: $this->boolValue($spaceConfig['in_org'] ?? false),
+        )->space->id();
+        $this->reportTargetSpaceId = $spaceId;
+
+        Render::title('SPACE CREATION');
+        Render::labelValue('Space ID', $spaceId);
+        Render::operation(
+            status: 'CREATED',
+            label: 'Blank space created',
+        );
+
+        return $spaceId;
     }
 
     /**

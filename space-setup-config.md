@@ -14,6 +14,12 @@ Or it can use the configuration to duplicate a template space first, then apply 
 php bin/blokctl space:setup --config examples/demo-space.yaml
 ```
 
+It can also create and configure a blank space explicitly:
+
+```bash
+php bin/blokctl space:setup --config examples/blank-space.yaml
+```
+
 Use `--dry-run` to inspect the plan without changing Storyblok:
 
 ```bash
@@ -26,7 +32,7 @@ For duplicate-first provisioning, dry-run also displays the complete post-duplic
 php bin/blokctl space:setup --config examples/demo-space.yaml --dry-run
 ```
 
-During a duplicate dry-run, `${{ space.id }}` resolves to `NEW_SPACE_ID` and `${{ space.preview_token }}` resolves to `PREVIEW_TOKEN`.
+During a create or duplicate dry-run, `${{ space.id }}` resolves to `NEW_SPACE_ID` and `${{ space.preview_token }}` resolves to `PREVIEW_TOKEN`.
 
 Dry-run renders the complete desired setup without inspecting current target state. During real execution, reconcile mode may report planned operations as `SKIPPED` when the space already matches.
 
@@ -95,7 +101,7 @@ The complete setup configuration supports namespaced expressions:
 |---|---|
 | `${{ inputs.NAME }}` | Declared setup input default or `--set` override. |
 | `${{ env.NAME }}` | Environment variable named `NAME`. |
-| `${{ space.id }}` | Target space ID. If `space.duplicate_from` is configured, this is the newly created space ID. |
+| `${{ space.id }}` | Target space ID. For create or duplicate modes, this is the newly created space ID. |
 | `${{ space.preview_token }}` | First preview access token of the target space. |
 
 Example:
@@ -140,7 +146,7 @@ When an expression is embedded in other text, it must resolve to a scalar value 
 
 ## `space`
 
-Defines optional target-creation settings. Configure `duplicate_from` and `name` to duplicate a template before applying the setup. When targeting an existing space with `-S`, omit `duplicate_from`; the other setup sections are applied directly to that space.
+Defines optional target-creation settings. Set `create_new: true` with `name` to create a blank space, or configure `duplicate_from` with `name` to duplicate a template. When targeting an existing space with `-S`, omit both creation settings.
 
 ```yaml
 space:
@@ -155,15 +161,18 @@ space:
 
 | Key | Required | Description |
 |---|---:|---|
-| `name` | Conditional | Name of the duplicated space. Required when `duplicate_from` is configured. |
+| `name` | Conditional | Name of the new space. Required when `create_new: true` or `duplicate_from` is configured. |
+| `create_new` | No | Explicitly create a blank target space. Defaults to `false`. |
 | `duplicate_from` | No | Source template space ID. Omit when targeting an existing space with `-S`. |
 | `in_org` | No | Create the duplicated space inside the current organization. Defaults to `false`. |
-| `demo` | No | Mark the duplicated space as a demo/example space. Defaults to `false`. |
+| `demo` | No | Mark the created or duplicated space as a demo/example space. Defaults to `false`. |
 | `readiness` | No | Readiness polling settings used after duplication. |
 
 `space.demo: true` cannot be combined with `demo_mode.remove: true`.
 
-After duplication, `space:setup` polls the new space until Storyblok reports `has_pending_tasks: false`. This prevents provisioning steps from running while duplication background tasks are still active. Existing-space setup and dry runs do not poll.
+`space.create_new: true`, `space.duplicate_from`, and `--space-id (-S)` are mutually exclusive target modes. Creating a blank space is always explicit; a `space.name` alone never creates a space.
+
+After duplication, `space:setup` polls the new space until Storyblok reports `has_pending_tasks: false`. This prevents provisioning steps from running while duplication background tasks are still active. Blank-space creation, existing-space setup, and dry runs do not poll.
 
 | Readiness key | Required | Description |
 |---|---:|---|
@@ -181,7 +190,7 @@ Except for `version`, all top-level sections are optional. If a section is omitt
 | `version` | Required configuration schema version. Currently `1`. |
 | `inputs` | Reusable runtime input definitions with defaults and required values. |
 | `execution` | Execution behavior. Reconcile mode is the default. |
-| `space` | Optional target-creation settings. Omit `space.duplicate_from` when using `-S`. |
+| `space` | Optional target-creation settings. Omit `create_new` and `duplicate_from` when using `-S`. |
 | `continue_on_error` | Global boolean. Continue after a failed step. |
 | `preview` | Set the default preview URL and frontend environments. |
 | `demo_mode` | Remove demo/example mode. |
@@ -461,10 +470,26 @@ php bin/blokctl space:setup --config examples/demo-space.yaml
 
 Do not pass `-S` when the config defines `space.duplicate_from`; these modes are mutually exclusive.
 
-To reconcile an existing space, pass its ID and omit `space.duplicate_from`:
+To reconcile an existing space, pass its ID and use a config that omits `space.create_new` and `space.duplicate_from`:
 
 ```bash
-php bin/blokctl space:setup -S 290817118944379 --config examples/demo-space.yaml
+php bin/blokctl space:setup -S 290817118944379 --config existing-space.yaml
 ```
 
 With `--dry-run`, duplication is skipped and the complete setup plan is rendered using placeholder target-space values.
+
+## Blank-Space Creation and Setup
+
+When `space.create_new: true` is configured, `space:setup` creates a blank space and then applies the remaining configuration:
+
+```yaml
+space:
+  create_new: true
+  name: "Customer Demo"
+```
+
+```bash
+php bin/blokctl space:setup --config examples/blank-space.yaml
+```
+
+Do not combine `space.create_new: true` with `space.duplicate_from` or `-S`. Blank-space creation does not perform duplication readiness polling.

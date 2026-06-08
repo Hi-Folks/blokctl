@@ -145,9 +145,37 @@
           "name"
         ]
       },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "create_new"
+            ],
+            "properties": {
+              "create_new": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "name"
+            ],
+            "not": {
+              "required": [
+                "duplicate_from"
+              ]
+            }
+          }
+        }
+      ],
       "properties": {
         "name": {
           "$ref": "#/$defs/nonEmptyString"
+        },
+        "create_new": {
+          "$ref": "#/$defs/booleanOrExpression",
+          "default": false
         },
         "duplicate_from": {
           "$ref": "#/$defs/identifier"

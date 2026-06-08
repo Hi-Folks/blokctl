@@ -135,6 +135,7 @@ Key patterns:
 - Use `SpaceSetupReporter` for consistent operation statuses.
 - Ensure failures return a non-zero exit code and remain available in JSON reports.
 - Preserve duplicated spaces after setup failures; do not automatically roll them back.
+- Keep target creation explicit: existing `-S`, `space.create_new: true`, or `space.duplicate_from`.
 - Update `space-setup-config.md`, examples, schema, changelog, roadmap, and focused tests when adding setup syntax.
 
 ### Step 3: Register in `bin/blokctl`

@@ -230,7 +230,15 @@ space:
 
 Reconcile mode is the default. Repeated setup runs preserve unmanaged resources, skip matching state, merge story tags and preview environments, and update only explicitly configured component field properties. Resources omitted from the config are never removed automatically.
 
-After duplicating a space, setup waits until Storyblok reports that the new space has no pending background tasks. The readiness timeout defaults to 120 seconds and can be configured under `space.readiness`. Existing-space setup and dry runs do not perform readiness polling.
+After duplicating a space, setup waits until Storyblok reports that the new space has no pending background tasks. The readiness timeout defaults to 120 seconds and can be configured under `space.readiness`. Blank-space creation, existing-space setup, and dry runs do not perform readiness polling.
+
+To create and configure a blank space instead of duplicating a template:
+
+```yaml
+space:
+  create_new: true
+  name: "Customer Demo"
+```
 
 | Option | Description |
 |---|---|
@@ -241,9 +249,9 @@ After duplicating a space, setup waits until Storyblok reports that the new spac
 | `--report` | Write a machine-readable JSON setup report |
 | `--set` | Override a declared setup input as `NAME=VALUE` (repeatable) |
 
-Use `-S` to reconcile an existing space, or configure `space.duplicate_from` and `space.name` to create a duplicated target first. These targeting modes are mutually exclusive. Other setup sections work identically with either target mode.
+Choose exactly one target mode: use `-S` to reconcile an existing space, configure `space.create_new: true` with `space.name` to create a blank target, or configure `space.duplicate_from` with `space.name` to duplicate a template. Other setup sections work identically with every target mode.
 
-With `--dry-run` and a configured `space.duplicate_from`, no space is created. The complete desired setup plan is rendered using `NEW_SPACE_ID` and `PREVIEW_TOKEN` placeholders. Dry-run does not inspect the current target state, so real execution may report matching operations as `SKIPPED`.
+With `--dry-run` and a configured `space.create_new` or `space.duplicate_from`, no space is created. The complete desired setup plan is rendered using `NEW_SPACE_ID` and `PREVIEW_TOKEN` placeholders. Dry-run does not inspect the current target state, so real execution may report matching operations as `SKIPPED`.
 
 Both dry-run and real execution use compact operation statuses such as `PLANNED`, `UPDATED`, `INSTALLED`, `CREATED`, `REMOVED`, `SKIPPED`, and `FAILED`, followed by a final summary. Preview tokens are masked in rendered URLs.
 

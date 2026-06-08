@@ -14,6 +14,7 @@ All notable changes to `blokctl` will be documented in this file.
 - Waiting for duplicated spaces to finish pending background tasks before applying setup configuration.
 - Adding optional machine-readable JSON reports for successful, planned, and partially failed setup runs.
 - Preserving duplicated spaces after setup failures and improving failure/readiness output wording.
+- Adding explicit blank-space creation through `space.create_new: true` before applying setup configuration.
 
 ## 0.9.0 - 2026-06-07
 

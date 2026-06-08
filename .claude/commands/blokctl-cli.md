@@ -6,7 +6,7 @@ Use this skill when the user wants to run blokctl commands to manage a Storyblok
 
 **Before suggesting or running any command that targets an existing space with `--space-id` (`-S`), you MUST confirm that the user has provided a clear, specific numeric Space ID.** If the Space ID is missing, ambiguous, or looks like a placeholder (e.g. "my space", "12345", "the demo one"), STOP and ask the user to provide the exact numeric Space ID. Do not guess, infer, or use example IDs from documentation. Commands mutate real Storyblok spaces; running against the wrong space can delete content, break workflows, or install unwanted apps.
 
-Exceptions that do not require `-S`: `space:create`, `space:setup-validate`, `spaces:list`, `user:me`, and duplicate-first `space:setup` when the config defines `space.duplicate_from`.
+Exceptions that do not require `-S`: `space:create`, `space:setup-validate`, `spaces:list`, `user:me`, and create/duplicate-first `space:setup` when the config defines `space.create_new: true` or `space.duplicate_from`.
 
 ## Global options
 
@@ -26,7 +26,7 @@ Exceptions that do not require `-S`: `space:create`, `space:setup-validate`, `sp
 - **`space:delete`** — Delete a space. Safety: must be owner + sole collaborator.
 - **`space:demo-remove`** — Remove demo mode from a space.
 - **`space:token`** — Show the space's preview access token.
-- **`space:setup`** — Reconcile a space from validated YAML/JSON Configuration as Code. Use `-S` for an existing space, or configure `space.duplicate_from` and `space.name` to create a duplicated target. Options: `--config`, `--dry-run`, `--continue-on-error`, repeatable `--set`, `--report`.
+- **`space:setup`** — Reconcile a space from validated YAML/JSON Configuration as Code. Use `-S` for an existing space, `space.create_new: true` with `space.name` for a blank space, or `space.duplicate_from` with `space.name` for a duplicated target. Options: `--config`, `--dry-run`, `--continue-on-error`, repeatable `--set`, `--report`.
 - **`space:setup-validate`** — Validate a setup YAML/JSON file against `space-setup-schema.json` without accessing Storyblok. Option: `--config`. No `--space-id` needed.
 
 ### Configuration as Code setup

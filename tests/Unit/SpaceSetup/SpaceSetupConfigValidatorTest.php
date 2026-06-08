@@ -138,6 +138,52 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     }
 
     #[Test]
+    public function accepts_explicit_blank_space_creation(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'space' => [
+                'create_new' => true,
+                'name' => 'Customer Demo',
+            ],
+        ]);
+
+        $this->assertTrue($result->isValid());
+    }
+
+    #[Test]
+    public function rejects_blank_space_creation_without_a_name(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'space' => [
+                'create_new' => true,
+            ],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertErrorsContain($result->errors, '$.space');
+        $this->assertErrorsContain($result->errors, 'required');
+    }
+
+    #[Test]
+    public function rejects_blank_space_creation_with_duplication(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'space' => [
+                'create_new' => true,
+                'name' => 'Customer Demo',
+                'duplicate_from' => '286863409930127',
+            ],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertErrorsContain($result->errors, '$.space');
+        $this->assertErrorsContain($result->errors, 'must not match schema');
+    }
+
+    #[Test]
     public function accepts_space_readiness_settings(): void
     {
         $result = new SpaceSetupConfigValidator()->validate([

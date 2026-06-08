@@ -190,7 +190,7 @@ Related documentation:
 ## Decisions to Make
 
 - [x] Store duplication settings in config for `space:setup`; keep CLI options on `space:create`.
-- [ ] Decide whether `space:setup` should support blank-space creation in addition to duplication.
+- [x] Support explicit blank-space creation with `space.create_new: true`.
 - [x] Make reconcile the default execution mode.
 - [ ] Define how destructive operations are represented and confirmed.
 - [x] Define whether unresolved variables fail setup or resolve to empty strings: unresolved variables fail setup.
@@ -210,6 +210,7 @@ Related documentation:
 - [x] Component field additions
 - [x] Story tag assignments by slug or ID
 - [x] Existing-space setup with `-S`
+- [x] Configuration-driven blank-space creation with `space.create_new: true`
 - [x] Configuration-driven duplicate-first setup with `space.duplicate_from`
 - [x] YAML and JSON config loading
 - [x] Draft 2020-12 JSON Schema validation for YAML and JSON configs

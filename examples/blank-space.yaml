@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=../space-setup-schema.json
+
+version: 1
+
+space:
+  create_new: true
+  name: "New Storyblok Space"
+
+preview:
+  default: "https://example.com/?token=${{ space.preview_token }}&path="

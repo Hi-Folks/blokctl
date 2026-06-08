@@ -64,12 +64,24 @@ final readonly class SpaceSetupConfigValidator
     {
         $space = is_array($config['space'] ?? null) ? $config['space'] : [];
         $demoMode = is_array($config['demo_mode'] ?? null) ? $config['demo_mode'] : [];
+        $errors = [];
 
         if (($space['demo'] ?? false) === true && ($demoMode['remove'] ?? false) === true) {
-            return ['$.space.demo: Cannot mark a duplicated space as demo when demo_mode.remove is true.'];
+            $errors[] = '$.space.demo: Cannot mark a created space as demo when demo_mode.remove is true.';
         }
 
-        return [];
+        if (($space['create_new'] ?? false) === true && array_key_exists('duplicate_from', $space)) {
+            $errors[] = '$.space.create_new: Cannot combine space.create_new: true with space.duplicate_from.';
+        }
+
+        if (
+            ($space['create_new'] ?? false) === true
+            && (!is_string($space['name'] ?? null) || $space['name'] === '')
+        ) {
+            $errors[] = '$.space.name: space.name is required when using space.create_new: true.';
+        }
+
+        return $errors;
     }
 
     private function formatPath(string $pointer): string
