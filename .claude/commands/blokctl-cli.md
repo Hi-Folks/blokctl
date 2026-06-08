@@ -37,7 +37,8 @@ Exceptions that do not require `-S`: `space:create`, `space:setup-validate`, `sp
 - Adds or updates only explicitly configured values.
 - Never removes resources merely because they are omitted.
 - Merges story tags and preview environments.
-- Skips matching apps, fields, tags, workflows, demo mode, and preview URLs.
+- Skips matching apps, folders, fields, tags, workflows, demo mode, preview URLs, root-content moves, and Dimensions configuration.
+- Supports multi-country setup with `folders.ensure`, `stories.move`, and `dimensions.folders`.
 
 Duplicate-first setup waits until Storyblok reports no pending background tasks before provisioning. If setup fails after duplication, the new space is preserved for inspection or recovery.
 
@@ -52,6 +53,10 @@ php bin/blokctl space:setup --config examples/demo-space.yaml \
 # Reconcile an existing space; requires an exact numeric ID
 php bin/blokctl space:setup -S <exact-space-id> \
   --config existing-space.yaml --report setup-result.json
+
+# Reconcile a multi-country demo structure
+php bin/blokctl space:setup -S <exact-space-id> \
+  --config examples/multi-country-space.yaml
 ```
 
 See `space-setup-config.md` for complete syntax. Reports contain stable JSON status, target/duplication details, masked operations, and summary counts.

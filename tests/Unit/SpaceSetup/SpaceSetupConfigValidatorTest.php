@@ -23,6 +23,16 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     }
 
     #[Test]
+    public function validates_multi_country_example_yaml_configuration(): void
+    {
+        $config = new SpaceSetupConfigLoader()->load('examples/multi-country-space.yaml');
+
+        $result = new SpaceSetupConfigValidator()->validate($config);
+
+        $this->assertTrue($result->isValid(), implode(' | ', $result->errors));
+    }
+
+    #[Test]
     public function rejects_configuration_without_version(): void
     {
         $result = new SpaceSetupConfigValidator()->validate([
@@ -232,6 +242,66 @@ final class SpaceSetupConfigValidatorTest extends TestCase
         ]);
 
         $this->assertTrue($result->isValid());
+    }
+
+    #[Test]
+    public function accepts_multi_country_provisioning_configuration(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'folders' => [
+                'ensure' => [
+                    ['name' => 'Global', 'slug' => 'global'],
+                    ['name' => 'Italy', 'slug' => 'italy'],
+                ],
+            ],
+            'stories' => [
+                'move' => [
+                    [
+                        'select' => [
+                            'parent' => 'root',
+                            'include_folders' => true,
+                            'exclude_slugs' => ['site-config'],
+                        ],
+                        'to_folder' => 'global',
+                    ],
+                ],
+            ],
+            'apps' => [
+                'install' => [
+                    ['slug' => 'dimensions', 'id' => 24],
+                ],
+            ],
+            'dimensions' => [
+                'folders' => [
+                    ['slug' => 'global'],
+                    ['slug' => 'italy', 'ai_translation_code' => 'it'],
+                ],
+            ],
+        ]);
+
+        $this->assertTrue($result->isValid(), implode(' | ', $result->errors));
+    }
+
+    #[Test]
+    public function rejects_story_moves_without_a_root_selector(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'stories' => [
+                'move' => [
+                    [
+                        'select' => [
+                            'parent' => 'anywhere',
+                        ],
+                        'to_folder' => 'global',
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertErrorsContain($result->errors, '$.stories.move[0].select.parent');
     }
 
     #[Test]

@@ -91,6 +91,49 @@ final class SpaceSetupProvisionerTest extends TestCase
     }
 
     #[Test]
+    public function plans_multi_country_provisioning(): void
+    {
+        $results = $this->provision([
+            'folders' => [
+                'ensure' => [
+                    ['name' => 'Global', 'slug' => 'global'],
+                    ['name' => 'Italy', 'slug' => 'italy'],
+                ],
+            ],
+            'stories' => [
+                'move' => [
+                    [
+                        'select' => [
+                            'parent' => 'root',
+                            'include_folders' => true,
+                            'exclude_slugs' => ['site-config'],
+                        ],
+                        'to_folder' => 'global',
+                    ],
+                ],
+            ],
+            'apps' => [
+                'install' => [
+                    ['slug' => 'dimensions', 'id' => 24],
+                ],
+            ],
+            'dimensions' => [
+                'folders' => [
+                    ['slug' => 'global'],
+                    ['slug' => 'italy', 'ai_translation_code' => 'it'],
+                ],
+            ],
+        ])->results();
+
+        $this->assertCount(5, $results);
+        $this->assertPlanned($results[0], 'Ensure folder: global');
+        $this->assertPlanned($results[1], 'Ensure folder: italy');
+        $this->assertPlanned($results[2], 'Move selected root content to: global');
+        $this->assertPlanned($results[3], 'Install app: dimensions');
+        $this->assertPlanned($results[4], 'Configure Dimensions folders');
+    }
+
+    #[Test]
     public function plans_each_component_field(): void
     {
         $result = $this->singleResult([
@@ -278,6 +321,161 @@ final class SpaceSetupProvisionerTest extends TestCase
         );
 
         $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Installed, 'Install app: seo-app');
+    }
+
+    #[Test]
+    public function installs_structured_app_reference_by_id(): void
+    {
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                $this->mockResponse('list-app-provisions'),
+                $this->mockResponse('list-apps'),
+                $this->mockResponse('one-app-provision'),
+            ),
+            [
+                'apps' => [
+                    'install' => [
+                        ['slug' => 'dimensions', 'id' => 24],
+                    ],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Installed, 'Install app: dimensions');
+    }
+
+    #[Test]
+    public function does_not_use_app_id_fallback_for_api_failures(): void
+    {
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                $this->mockResponse('list-app-provisions'),
+                new MockResponse('{"error":"API unavailable"}', ['http_code' => 500]),
+            ),
+            [
+                'apps' => [
+                    'install' => [
+                        ['slug' => 'dimensions', 'id' => 24],
+                    ],
+                ],
+            ],
+            continueOnError: true,
+        );
+
+        $results = $reporter->results();
+        $this->assertCount(1, $results);
+        $this->assertSame(SpaceSetupOperationStatus::Failed, $results[0]->status);
+        $this->assertSame('Install app: dimensions', $results[0]->label);
+        $this->assertTrue($reporter->hasFailures());
+    }
+
+    #[Test]
+    public function creates_missing_folders_and_skips_existing_folders(): void
+    {
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                $this->mockResponse('list-folder-global'),
+                $this->mockResponse('list-folders-empty'),
+                $this->mockResponse('one-folder-created'),
+            ),
+            [
+                'folders' => [
+                    'ensure' => [
+                        ['name' => 'Global', 'slug' => 'global'],
+                        ['name' => 'Italy', 'slug' => 'italy'],
+                    ],
+                ],
+            ],
+        );
+
+        $results = $reporter->results();
+        $this->assertCount(2, $results);
+        $this->assertSame(SpaceSetupOperationStatus::Skipped, $results[0]->status);
+        $this->assertSame(SpaceSetupOperationStatus::Created, $results[1]->status);
+    }
+
+    #[Test]
+    public function moves_matching_root_content_and_preserves_excluded_items(): void
+    {
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                $this->mockResponse('list-folder-global'),
+                $this->mockResponse('list-root-content'),
+                $this->mockResponse('one-story-moved'),
+                $this->mockResponse('one-folder-moved'),
+            ),
+            [
+                'stories' => [
+                    'move' => [
+                        [
+                            'select' => [
+                                'parent' => 'root',
+                                'include_folders' => true,
+                                'exclude_slugs' => ['site-config'],
+                            ],
+                            'to_folder' => 'global',
+                        ],
+                    ],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Updated, 'Move selected root content to: global');
+        $this->assertSame('2 item(s) moved.', $reporter->results()[0]->detail);
+    }
+
+    #[Test]
+    public function reconciles_dimensions_and_preserves_unmanaged_folders(): void
+    {
+        $updatePayload = [];
+        $responses = [
+            $this->mockData('one-space-dimensions'),
+            $this->mockData('list-folder-global'),
+            $this->mockData('list-folder-italy'),
+            $this->mockData('one-space-dimensions'),
+        ];
+        $request = 0;
+        $httpClient = new MockHttpClient(
+            static function (string $method, string $url, array $options) use (&$request, &$updatePayload, $responses): MockResponse {
+                if ($method === 'PUT') {
+                    $body = $options['body'] ?? '';
+                    if (is_string($body)) {
+                        $updatePayload = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+                    }
+                }
+
+                return new MockResponse($responses[$request++]);
+            },
+        );
+
+        $reporter = $this->provisionWithClient(
+            ManagementApiClient::initTest($httpClient),
+            [
+                'dimensions' => [
+                    'folders' => [
+                        ['slug' => 'global'],
+                        ['slug' => 'italy', 'ai_translation_code' => 'it'],
+                    ],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Updated, 'Configure Dimensions folders');
+        if (!is_array($updatePayload)) {
+            $this->fail('Expected a space update payload.');
+        }
+
+        $space = $updatePayload['space'] ?? null;
+        $this->assertIsArray($space);
+        $this->assertSame([9999, 1001, 1002], $space['dimensions_app_folder_ids'] ?? null);
+        $this->assertSame(
+            [
+                ['folder_id' => 9999, 'ai_translation_code' => ''],
+                ['folder_id' => 1001, 'ai_translation_code' => ''],
+                ['folder_id' => 1002, 'ai_translation_code' => 'it'],
+            ],
+            $space['dimensions_app_folders'] ?? null,
+        );
     }
 
     #[Test]

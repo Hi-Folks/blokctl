@@ -1,0 +1,12 @@
+{
+    "stories": [
+        {
+            "name": "Global",
+            "id": 1001,
+            "slug": "global",
+            "full_slug": "global",
+            "is_folder": true,
+            "parent_id": 0
+        }
+    ]
+}

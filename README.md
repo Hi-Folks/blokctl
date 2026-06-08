@@ -213,7 +213,7 @@ php bin/blokctl space:setup \
 php bin/blokctl space:setup-validate --config examples/demo-space.yaml
 ```
 
-The setup config supports JSON and YAML and is validated against [space-setup-schema.json](space-setup-schema.json) before any space is created or modified. The example [examples/demo-space.yaml](examples/demo-space.yaml) mirrors the demo setup script: preview URLs, demo-mode removal, workflow assignment, app installation, component field additions, and story tag assignments. See [space-setup-config.md](space-setup-config.md) for the full configuration syntax.
+The setup config supports JSON and YAML and is validated against [space-setup-schema.json](space-setup-schema.json) before any space is created or modified. See [examples/demo-space.yaml](examples/demo-space.yaml) for general provisioning and [examples/multi-country-space.yaml](examples/multi-country-space.yaml) for folder, root-content move, and Dimensions reconciliation. See [space-setup-config.md](space-setup-config.md) for the full configuration syntax.
 
 ```yaml
 execution:

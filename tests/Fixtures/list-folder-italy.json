@@ -1,0 +1,12 @@
+{
+    "stories": [
+        {
+            "name": "Italy",
+            "id": 1002,
+            "slug": "italy",
+            "full_slug": "italy",
+            "is_folder": true,
+            "parent_id": 0
+        }
+    ]
+}

@@ -22,16 +22,16 @@ Related documentation:
 
 Move the behavior from `examples/multi-country-demo-setup.php` into declarative, idempotent `space:setup` configuration.
 
-- [ ] Add `folders.ensure` to create or reuse folders by full slug and parent.
-- [ ] Make folder reconciliation skip existing folders and fail when multiple folders ambiguously match.
-- [ ] Add `stories.move` with selectors for root-level items, explicit slugs, folders, and stories.
-- [ ] Support `include_folders`, `include_slugs`, and `exclude_slugs` selectors.
-- [ ] Resolve move targets by folder slug, paginate through all stories, and skip items already in the target folder.
-- [ ] Add `dimensions.folders` reconciliation that resolves folders by slug.
-- [ ] Preserve unmanaged Dimensions folders, add missing configured folders, and update explicitly declared AI translation codes.
-- [ ] Extend `apps.install` to accept structured app references with slug and optional ID fallback.
-- [ ] Add a complete multi-country YAML example covering Global, Italy, Germany, and France.
-- [ ] Add schema validation, dry-run planning, operation reporting, and focused execution tests for every new section.
+- [x] Add `folders.ensure` to create or reuse folders by full slug and parent.
+- [x] Make folder reconciliation skip existing folders and fail when multiple folders ambiguously match.
+- [x] Add `stories.move` with selectors for root-level items, explicit slugs, folders, and stories.
+- [x] Support `include_folders`, `include_slugs`, and `exclude_slugs` selectors.
+- [x] Resolve move targets by folder slug, paginate through all stories, and skip items already in the target folder.
+- [x] Add `dimensions.folders` reconciliation that resolves folders by slug.
+- [x] Preserve unmanaged Dimensions folders, add missing configured folders, and update explicitly declared AI translation codes.
+- [x] Extend `apps.install` to accept structured app references with slug and optional ID fallback.
+- [x] Add a complete multi-country YAML example covering Global, Italy, Germany, and France.
+- [x] Add schema validation, dry-run planning, operation reporting, and focused execution tests for every new section.
 
 Recommended implementation order:
 
@@ -211,7 +211,11 @@ Recommended implementation order:
 - [x] Demo-mode removal
 - [x] Assign default or configured workflow stage to unstaged stories
 - [x] App installation by slug
+- [x] App installation by structured slug/ID reference
 - [x] Component field additions
+- [x] Folder reconciliation by full slug and parent
+- [x] Selected root-content moves
+- [x] Dimensions folder reconciliation
 - [x] Story tag assignments by slug or ID
 - [x] Existing-space setup with `-S`
 - [x] Configuration-driven blank-space creation with `space.create_new: true`

@@ -1,0 +1,44 @@
+{
+    "stories": [
+        {
+            "name": "Home",
+            "id": 2001,
+            "slug": "home",
+            "full_slug": "home",
+            "is_folder": false,
+            "parent_id": 0
+        },
+        {
+            "name": "Posts",
+            "id": 2002,
+            "slug": "posts",
+            "full_slug": "posts",
+            "is_folder": true,
+            "parent_id": 0
+        },
+        {
+            "name": "Site Config",
+            "id": 2003,
+            "slug": "site-config",
+            "full_slug": "site-config",
+            "is_folder": false,
+            "parent_id": 0
+        },
+        {
+            "name": "Nested",
+            "id": 2004,
+            "slug": "nested",
+            "full_slug": "global/nested",
+            "is_folder": false,
+            "parent_id": 1001
+        },
+        {
+            "name": "Global",
+            "id": 1001,
+            "slug": "global",
+            "full_slug": "global",
+            "is_folder": true,
+            "parent_id": 0
+        }
+    ]
+}

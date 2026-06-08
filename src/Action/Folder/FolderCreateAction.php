@@ -49,10 +49,11 @@ final readonly class FolderCreateAction
         string $spaceId,
         string $name,
         int $parentId = 0,
+        string|null $slug = null,
     ): FolderCreateResult {
         $storyApi = new StoryApi($this->client, $spaceId);
 
-        $folder = new Story($name, $this->slugify($name), new StoryComponent('folder'));
+        $folder = new Story($name, $slug ?? $this->slugify($name), new StoryComponent('folder'));
         $folder->set('is_folder', true);
 
         if ($parentId > 0) {

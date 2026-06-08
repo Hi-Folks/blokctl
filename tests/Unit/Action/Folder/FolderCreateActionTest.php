@@ -40,6 +40,29 @@ final class FolderCreateActionTest extends TestCase
     }
 
     #[Test]
+    public function execute_uses_an_explicit_slug(): void
+    {
+        $requestBody = [];
+        $client = \Storyblok\ManagementApi\ManagementApiClient::initTest(
+            new \Symfony\Component\HttpClient\MockHttpClient(
+                function (string $method, string $url, array $options) use (&$requestBody): \Symfony\Component\HttpClient\Response\MockResponse {
+                    $requestBody = $options['body'] ?? [];
+                    return $this->mockResponse('one-folder-created');
+                },
+            ),
+        );
+
+        new FolderCreateAction($client)->execute('680', 'United States', slug: 'us');
+
+        $this->assertIsString($requestBody);
+        $requestBody = json_decode($requestBody, true, 512, JSON_THROW_ON_ERROR);
+        $this->assertIsArray($requestBody);
+        $story = $requestBody['story'] ?? null;
+        $this->assertIsArray($story);
+        $this->assertSame('us', $story['slug'] ?? null);
+    }
+
+    #[Test]
     public function resolve_parent_by_slug_returns_folder_id(): void
     {
         $client = $this->createMockClient(

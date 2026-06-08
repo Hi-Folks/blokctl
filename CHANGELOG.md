@@ -2,6 +2,11 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
+## 0.11.0 - 2026-06-08
+
+- Adding declarative multi-country demo provisioning with folder reconciliation, selected root-content moves, Dimensions folder configuration, and structured app references.
+- Adding detailed JSON Schema descriptions for editor hover guidance and setup configuration authoring.
+
 ## 0.10.1 - 2026-06-08
 
 - Improving missing Management API access token errors with the required `SECRET_KEY` environment variable, setup example, and links for creating scoped Personal Access Tokens.

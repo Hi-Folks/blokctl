@@ -19,30 +19,51 @@
       "default": false
     },
     "inputs": {
+      "description": "Reusable runtime input definitions resolved from --set overrides or declared default values.",
       "$ref": "#/$defs/inputs"
     },
     "execution": {
+      "description": "Controls how setup operations are applied and how failures are handled.",
       "$ref": "#/$defs/execution"
     },
     "space": {
+      "description": "Optional target-space creation or duplication settings. Omit create_new and duplicate_from when targeting an existing space with --space-id.",
       "$ref": "#/$defs/space"
     },
     "preview": {
+      "description": "Configures the default preview URL and optional frontend environments.",
       "$ref": "#/$defs/preview"
     },
     "demo_mode": {
+      "description": "Controls removal of Storyblok demo/example mode from the target space.",
       "$ref": "#/$defs/demoMode"
     },
     "workflow": {
+      "description": "Assigns a workflow stage to stories that currently have no workflow stage.",
       "$ref": "#/$defs/workflow"
     },
     "apps": {
+      "description": "Installs Storyblok apps by slug or structured slug/ID reference.",
       "$ref": "#/$defs/apps"
     },
+    "folders": {
+      "description": "Ensures configured folders exist, resolving them by full slug.",
+      "$ref": "#/$defs/folders"
+    },
+    "stories": {
+      "description": "Applies configured story operations. Currently supports moving selected root-level stories and folders.",
+      "$ref": "#/$defs/stories"
+    },
+    "dimensions": {
+      "description": "Reconciles folders configured for the Storyblok Dimensions app while preserving unmanaged folders.",
+      "$ref": "#/$defs/dimensions"
+    },
     "components": {
+      "description": "Creates or updates explicitly configured fields on existing components.",
       "$ref": "#/$defs/components"
     },
     "tags": {
+      "description": "Assigns and merges tags on selected stories.",
       "$ref": "#/$defs/tagAssignments"
     }
   },
@@ -88,27 +109,34 @@
       ]
     },
     "inputs": {
+      "description": "Map of input names to runtime input definitions.",
       "type": "object",
       "additionalProperties": {
         "$ref": "#/$defs/inputDefinition"
       }
     },
     "inputDefinition": {
+      "description": "Defines a reusable value that can be overridden with --set NAME=VALUE.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "description": {
+          "description": "Human-readable explanation of the input.",
           "type": "string"
         },
         "required": {
+          "description": "Require a default value or matching --set override.",
           "type": "boolean",
           "default": false
         },
         "secret": {
+          "description": "Marks the input as sensitive metadata. Complete masking of secret inputs is not yet implemented.",
           "type": "boolean",
           "default": false
         },
-        "default": true
+        "default": {
+          "description": "Default input value used when no matching --set override is provided."
+        }
       }
     },
     "identifier": {
@@ -124,20 +152,24 @@
       ]
     },
     "execution": {
+      "description": "Setup execution behavior. Reconcile mode preserves unmanaged resources and never removes omitted resources.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "mode": {
+          "description": "Execution mode. Only reconcile is supported and it is the default.",
           "const": "reconcile",
           "default": "reconcile"
         },
         "continue_on_error": {
+          "description": "Continue running later setup operations after a failed operation while still returning a failed setup result.",
           "$ref": "#/$defs/booleanOrExpression",
           "default": false
         }
       }
     },
     "space": {
+      "description": "Defines how the target space is created or duplicated before provisioning.",
       "type": "object",
       "additionalProperties": false,
       "dependentRequired": {
@@ -171,43 +203,53 @@
       ],
       "properties": {
         "name": {
+          "description": "Name for a newly created or duplicated space. Required with create_new: true or duplicate_from.",
           "$ref": "#/$defs/nonEmptyString"
         },
         "create_new": {
+          "description": "Explicitly create a blank space before applying setup. Cannot be combined with duplicate_from or --space-id.",
           "$ref": "#/$defs/booleanOrExpression",
           "default": false
         },
         "duplicate_from": {
+          "description": "Existing source space ID to duplicate before applying setup. Cannot be combined with create_new or --space-id.",
           "$ref": "#/$defs/identifier"
         },
         "in_org": {
+          "description": "Create the duplicated space inside the current organization.",
           "$ref": "#/$defs/booleanOrExpression",
           "default": false
         },
         "demo": {
+          "description": "Mark the newly created or duplicated space as a demo/example space.",
           "$ref": "#/$defs/booleanOrExpression",
           "default": false
         },
         "readiness": {
+          "description": "Polling settings used after duplication while waiting for Storyblok background tasks to complete.",
           "$ref": "#/$defs/spaceReadiness"
         }
       }
     },
     "spaceReadiness": {
+      "description": "Controls readiness polling after space duplication.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "timeout_seconds": {
+          "description": "Maximum number of seconds to wait for duplicated-space background tasks to complete.",
           "$ref": "#/$defs/positiveIntegerOrExpression",
           "default": 120
         },
         "poll_interval_seconds": {
+          "description": "Number of seconds to wait between duplicated-space readiness checks.",
           "$ref": "#/$defs/positiveIntegerOrExpression",
           "default": 2
         }
       }
     },
     "preview": {
+      "description": "Desired preview URL configuration. Configured environments are reconciled by name and unmanaged environments are preserved.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -215,15 +257,19 @@
       ],
       "properties": {
         "enabled": {
+          "description": "Apply preview URL configuration when true.",
           "$ref": "#/$defs/booleanOrExpression",
           "default": true
         },
         "default": {
+          "description": "Default preview URL for the target space.",
           "$ref": "#/$defs/nonEmptyString"
         },
         "environments": {
+          "description": "Additional frontend preview environments reconciled by name.",
           "type": "array",
           "items": {
+            "description": "Named frontend preview environment.",
             "type": "object",
             "additionalProperties": false,
             "required": [
@@ -232,9 +278,11 @@
             ],
             "properties": {
               "name": {
+                "description": "Frontend environment display name used as the reconciliation key.",
                 "$ref": "#/$defs/nonEmptyString"
               },
               "url": {
+                "description": "Preview URL for this frontend environment.",
                 "$ref": "#/$defs/nonEmptyString"
               }
             }
@@ -243,6 +291,7 @@
       }
     },
     "demoMode": {
+      "description": "Demo/example mode configuration.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -250,11 +299,13 @@
       ],
       "properties": {
         "remove": {
+          "description": "Remove demo/example mode when the target space is currently marked as demo.",
           "$ref": "#/$defs/booleanOrExpression"
         }
       }
     },
     "workflow": {
+      "description": "Workflow assignment configuration for stories without a workflow stage.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -262,9 +313,11 @@
       ],
       "properties": {
         "assign_unstaged": {
+          "description": "Assign a workflow stage to every story that currently has no stage.",
           "$ref": "#/$defs/booleanOrExpression"
         },
         "stage_id": {
+          "description": "Workflow stage ID to assign. When null or omitted, blokctl uses the default workflow's first stage when available.",
           "oneOf": [
             {
               "type": "integer",
@@ -281,6 +334,7 @@
       }
     },
     "apps": {
+      "description": "App installation configuration. Already-installed apps are skipped.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -288,19 +342,207 @@
       ],
       "properties": {
         "continue_on_error": {
+          "description": "Continue installing later apps after one app installation fails.",
           "$ref": "#/$defs/booleanOrExpression",
           "default": false
         },
         "install": {
+          "description": "Apps to install. Each item can be an app slug string or a structured reference containing slug, id, or both.",
           "type": "array",
           "uniqueItems": true,
           "items": {
-            "$ref": "#/$defs/nonEmptyString"
+            "oneOf": [
+              {
+                "$ref": "#/$defs/nonEmptyString"
+              },
+              {
+                "$ref": "#/$defs/appReference"
+              }
+            ]
           }
         }
       }
     },
+    "appReference": {
+      "description": "Structured app reference. Slug is resolved first; id is used as fallback only when that slug is not found.",
+      "type": "object",
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "slug"
+          ]
+        },
+        {
+          "required": [
+            "id"
+          ]
+        }
+      ],
+      "properties": {
+        "slug": {
+          "description": "Storyblok app slug used for lookup and installed-app reconciliation.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "id": {
+          "description": "Storyblok app ID used for reconciliation and as fallback when the configured slug is not found.",
+          "$ref": "#/$defs/identifier"
+        }
+      }
+    },
+    "folders": {
+      "description": "Folder reconciliation configuration.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ensure"
+      ],
+      "properties": {
+        "ensure": {
+          "description": "Folders to create or reuse. Entries run in declaration order so later entries can reference earlier parents.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/folderDefinition"
+          }
+        }
+      }
+    },
+    "folderDefinition": {
+      "description": "Desired folder resolved by its full slug.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "slug"
+      ],
+      "properties": {
+        "name": {
+          "description": "Folder display name used when the folder must be created.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "slug": {
+          "description": "Expected full folder slug used to find and reconcile the folder.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "parent_slug": {
+          "description": "Full slug of the parent folder. Omit to create or reconcile a root-level folder.",
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "stories": {
+      "description": "Story operation configuration.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "move"
+      ],
+      "properties": {
+        "move": {
+          "description": "Root-content move operations applied in declaration order.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/storyMove"
+          }
+        }
+      }
+    },
+    "storyMove": {
+      "description": "Moves selected root-level content into a target folder.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "select",
+        "to_folder"
+      ],
+      "properties": {
+        "select": {
+          "description": "Selector defining which root-level content should be moved.",
+          "$ref": "#/$defs/storyMoveSelector"
+        },
+        "to_folder": {
+          "description": "Full slug of the target folder.",
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "storyMoveSelector": {
+      "description": "Selects root-level stories and optionally folders. Excluded slugs remain at root.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parent"
+      ],
+      "properties": {
+        "parent": {
+          "description": "Source parent selector. Currently only root-level content is supported.",
+          "const": "root"
+        },
+        "include_folders": {
+          "description": "Include root-level folders in addition to stories.",
+          "$ref": "#/$defs/booleanOrExpression",
+          "default": false
+        },
+        "include_slugs": {
+          "description": "When provided, move only items whose local slug is in this list.",
+          "$ref": "#/$defs/stringList"
+        },
+        "exclude_slugs": {
+          "description": "Do not move items whose local slug is in this list.",
+          "$ref": "#/$defs/stringList"
+        }
+      }
+    },
+    "dimensions": {
+      "description": "Dimensions app folder reconciliation. Unmanaged Dimensions folders are preserved.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "folders"
+      ],
+      "properties": {
+        "enabled": {
+          "description": "Apply Dimensions folder configuration when true.",
+          "$ref": "#/$defs/booleanOrExpression",
+          "default": true
+        },
+        "folders": {
+          "description": "Folders to add or update in the Dimensions app configuration, resolved by full slug.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/dimensionFolder"
+          }
+        }
+      }
+    },
+    "dimensionFolder": {
+      "description": "Folder configured as a Dimensions root folder.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slug"
+      ],
+      "properties": {
+        "slug": {
+          "description": "Full slug of an existing or previously ensured folder.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "ai_translation_code": {
+          "description": "AI translation language code for this Dimensions folder. Existing values change only when this property is declared.",
+          "type": "string"
+        }
+      }
+    },
+    "stringList": {
+      "description": "Unique list of non-empty strings.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/nonEmptyString"
+      }
+    },
     "components": {
+      "description": "Component field reconciliation configuration.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -308,6 +550,7 @@
       ],
       "properties": {
         "fields": {
+          "description": "Fields to create or update on existing components.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/componentField"
@@ -316,6 +559,7 @@
       }
     },
     "componentField": {
+      "description": "Desired field on an existing Storyblok component. Existing fields update only explicitly declared properties.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -325,45 +569,58 @@
       ],
       "properties": {
         "component": {
+          "description": "Technical name of the existing component containing the field.",
           "$ref": "#/$defs/nonEmptyString"
         },
         "field": {
+          "description": "Technical field name.",
           "$ref": "#/$defs/nonEmptyString"
         },
         "type": {
+          "description": "Storyblok field type, such as text, richtext, asset, bloks, custom, or plugin.",
           "$ref": "#/$defs/nonEmptyString"
         },
         "field_type": {
+          "description": "Plugin or custom field type, for example sb-ai-seo.",
           "$ref": "#/$defs/nonEmptyString"
         },
         "fieldType": {
+          "description": "Camel-case alias of field_type.",
           "$ref": "#/$defs/nonEmptyString"
         },
         "tab": {
+          "description": "Tab display name. Defaults to General when creating a field; existing fields move only when this property is declared.",
           "$ref": "#/$defs/nonEmptyString"
         },
         "pos": {
+          "description": "Numeric field position.",
           "$ref": "#/$defs/integerOrExpression"
         },
         "display_name": {
+          "description": "Human-readable field label.",
           "$ref": "#/$defs/nonEmptyString"
         },
         "displayName": {
+          "description": "Camel-case alias of display_name.",
           "$ref": "#/$defs/nonEmptyString"
         },
         "required": {
+          "description": "Mark the field as required. Defaults to false when creating a field; existing fields change only when declared.",
           "$ref": "#/$defs/booleanOrExpression",
           "default": false
         },
         "translatable": {
+          "description": "Mark the field as translatable. Defaults to false when creating a field; existing fields change only when declared.",
           "$ref": "#/$defs/booleanOrExpression",
           "default": false
         }
       }
     },
     "tagAssignments": {
+      "description": "Tag assignment groups. Requested tags are merged with existing story tags.",
       "type": "array",
       "items": {
+        "description": "Assigns tags to stories selected by ID or slug.",
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -372,6 +629,7 @@
         ],
         "properties": {
           "stories": {
+            "description": "Stories to tag. At least one of ids or slugs is required.",
             "type": "object",
             "additionalProperties": false,
             "anyOf": [
@@ -388,6 +646,7 @@
             ],
             "properties": {
               "ids": {
+                "description": "Story IDs to receive the configured tags.",
                 "type": "array",
                 "minItems": 1,
                 "items": {
@@ -395,6 +654,7 @@
                 }
               },
               "slugs": {
+                "description": "Story slugs to receive the configured tags.",
                 "type": "array",
                 "minItems": 1,
                 "items": {
@@ -404,6 +664,7 @@
             }
           },
           "tags": {
+            "description": "Tags to merge into every selected story.",
             "type": "array",
             "minItems": 1,
             "uniqueItems": true,

@@ -1,0 +1,26 @@
+{
+    "space": {
+        "name": "Example Space",
+        "domain": "https://example.storyblok.com",
+        "plan": "starter",
+        "plan_level": 0,
+        "updated_at": "2018-11-11T16:34:19.403Z",
+        "created_at": "2018-11-10T15:33:18.402Z",
+        "id": 680,
+        "role": "admin",
+        "owner_id": 1114,
+        "environments": null,
+        "stories_count": 1,
+        "parent_id": null,
+        "assets_count": 0,
+        "first_token": "8IE7MzYCzw5d7KLckDa38Att",
+        "has_pending_tasks": false,
+        "dimensions_app_folder_ids": [9999],
+        "dimensions_app_folders": [
+            {
+                "folder_id": 9999,
+                "ai_translation_code": ""
+            }
+        ]
+    }
+}

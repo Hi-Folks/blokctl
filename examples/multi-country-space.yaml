@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=../space-setup-schema.json
+
+version: 1
+
+execution:
+  mode: reconcile
+
+folders:
+  ensure:
+    - name: Global
+      slug: global
+    - name: Italy
+      slug: italy
+    - name: Germany
+      slug: germany
+    - name: France
+      slug: france
+
+stories:
+  move:
+    - select:
+        parent: root
+        include_folders: true
+        exclude_slugs:
+          - "404"
+          - error-404
+          - site-config
+          - global
+          - italy
+          - germany
+          - france
+      to_folder: global
+
+apps:
+  install:
+    - slug: dimensions
+      id: 24
+
+dimensions:
+  enabled: true
+  folders:
+    - slug: global
+    - slug: italy
+      ai_translation_code: it
+    - slug: germany
+      ai_translation_code: de
+    - slug: france
+      ai_translation_code: fr

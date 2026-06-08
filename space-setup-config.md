@@ -195,7 +195,10 @@ Except for `version`, all top-level sections are optional. If a section is omitt
 | `preview` | Set the default preview URL and frontend environments. |
 | `demo_mode` | Remove demo/example mode. |
 | `workflow` | Assign a workflow stage to stories without one. |
-| `apps` | Install Storyblok apps by slug. |
+| `folders` | Ensure folders exist by portable full slug. |
+| `stories` | Move selected root-level stories and folders. |
+| `apps` | Install Storyblok apps by slug or ID. |
+| `dimensions` | Reconcile Dimensions app folders. |
 | `components` | Add fields to existing components. |
 | `tags` | Assign tags to stories by ID or slug. |
 
@@ -245,6 +248,27 @@ apps:
     - export
     - import
     - backups
+
+folders:
+  ensure:
+    - name: Global
+      slug: global
+    - name: Italy
+      slug: italy
+
+stories:
+  move:
+    - select:
+        parent: root
+        include_folders: true
+        exclude_slugs: [error-404, site-config, global, italy]
+      to_folder: global
+
+dimensions:
+  folders:
+    - slug: global
+    - slug: italy
+      ai_translation_code: it
 
 components:
   fields:
@@ -372,7 +396,7 @@ workflow:
 
 ## `apps`
 
-Installs apps by app slug.
+Installs apps by app slug or a structured reference. A structured reference can include an app ID fallback when a slug cannot be resolved consistently.
 
 ```yaml
 apps:
@@ -380,14 +404,81 @@ apps:
   install:
     - releases_only
     - storyblok-gmbh@ai-seo
+    - slug: dimensions
+      id: 24
 ```
 
 | Key | Required | Description |
 |---|---:|---|
 | `continue_on_error` | No | Boolean. Useful because some apps may not be available for every space. |
-| `install` | Yes | List of app slugs to install. |
+| `install` | Yes | List of app slugs or structured references containing `slug`, `id`, or both. |
 
-Apps that are already installed are reported as `SKIPPED`.
+Apps that are already installed by matching slug or ID are reported as `SKIPPED`.
+
+## `folders`
+
+Ensures configured folders exist. Folders are resolved by portable full slug; missing folders are created and existing folders are preserved.
+
+```yaml
+folders:
+  ensure:
+    - name: Global
+      slug: global
+    - name: Archive
+      slug: global/archive
+      parent_slug: global
+```
+
+| Key | Required | Description |
+|---|---:|---|
+| `ensure` | Yes | Folders to create or reuse. Entries run in declaration order. |
+| `ensure[].name` | Yes | Folder display name used when creating it. |
+| `ensure[].slug` | Yes | Expected full folder slug used for reconciliation. |
+| `ensure[].parent_slug` | No | Existing or previously ensured parent folder full slug. Omit for root folders. |
+
+## `stories.move`
+
+Moves matching root-level content into a target folder. Both stories and folders can be selected. Repeated reconcile runs move only newly added matching root content.
+
+```yaml
+stories:
+  move:
+    - select:
+        parent: root
+        include_folders: true
+        exclude_slugs: [error-404, site-config, global]
+      to_folder: global
+```
+
+| Key | Required | Description |
+|---|---:|---|
+| `select.parent` | Yes | Currently must be `root`. |
+| `select.include_folders` | No | Include root-level folders in addition to stories. Defaults to `false`. |
+| `select.include_slugs` | No | Move only items with one of these slugs. |
+| `select.exclude_slugs` | No | Preserve items with one of these slugs at root. |
+| `to_folder` | Yes | Target folder full slug. |
+
+## `dimensions`
+
+Reconciles folders configured for the Dimensions app. Unmanaged Dimensions folders are preserved. Configured folders are added when missing, and declared AI translation codes are updated.
+
+```yaml
+dimensions:
+  enabled: true
+  folders:
+    - slug: global
+    - slug: italy
+      ai_translation_code: it
+```
+
+| Key | Required | Description |
+|---|---:|---|
+| `enabled` | No | Enable Dimensions configuration. Defaults to `true`. |
+| `folders` | Yes | Folders to configure, resolved by full slug. |
+| `folders[].slug` | Yes | Folder full slug. |
+| `folders[].ai_translation_code` | No | AI translation language code. Existing values change only when declared. |
+
+Install the Dimensions app separately through `apps.install`. See [examples/multi-country-space.yaml](examples/multi-country-space.yaml) for a complete setup replacing the behavior of `examples/multi-country-demo-setup.php`.
 
 ## `components`
 
