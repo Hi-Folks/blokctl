@@ -10,6 +10,7 @@ All notable changes to `blokctl` will be documented in this file.
 - Adding `execution.mode: reconcile` and `execution.continue_on_error` setup configuration.
 - Waiting for duplicated spaces to finish pending background tasks before applying setup configuration.
 - Adding optional machine-readable JSON reports for successful, planned, and partially failed setup runs.
+- Preserving duplicated spaces after setup failures and improving failure/readiness output wording.
 
 ## 0.9.0 - 2026-06-07
 

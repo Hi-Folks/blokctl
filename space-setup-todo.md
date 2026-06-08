@@ -64,7 +64,7 @@ Related documentation:
 - [x] Add readiness polling after duplication before applying setup.
 - [x] Detect and report pending duplication/background tasks.
 - [x] Produce a machine-readable setup report with space ID, duplication details, successful steps, skipped steps, and failures.
-- [ ] Define rollback behavior when duplication succeeds but setup fails.
+- [x] Preserve duplicated spaces when setup fails; do not automatically roll back or delete them.
 
 ## Priority 3: Customer Personalization
 

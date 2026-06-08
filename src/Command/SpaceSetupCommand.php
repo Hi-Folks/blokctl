@@ -331,7 +331,7 @@ class SpaceSetupCommand extends Command
         Render::operation(
             status: 'READY',
             label: 'Duplication completed',
-            detail: $result->attempts . ' readiness check(s)',
+            detail: $this->readinessChecksDetail($result->attempts),
         );
         $this->duplicationReport = [
             ...$this->duplicationReport,
@@ -340,6 +340,11 @@ class SpaceSetupCommand extends Command
         ];
 
         return $spaceId;
+    }
+
+    private function readinessChecksDetail(int $attempts): string
+    {
+        return $attempts . ' readiness ' . ($attempts === 1 ? 'check' : 'checks');
     }
 
     /**

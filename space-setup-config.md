@@ -63,6 +63,8 @@ The report contains:
 
 Reports are written for successful setups, dry runs, continued failures, and failures that stop provisioning early. Preview tokens in operation details are masked.
 
+When duplicate-first provisioning fails after creating the new space, blokctl preserves that space for inspection or recovery. It does not automatically delete or roll back the duplicated space. The JSON report includes the new space ID, duplication details, and partial operation results.
+
 Validate a config without accessing Storyblok:
 
 ```bash

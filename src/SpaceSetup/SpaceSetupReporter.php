@@ -76,11 +76,7 @@ final class SpaceSetupReporter
             }
         }
 
-        Render::notice(
-            $this->dryRun
-                ? 'DRY RUN: No changes were applied.'
-                : 'Space setup complete.',
-        );
+        Render::notice($this->completionMessage());
     }
 
     /**
@@ -94,6 +90,17 @@ final class SpaceSetupReporter
     public function hasFailures(): bool
     {
         return array_any($this->results, fn($result): bool => $result->status === SpaceSetupOperationStatus::Failed);
+    }
+
+    public function completionMessage(): string
+    {
+        if ($this->dryRun) {
+            return 'DRY RUN: No changes were applied.';
+        }
+
+        return $this->hasFailures()
+            ? 'Space setup completed with failures.'
+            : 'Space setup complete.';
     }
 
     /**

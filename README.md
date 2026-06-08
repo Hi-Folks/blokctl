@@ -257,6 +257,8 @@ php bin/blokctl space:setup --config examples/demo-space.yaml --report setup-res
 
 Reports are also written for dry runs and partial setup failures. Preview tokens are masked.
 
+When duplicate-first provisioning fails after the new space is created, blokctl preserves the duplicated space for inspection or recovery. It does not automatically delete or roll back the space. Use `--report` to retain its space ID and the completed, skipped, and failed operation details.
+
 #### `space:info` — Display space information
 
 ```bash

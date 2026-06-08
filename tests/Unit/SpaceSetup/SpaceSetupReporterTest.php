@@ -43,6 +43,7 @@ final class SpaceSetupReporterTest extends TestCase
         $this->assertSame(SpaceSetupOperationStatus::Planned, $result->status);
         $this->assertSame('Install app: backups', $result->label);
         $this->assertFalse($reporter->hasFailures());
+        $this->assertSame('DRY RUN: No changes were applied.', $reporter->completionMessage());
     }
 
     #[Test]
@@ -75,6 +76,7 @@ final class SpaceSetupReporterTest extends TestCase
         $this->assertSame(1, $reporter->counts()['installed']);
         $this->assertSame(1, $reporter->counts()['skipped']);
         $this->assertSame(0, $reporter->counts()['failed']);
+        $this->assertSame('Space setup complete.', $reporter->completionMessage());
     }
 
     #[Test]
@@ -95,5 +97,6 @@ final class SpaceSetupReporterTest extends TestCase
         $this->assertSame(SpaceSetupOperationStatus::Failed, $result->status);
         $this->assertSame('App unavailable.', $result->detail);
         $this->assertTrue($reporter->hasFailures());
+        $this->assertSame('Space setup completed with failures.', $reporter->completionMessage());
     }
 }
