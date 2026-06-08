@@ -2,7 +2,7 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
-## 0.10.0 - WIP
+## 0.10.0 - 2026-06-08
 
 - Adding default reconcile-mode provisioning that preserves unmanaged resources and never removes resources omitted from setup configuration.
 - Skipping already-installed apps, matching component fields, unchanged preview URLs, existing story tags, assigned workflows, and removed demo mode.
