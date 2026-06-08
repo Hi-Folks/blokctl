@@ -12,19 +12,23 @@ Use this skill when the user wants to add features, fix bugs, or contribute to b
 
 ```
 src/
-├── Action/<Group>/          # Business logic (no CLI deps) — Groups: AppProvision, Asset, Component, Folder, Space, SpacePreview, Story, User, Workflow
+├── Action/<Group>/          # Reusable business logic (no CLI deps)
 │   ├── <Name>Action.php     # Action class
 │   └── <Name>Result.php     # Result DTO
 ├── Command/
 │   ├── AbstractCommand.php  # Base: client init, --space-id, --region
 │   └── <Name>Command.php    # Thin CLI wrapper
+├── SpaceSetup/              # Config loading, validation, variables, provisioning, and reporting
 └── Render.php               # Terminal output helpers (Termwind)
 
 tests/
 ├── TestCase.php             # Base: mockResponse(), createMockClient()
 ├── Unit/Action/<Group>/     # Tests mirror src/Action structure
+├── Unit/SpaceSetup/         # Focused provisioning/configuration tests
 └── Fixtures/                # Mock API response JSON files
 ```
+
+Current Action groups: `AppProvision`, `Asset`, `Component`, `Experiment`, `Folder`, `Space`, `SpacePreview`, `Story`, `User`, and `Workflow`.
 
 ## How to add a new command
 
@@ -118,10 +122,24 @@ Key patterns:
 - Use `$input->getOption('...')` first, fall back to `text()` / `select()` / `confirm()` from `laravel/prompts`
 - Resource lookup uses mutually exclusive `--by-slug`, `--by-id`, `--by-uuid`
 - Use `Render::` helpers for terminal output
+- Keep commands thin. Test Actions and `SpaceSetup` services instead of asserting terminal output
+- Commands that do not target an existing space, such as `space:create` and `space:setup-validate`, initialize their client or inputs directly
+
+## Space setup development
+
+`space:setup` is a Configuration as Code workflow backed by services under `src/SpaceSetup/`.
+
+- Validate YAML and JSON with `space-setup-schema.json` before modifying Storyblok.
+- Preserve unmanaged resources and never remove omitted resources in reconcile mode.
+- Keep dry-run API-free and record operations as `PLANNED`.
+- Use `SpaceSetupReporter` for consistent operation statuses.
+- Ensure failures return a non-zero exit code and remain available in JSON reports.
+- Preserve duplicated spaces after setup failures; do not automatically roll them back.
+- Update `space-setup-config.md`, examples, schema, changelog, roadmap, and focused tests when adding setup syntax.
 
 ### Step 3: Register in `bin/blokctl`
 
-Add the use statement and `$application->add(new <Name>Command());`.
+Add the command import and `$application->addCommand(new <Name>Command());` registration to `bin/blokctl`.
 
 ### Step 4: Write tests
 
@@ -167,16 +185,19 @@ Testing helpers from `TestCase`:
 ## Running checks
 
 ```bash
-composer test-code        # PHPUnit 12
+composer test-code        # PHPUnit 13
 composer static-code      # PHPStan
-composer style-fix-code   # PHP CS Fixer
-composer all-checks       # All of the above + lint
+composer style-check-code # PHP CS Fixer check
+composer refactor-check-code # Rector dry run
+composer all-checks       # Lint, style, PHPStan, Rector, and PHPUnit
 ```
+
+The project uses PHPUnit 13 and requires PHP 8.4.1 or higher.
 
 ## PHPStan notes
 
-- Use `@var` annotations for mixed types from API responses
-- Use `@phpstan-ignore` for SDK iterables that PHPStan can't type
+- Narrow mixed values with real runtime checks before offset access.
+- Prefer fixing underlying types instead of suppressing PHPStan errors.
 
 ## Key files to understand
 
@@ -184,6 +205,9 @@ composer all-checks       # All of the above + lint
 |---|---|
 | `src/Command/AbstractCommand.php` | Base command: client init, `--space-id`/`--region` options, `setup()` method |
 | `src/Render.php` | Terminal output: `title()`, `labelValue()`, `labelValueCondition()`, `titleSection()`, `log()`, `error()` |
+| `src/SpaceSetup/SpaceSetupProvisioner.php` | Reconcile configured setup sections |
+| `space-setup-schema.json` | YAML/JSON setup validation and editor autocomplete |
+| `space-setup-config.md` | Setup syntax and behavior reference |
 | `tests/TestCase.php` | Test base: `mockResponse()`, `createMockClient()` |
 | `bin/blokctl` | Entry point: registers all commands |
 
@@ -196,4 +220,6 @@ Render::labelValueCondition('Owner', $isOwner);        // Green (true) / Red (fa
 Render::titleSection('Preview URLs');                   // Green section header
 Render::log('Processing...');                          // Yellow message
 Render::error('Something went wrong');                 // Red error message
+Render::operation('UPDATED', 'Configure preview URLs');// Structured operation
+Render::notice('Space setup complete.');               // Important notice
 ```

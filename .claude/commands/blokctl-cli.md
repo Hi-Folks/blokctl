@@ -4,7 +4,9 @@ Use this skill when the user wants to run blokctl commands to manage a Storyblok
 
 ## IMPORTANT: Space ID validation
 
-**Before suggesting or running any command that requires `--space-id` (`-S`), you MUST confirm that the user has provided a clear, specific numeric Space ID.** If the Space ID is missing, ambiguous, or looks like a placeholder (e.g. "my space", "12345", "the demo one"), STOP and ask the user to provide the exact numeric Space ID. Do not guess, infer, or use example IDs from documentation. Commands mutate real Storyblok spaces — running against the wrong space can delete content, break workflows, or install unwanted apps.
+**Before suggesting or running any command that targets an existing space with `--space-id` (`-S`), you MUST confirm that the user has provided a clear, specific numeric Space ID.** If the Space ID is missing, ambiguous, or looks like a placeholder (e.g. "my space", "12345", "the demo one"), STOP and ask the user to provide the exact numeric Space ID. Do not guess, infer, or use example IDs from documentation. Commands mutate real Storyblok spaces; running against the wrong space can delete content, break workflows, or install unwanted apps.
+
+Exceptions that do not require `-S`: `space:create`, `space:setup-validate`, `spaces:list`, `user:me`, and duplicate-first `space:setup` when the config defines `space.duplicate_from`.
 
 ## Global options
 
@@ -19,10 +21,40 @@ Use this skill when the user wants to run blokctl commands to manage a Storyblok
 ### Spaces
 
 - **`spaces:list`** — List all spaces. Options: `--search`, `--owned-only`, `--updated-before=N` (days), `--solo-only`. No `--space-id` needed.
+- **`space:create [name]`** — Create a blank space or duplicate an existing space. Options: `--name`, `--duplicate-from`, `--in-org`, `--demo`, `--only-id`. No `--space-id` needed.
 - **`space:info`** — Show space details (ID, name, plan, preview URLs, owner status).
 - **`space:delete`** — Delete a space. Safety: must be owner + sole collaborator.
 - **`space:demo-remove`** — Remove demo mode from a space.
 - **`space:token`** — Show the space's preview access token.
+- **`space:setup`** — Reconcile a space from validated YAML/JSON Configuration as Code. Use `-S` for an existing space, or configure `space.duplicate_from` and `space.name` to create a duplicated target. Options: `--config`, `--dry-run`, `--continue-on-error`, repeatable `--set`, `--report`.
+- **`space:setup-validate`** — Validate a setup YAML/JSON file against `space-setup-schema.json` without accessing Storyblok. Option: `--config`. No `--space-id` needed.
+
+### Configuration as Code setup
+
+`space:setup` defaults to reconcile behavior:
+
+- Preserves unmanaged resources.
+- Adds or updates only explicitly configured values.
+- Never removes resources merely because they are omitted.
+- Merges story tags and preview environments.
+- Skips matching apps, fields, tags, workflows, demo mode, and preview URLs.
+
+Duplicate-first setup waits until Storyblok reports no pending background tasks before provisioning. If setup fails after duplication, the new space is preserved for inspection or recovery.
+
+```bash
+# Validate only
+php bin/blokctl space:setup-validate --config examples/demo-space.yaml
+
+# Inspect a duplicate-first plan without API changes
+php bin/blokctl space:setup --config examples/demo-space.yaml \
+  --dry-run --set customer=Acme --report setup-plan.json
+
+# Reconcile an existing space; requires an exact numeric ID
+php bin/blokctl space:setup -S <exact-space-id> \
+  --config existing-space.yaml --report setup-result.json
+```
+
+See `space-setup-config.md` for complete syntax. Reports contain stable JSON status, target/duplication details, masked operations, and summary counts.
 
 ### Preview URLs
 
@@ -63,7 +95,8 @@ Use this skill when the user wants to run blokctl commands to manage a Storyblok
 
 - **`components:list`** — List components. Options: `--search`, `--root-only`, `--in-group=UUID`.
 - **`components:usage`** — Analyze component usage across stories. Options: `--starts-with`, `--per-page`.
-- **`component:field-add`** — Add a field to a component. Options: `--component`, `--field`, `--type` (core type or `custom`), `--field-type` (plugin slug), `--tab`.
+- **`component:show`** — Display component fields and schema. Lookup: `--by-name`, `--by-id`. Option: `--with-tabs`.
+- **`component:field-add`** — Add a field to a component. Options: `--component`, `--field`, `--type` (core type or `custom`), `--field-type` (plugin slug), `--tab`, `--display-name`, `--required`, `--translatable`.
 
 ### Apps
 
@@ -73,6 +106,12 @@ Use this skill when the user wants to run blokctl commands to manage a Storyblok
 ### User
 
 - **`user:me`** — Show authenticated user info. No `--space-id` needed.
+
+### Experiments
+
+- **`experiment:list`** — List experiments. Options: `--page`, `--per-page`.
+- **`experiment:create`** — Create a draft experiment. Options: repeatable `--story-id`, `--name`, `--display-name`, `--description`.
+- **`experiment:results:push [experiment-id]`** — Push experiment result charts. Option: `--file`.
 
 ## Simplified JSON content format
 

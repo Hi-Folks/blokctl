@@ -18,7 +18,7 @@ Install as a Composer package: `composer require hi-folks/blokctl`
 
 ## Action pattern
 
-Every CLI command is backed by a reusable Action class with no CLI dependencies:
+Most resource-oriented commands are backed by reusable Action classes with no CLI dependencies. Orchestration commands such as `space:setup` compose Actions with services under `Blokctl\SpaceSetup`.
 
 - **Constructor** receives only the `ManagementApiClient`
 - **Read-only Actions** have a single `execute()` returning a typed Result DTO
@@ -29,10 +29,13 @@ Every CLI command is backed by a reusable Action class with no CLI dependencies:
 
 | Action | Does | Key result properties |
 |---|---|---|
+| `Space\SpaceCreateAction` | Create or duplicate a space | `->space`, `->duplicated`, `->duplicateFrom` |
 | `Space\SpaceInfoAction` | Get space info | `->space`, `->user`, `->isOwner` |
 | `Space\SpacesListAction` | List/filter spaces | `->spaces`, `->errors`, `->count()` |
 | `Space\SpaceDeleteAction` | Delete space (preflight+execute) | `->canDelete()`, `->isOwner`, `->isSolo` |
 | `Space\SpaceDemoRemoveAction` | Remove demo mode (preflight+execute) | `->isDemo` |
+| `Space\SpaceReadinessAction` | Wait until duplicated-space tasks complete | `->attempts`, `->elapsedSeconds` |
+| `Space\SpaceTokenAction` | Retrieve first preview token | `->token` |
 | `SpacePreview\SpacePreviewListAction` | List preview URLs | `->defaultDomain`, `->environments` |
 | `SpacePreview\SpacePreviewSetAction` | Set preview URL (preflight+execute) | `->space` |
 | `SpacePreview\SpacePreviewAddAction` | Add environment (preflight+execute) | `->space` |
@@ -56,8 +59,12 @@ Every CLI command is backed by a reusable Action class with no CLI dependencies:
 | `Component\ComponentsListAction` | List/filter components | `->components`, `->count()` |
 | `Component\ComponentsUsageAction` | Analyze component usage | `->usage`, `->storiesAnalyzed` |
 | `Component\ComponentFieldAddAction` | Add field to component (preflight+execute) | `->component`, `->schema` |
+| `Component\ComponentShowAction` | Get component fields and schema | `->component` |
 | `AppProvision\AppProvisionListAction` | List installed apps | `->provisions`, `->count()` |
 | `AppProvision\AppProvisionInstallAction` | Install app (preflight+execute) | `->appOptions` (for selection) |
+| `Experiment\ExperimentsListAction` | List experiments | `->experiments`, `->count()` |
+| `Experiment\ExperimentCreateAction` | Create a draft experiment | `->experiment` |
+| `Experiment\ExperimentResultsPushAction` | Push result charts | `->experimentResult` |
 | `User\UserMeAction` | Get current user | `->user` |
 
 All Action classes are in the `Blokctl\Action\` namespace.
@@ -78,6 +85,45 @@ $result = (new StoriesListAction($client))->execute(
 );
 // $result->stories, $result->count()
 ```
+
+### Create or duplicate a space
+
+```php
+use Blokctl\Action\Space\SpaceCreateAction;
+
+$result = (new SpaceCreateAction($client))->execute(
+    name: 'Acme Demo',
+    duplicateFrom: '286863409930127',
+    inOrg: true,
+);
+
+$newSpaceId = $result->space->id();
+```
+
+### Wait for duplicated-space readiness
+
+```php
+use Blokctl\Action\Space\SpaceReadinessAction;
+
+$result = (new SpaceReadinessAction($client))->execute(
+    spaceId: $newSpaceId,
+    timeoutSeconds: 120,
+    pollIntervalSeconds: 2,
+);
+```
+
+`SpaceReadinessAction` polls the space's `has_pending_tasks` value. HTTP request retries remain managed by `ManagementApiClient`.
+
+## Configuration as Code API
+
+The `space:setup` command is composed from services under `Blokctl\SpaceSetup`:
+
+- `SpaceSetupConfigLoader` and `SpaceSetupConfigValidator`
+- `SpaceSetupInputsResolver` and `SpaceSetupVariableResolver`
+- `SpaceSetupTargetResolver` and `SpaceSetupProvisioner`
+- `SpaceSetupReporter` and `SpaceSetupReportWriter`
+
+These services support validated YAML/JSON setup, reconcile behavior, dry-run planning, structured operation results, and machine-readable reports. The setup command is currently the supported orchestration entry point; use individual Actions when embedding custom workflows in PHP.
 
 ### Mutating action (preflight + execute)
 ```php
@@ -180,7 +226,7 @@ $folderId = (new StoryMoveAction($client))->resolveFolderBySlug($spaceId, 'archi
 ## Error handling
 
 - Fatal issues throw `\RuntimeException`
-- Non-fatal batch errors are collected in `$result->errors` (string array)
+- Non-fatal batch errors are collected in typed Result properties such as `$result->errors`
 - Always wrap API calls in try/catch with rate-limit awareness (`shouldRetry: true` handles 429s)
 
 For the complete API with all method signatures, see `README.md` section "Using Actions from code".
