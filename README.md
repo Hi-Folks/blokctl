@@ -118,7 +118,7 @@ php bin/blokctl space:info -S 290817118944379 -R US
 php bin/blokctl spaces:list -R AP
 
 # Canada region
-php bin/blokctl stories:list -S 290817118944379 -R CA
+php bin/blokctl spaces:list -R CA
 ```
 
 Available regions: `EU` (default), `US`, `AP`, `CA`, `CN`.
