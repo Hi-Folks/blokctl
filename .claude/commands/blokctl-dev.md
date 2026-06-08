@@ -138,6 +138,7 @@ Key patterns:
 - Keep target creation explicit: existing `-S`, `space.create_new: true`, or `space.duplicate_from`.
 - Resolve portable folder references by full slug; keep numeric folder IDs as runtime details.
 - Preserve unmanaged Dimensions folders and move only content matched by explicit selectors.
+- Resolve local asset sources relative to the setup config, preserve nested directories, and skip existing filename-plus-folder matches.
 - Update `space-setup-config.md`, examples, schema, changelog, roadmap, and focused tests when adding setup syntax.
 
 ### Step 3: Register in `bin/blokctl`

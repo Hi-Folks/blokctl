@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 96" role="img" aria-labelledby="title">
+  <title id="title">Demo brand</title>
+  <rect width="320" height="96" fill="#09b3af"/>
+  <text x="24" y="62" fill="#ffffff" font-family="Arial, sans-serif" font-size="40" font-weight="700">Demo Brand</text>
+</svg>

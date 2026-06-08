@@ -33,6 +33,16 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     }
 
     #[Test]
+    public function validates_assets_example_yaml_configuration(): void
+    {
+        $config = new SpaceSetupConfigLoader()->load('examples/assets-space.yaml');
+
+        $result = new SpaceSetupConfigValidator()->validate($config);
+
+        $this->assertTrue($result->isValid(), implode(' | ', $result->errors));
+    }
+
+    #[Test]
     public function rejects_configuration_without_version(): void
     {
         $result = new SpaceSetupConfigValidator()->validate([
@@ -281,6 +291,47 @@ final class SpaceSetupConfigValidatorTest extends TestCase
         ]);
 
         $this->assertTrue($result->isValid(), implode(' | ', $result->errors));
+    }
+
+    #[Test]
+    public function accepts_local_asset_directory_upload_configuration(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'assets' => [
+                'upload_directory' => [
+                    [
+                        'source' => './demo-assets/brand',
+                        'target_folder' => 'Brand',
+                        'recursive' => true,
+                        'include' => ['*.png', '*.jpg'],
+                        'on_existing' => 'skip',
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->assertTrue($result->isValid(), implode(' | ', $result->errors));
+    }
+
+    #[Test]
+    public function rejects_unsupported_existing_asset_behavior(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'assets' => [
+                'upload_directory' => [
+                    [
+                        'source' => './demo-assets/brand',
+                        'target_folder' => 'Brand',
+                        'on_existing' => 'replace',
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertErrorsContain($result->errors, '$.assets.upload_directory[0].on_existing');
     }
 
     #[Test]

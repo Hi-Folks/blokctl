@@ -213,7 +213,7 @@ php bin/blokctl space:setup \
 php bin/blokctl space:setup-validate --config examples/demo-space.yaml
 ```
 
-The setup config supports JSON and YAML and is validated against [space-setup-schema.json](space-setup-schema.json) before any space is created or modified. See [examples/demo-space.yaml](examples/demo-space.yaml) for general provisioning and [examples/multi-country-space.yaml](examples/multi-country-space.yaml) for folder, root-content move, and Dimensions reconciliation. See [space-setup-config.md](space-setup-config.md) for the full configuration syntax.
+The setup config supports JSON and YAML and is validated against [space-setup-schema.json](space-setup-schema.json) before any space is created or modified. See [examples/demo-space.yaml](examples/demo-space.yaml) for general provisioning, [examples/multi-country-space.yaml](examples/multi-country-space.yaml) for folder, root-content move, and Dimensions reconciliation, and [examples/assets-space.yaml](examples/assets-space.yaml) for local-directory asset upload. See [space-setup-config.md](space-setup-config.md) for the full configuration syntax.
 
 ```yaml
 execution:
@@ -229,6 +229,8 @@ space:
 ```
 
 Reconcile mode is the default. Repeated setup runs preserve unmanaged resources, skip matching state, merge story tags and preview environments, and update only explicitly configured component field properties. Resources omitted from the config are never removed automatically.
+
+Local asset directories can also be reconciled into Storyblok asset folders. Paths are relative to the setup config file, nested directories can be preserved, and assets with the same filename in the same target folder are skipped.
 
 After duplicating a space, setup waits until Storyblok reports that the new space has no pending background tasks. The readiness timeout defaults to 120 seconds and can be configured under `space.readiness`. Blank-space creation, existing-space setup, and dry runs do not perform readiness polling.
 

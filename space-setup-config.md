@@ -81,7 +81,7 @@ php bin/blokctl space:setup-validate --config examples/demo-space.yaml
 
 The config file can be YAML or JSON. YAML is recommended for templates because it is easier to read and edit.
 
-The current example is [examples/demo-space.yaml](examples/demo-space.yaml).
+The general example is [examples/demo-space.yaml](examples/demo-space.yaml). See [examples/assets-space.yaml](examples/assets-space.yaml) for local-directory asset upload.
 
 Future improvements and missing provisioning capabilities are tracked in [space-setup-todo.md](space-setup-todo.md).
 
@@ -199,6 +199,7 @@ Except for `version`, all top-level sections are optional. If a section is omitt
 | `stories` | Move selected root-level stories and folders. |
 | `apps` | Install Storyblok apps by slug or ID. |
 | `dimensions` | Reconcile Dimensions app folders. |
+| `assets` | Upload local asset directories into Storyblok asset folders. |
 | `components` | Add fields to existing components. |
 | `tags` | Assign tags to stories by ID or slug. |
 
@@ -269,6 +270,14 @@ dimensions:
     - slug: global
     - slug: italy
       ai_translation_code: it
+
+assets:
+  upload_directory:
+    - source: ./demo-assets/brand
+      target_folder: Brand
+      recursive: true
+      include: ["*.svg", "*.png", "*.jpg"]
+      on_existing: skip
 
 components:
   fields:
@@ -479,6 +488,36 @@ dimensions:
 | `folders[].ai_translation_code` | No | AI translation language code. Existing values change only when declared. |
 
 Install the Dimensions app separately through `apps.install`. See [examples/multi-country-space.yaml](examples/multi-country-space.yaml) for a complete setup replacing the behavior of `examples/multi-country-demo-setup.php`.
+
+## `assets`
+
+Uploads files from local directories into Storyblok asset folders. Relative `source` paths are resolved from the directory containing the YAML or JSON setup file, which keeps templates portable.
+
+```yaml
+assets:
+  upload_directory:
+    - source: ./demo-assets/brand
+      target_folder: Brand
+      recursive: true
+      include:
+        - "*.svg"
+        - "*.png"
+        - "*.jpg"
+      on_existing: skip
+```
+
+| Key | Required | Description |
+|---|---:|---|
+| `upload_directory` | Yes | Local directories to scan and upload. |
+| `upload_directory[].source` | Yes | Local directory path, relative to the setup config file unless absolute. |
+| `upload_directory[].target_folder` | Yes | Storyblok asset folder path to create or reuse. |
+| `upload_directory[].recursive` | No | Scan nested local directories and preserve them as nested asset folders. Defaults to `false`. |
+| `upload_directory[].include` | No | Glob patterns matched against each relative path or filename. All files are included when omitted. |
+| `upload_directory[].on_existing` | No | Existing-asset behavior. Currently must be `skip`, which is also the default. |
+
+Reconcile mode creates missing target asset folders and uploads missing files. A file is considered existing only when an asset with the exact same filename is present in the same target folder. Existing assets are never replaced or deleted. Dry-run scans the local directory and reports every planned folder and file without accessing Storyblok.
+
+See [examples/assets-space.yaml](examples/assets-space.yaml) for a runnable example.
 
 ## `components`
 

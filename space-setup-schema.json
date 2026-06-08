@@ -58,6 +58,10 @@
       "description": "Reconciles folders configured for the Storyblok Dimensions app while preserving unmanaged folders.",
       "$ref": "#/$defs/dimensions"
     },
+    "assets": {
+      "description": "Uploads assets discovered in local directories relative to the setup configuration file.",
+      "$ref": "#/$defs/assets"
+    },
     "components": {
       "description": "Creates or updates explicitly configured fields on existing components.",
       "$ref": "#/$defs/components"
@@ -539,6 +543,56 @@
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/nonEmptyString"
+      }
+    },
+    "assets": {
+      "description": "Local asset directory upload configuration. Existing assets are preserved.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "upload_directory"
+      ],
+      "properties": {
+        "upload_directory": {
+          "description": "Local directories whose matching files should be uploaded.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/assetUploadDirectory"
+          }
+        }
+      }
+    },
+    "assetUploadDirectory": {
+      "description": "Uploads files from one local directory into a Storyblok asset folder.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "target_folder"
+      ],
+      "properties": {
+        "source": {
+          "description": "Local directory path. Relative paths are resolved from the directory containing the YAML or JSON setup file.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "target_folder": {
+          "description": "Storyblok asset folder path to create or reuse, for example Brand or Products/Shoes.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "recursive": {
+          "description": "Discover files in nested local directories and preserve their directory structure below target_folder.",
+          "$ref": "#/$defs/booleanOrExpression",
+          "default": false
+        },
+        "include": {
+          "description": "Optional filename or relative-path glob patterns. When omitted, every discovered file is included.",
+          "$ref": "#/$defs/stringList"
+        },
+        "on_existing": {
+          "description": "Behavior when the target asset folder already contains the same filename. Only skip is currently supported.",
+          "const": "skip",
+          "default": "skip"
+        }
       }
     },
     "components": {

@@ -113,18 +113,21 @@ Recommended implementation order:
 
 ## Priority 4: Assets
 
-- [ ] Add asset upload from local files and URLs.
+- [x] Add asset upload from local directories.
 
   ```yaml
   assets:
-    upload:
-      - key: customer_logo
-        source: "${{ env.CUSTOMER_LOGO }}"
-        folder: Brand
+    upload_directory:
+      - source: ./demo-assets/brand
+        target_folder: Brand
+        recursive: true
+        include: ["*.svg", "*.png", "*.jpg"]
+        on_existing: skip
   ```
 
+- [ ] Add asset upload from URLs.
 - [ ] Allow uploaded asset references in later sections, for example `{{ assets.customer_logo }}`.
-- [ ] Add asset folder creation.
+- [x] Add asset folder creation for local-directory uploads.
 - [ ] Investigate and document asset behavior when duplicating spaces.
 - [ ] Add optional asset copying from a template space.
 - [ ] Add replacement of template assets with customer-specific assets.

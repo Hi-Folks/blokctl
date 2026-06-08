@@ -134,6 +134,64 @@ final class SpaceSetupProvisionerTest extends TestCase
     }
 
     #[Test]
+    public function plans_local_asset_directory_uploads(): void
+    {
+        $directory = $this->temporaryAssetDirectory([
+            'logo.png' => 'logo',
+            'notes.txt' => 'notes',
+            'products/shoe.jpg' => 'shoe',
+        ]);
+
+        try {
+            $results = $this->provision([
+                'assets' => [
+                    'upload_directory' => [
+                        [
+                            'source' => $directory,
+                            'target_folder' => 'Brand',
+                            'recursive' => true,
+                            'include' => ['*.png', '*.jpg'],
+                        ],
+                    ],
+                ],
+            ])->results();
+        } finally {
+            $this->removeDirectory($directory);
+        }
+
+        $this->assertCount(4, $results);
+        $this->assertPlanned($results[0], 'Ensure asset folder: Brand');
+        $this->assertPlanned($results[1], 'Ensure asset folder: Brand/products');
+        $this->assertPlanned($results[2], 'Upload asset: Brand/logo.png');
+        $this->assertPlanned($results[3], 'Upload asset: Brand/products/shoe.jpg');
+    }
+
+    #[Test]
+    public function rejects_asset_target_folders_with_empty_path_segments(): void
+    {
+        $directory = $this->temporaryAssetDirectory([
+            'logo.png' => 'logo',
+        ]);
+        $this->expectException(SpaceSetupProvisioningException::class);
+        $this->expectExceptionMessage('Asset target_folder must not contain empty path segments.');
+
+        try {
+            $this->provision([
+                'assets' => [
+                    'upload_directory' => [
+                        [
+                            'source' => $directory,
+                            'target_folder' => 'Brand//Logos',
+                        ],
+                    ],
+                ],
+            ]);
+        } finally {
+            $this->removeDirectory($directory);
+        }
+    }
+
+    #[Test]
     public function plans_each_component_field(): void
     {
         $result = $this->singleResult([
@@ -479,6 +537,104 @@ final class SpaceSetupProvisionerTest extends TestCase
     }
 
     #[Test]
+    public function skips_existing_assets_with_the_same_filename_and_folder(): void
+    {
+        $directory = $this->temporaryAssetDirectory([
+            'logo.png' => 'logo',
+        ]);
+
+        try {
+            $reporter = $this->provisionWithClient(
+                $this->createMockClient(
+                    $this->mockResponse('list-asset-folders-brand'),
+                    $this->mockResponse('list-assets-brand'),
+                ),
+                [
+                    'assets' => [
+                        'upload_directory' => [
+                            [
+                                'source' => $directory,
+                                'target_folder' => 'Brand',
+                            ],
+                        ],
+                    ],
+                ],
+            );
+        } finally {
+            $this->removeDirectory($directory);
+        }
+
+        $results = $reporter->results();
+        $this->assertCount(2, $results);
+        $this->assertSame(SpaceSetupOperationStatus::Skipped, $results[0]->status);
+        $this->assertSame('Ensure asset folder: Brand', $results[0]->label);
+        $this->assertSame(SpaceSetupOperationStatus::Skipped, $results[1]->status);
+        $this->assertSame('Upload asset: Brand/logo.png', $results[1]->label);
+    }
+
+    #[Test]
+    public function uploads_missing_assets_to_the_target_folder(): void
+    {
+        $directory = $this->temporaryAssetDirectory([
+            'logo.svg' => '<svg xmlns="http://www.w3.org/2000/svg"></svg>',
+        ]);
+        $signedRequestPayload = [];
+        $httpClient = new MockHttpClient(
+            static function (string $method, string $url, array $options) use (&$signedRequestPayload): MockResponse {
+                if (str_ends_with($url, '/asset_folders')) {
+                    return new MockResponse('{"asset_folders":[{"id":3001,"name":"Brand","parent_id":null}]}');
+                }
+
+                if ($method === 'GET' && str_contains($url, '/assets?')) {
+                    return new MockResponse('{"assets":[]}');
+                }
+
+                if ($method === 'POST' && str_ends_with($url, '/assets/')) {
+                    $body = $options['body'] ?? [];
+                    if (is_array($body)) {
+                        $signedRequestPayload = $body;
+                    } elseif (is_string($body)) {
+                        parse_str($body, $signedRequestPayload);
+                    }
+
+                    return new MockResponse('{"id":"4001","post_url":"https://uploads.example.com","fields":{}}');
+                }
+
+                return new MockResponse('{"id":4001,"filename":"https://a.storyblok.com/f/680/logo.svg"}');
+            },
+        );
+        $assetClient = new MockHttpClient(new MockResponse('', ['http_code' => 204]));
+
+        try {
+            $reporter = $this->provisionWithClient(
+                ManagementApiClient::initTest($httpClient, $assetClient),
+                [
+                    'assets' => [
+                        'upload_directory' => [
+                            [
+                                'source' => $directory,
+                                'target_folder' => 'Brand',
+                            ],
+                        ],
+                    ],
+                ],
+            );
+        } finally {
+            $this->removeDirectory($directory);
+        }
+
+        $results = $reporter->results();
+        $this->assertCount(2, $results);
+        $this->assertSame(SpaceSetupOperationStatus::Skipped, $results[0]->status);
+        $this->assertSame(SpaceSetupOperationStatus::Created, $results[1]->status);
+        $this->assertSame('Upload asset: Brand/logo.svg', $results[1]->label);
+        $this->assertSame('3001', $signedRequestPayload['asset_folder_id'] ?? null);
+        $filename = $signedRequestPayload['filename'] ?? null;
+        $this->assertIsString($filename);
+        $this->assertStringEndsWith('/logo.svg', $filename);
+    }
+
+    #[Test]
     public function adds_component_fields(): void
     {
         $reporter = $this->provisionWithClient(
@@ -752,5 +908,46 @@ final class SpaceSetupProvisionerTest extends TestCase
         $this->assertSame($status, $results[0]->status);
         $this->assertSame($label, $results[0]->label);
         $this->assertFalse($reporter->hasFailures());
+    }
+
+    /**
+     * @param array<string, string> $files
+     */
+    private function temporaryAssetDirectory(array $files): string
+    {
+        $directory = sys_get_temp_dir() . '/blokctl-provision-assets-' . bin2hex(random_bytes(8));
+        mkdir($directory);
+        foreach ($files as $path => $content) {
+            $fullPath = $directory . '/' . $path;
+            $parent = dirname($fullPath);
+            if (!is_dir($parent)) {
+                mkdir($parent, recursive: true);
+            }
+
+            file_put_contents($fullPath, $content);
+        }
+
+        return $directory;
+    }
+
+    private function removeDirectory(string $directory): void
+    {
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST,
+        );
+        foreach ($iterator as $item) {
+            if (!$item instanceof \SplFileInfo) {
+                continue;
+            }
+
+            if ($item->isDir()) {
+                rmdir($item->getPathname());
+            } else {
+                unlink($item->getPathname());
+            }
+        }
+
+        rmdir($directory);
     }
 }

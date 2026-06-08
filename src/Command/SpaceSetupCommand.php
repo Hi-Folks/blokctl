@@ -192,7 +192,12 @@ class SpaceSetupCommand extends Command
                 $this->hasValue($duplicateFrom) => 'Duplicate from ' . $duplicateFrom . ' as "' . $newSpaceName . '"',
                 default => 'Existing space',
             };
-            return $this->runSetup($spaceId, $config, $dryRun, $continueOnError, $mode, $reportPath)
+            $configRealPath = realpath($configPath);
+            if ($configRealPath === false) {
+                throw new \RuntimeException('Unable to resolve setup configuration path: ' . $configPath);
+            }
+
+            return $this->runSetup($spaceId, $config, $dryRun, $continueOnError, $mode, $reportPath, dirname($configRealPath))
                 ? self::SUCCESS
                 : self::FAILURE;
         } catch (\Exception $exception) {
@@ -212,6 +217,7 @@ class SpaceSetupCommand extends Command
         bool $continueOnError,
         string $mode,
         string|null $reportPath,
+        string $configDirectory,
     ): bool {
         try {
             $reporter = new SpaceSetupProvisioner($this->client)->run(
@@ -220,6 +226,7 @@ class SpaceSetupCommand extends Command
                 $dryRun,
                 $continueOnError,
                 $mode,
+                $configDirectory,
             );
         } catch (SpaceSetupProvisioningException $spaceSetupProvisioningException) {
             $this->writeReport($reportPath, $spaceSetupProvisioningException->reporter, $spaceId, $dryRun);

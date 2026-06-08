@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=../space-setup-schema.json
+
+version: 1
+
+execution:
+  mode: reconcile
+
+assets:
+  upload_directory:
+    - source: ./demo-assets/brand
+      target_folder: Brand
+      recursive: true
+      include:
+        - "*.svg"
+        - "*.png"
+        - "*.jpg"
+      on_existing: skip

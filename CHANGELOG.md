@@ -2,10 +2,16 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
+## 0.12.0 - 2026-06-08
+
+- Adding reconcile-safe local-directory asset upload with config-relative paths, include patterns, recursive asset folder creation, dry-run planning, and skip-existing behavior.
+
+
 ## 0.11.0 - 2026-06-08
 
 - Adding declarative multi-country demo provisioning with folder reconciliation, selected root-content moves, Dimensions folder configuration, and structured app references.
 - Adding detailed JSON Schema descriptions for editor hover guidance and setup configuration authoring.
+- Adding reconcile-safe local-directory asset upload with config-relative paths, include patterns, recursive asset folder creation, dry-run planning, and skip-existing behavior.
 
 ## 0.10.1 - 2026-06-08
 

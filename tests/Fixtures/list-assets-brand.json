@@ -1,0 +1,10 @@
+{
+    "assets": [
+        {
+            "id": 4001,
+            "filename": "https://a.storyblok.com/f/680/1200x600/example/logo.png",
+            "content_type": "image/png",
+            "content_length": 1234
+        }
+    ]
+}

@@ -39,6 +39,7 @@ Exceptions that do not require `-S`: `space:create`, `space:setup-validate`, `sp
 - Merges story tags and preview environments.
 - Skips matching apps, folders, fields, tags, workflows, demo mode, preview URLs, root-content moves, and Dimensions configuration.
 - Supports multi-country setup with `folders.ensure`, `stories.move`, and `dimensions.folders`.
+- Uploads local asset directories with `assets.upload_directory`, preserving nested folders and skipping matching filenames.
 
 Duplicate-first setup waits until Storyblok reports no pending background tasks before provisioning. If setup fails after duplication, the new space is preserved for inspection or recovery.
 
@@ -57,6 +58,10 @@ php bin/blokctl space:setup -S <exact-space-id> \
 # Reconcile a multi-country demo structure
 php bin/blokctl space:setup -S <exact-space-id> \
   --config examples/multi-country-space.yaml
+
+# Reconcile a local asset directory
+php bin/blokctl space:setup -S <exact-space-id> \
+  --config examples/assets-space.yaml
 ```
 
 See `space-setup-config.md` for complete syntax. Reports contain stable JSON status, target/duplication details, masked operations, and summary counts.

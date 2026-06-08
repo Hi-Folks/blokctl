@@ -13,17 +13,22 @@ use Blokctl\Action\SpacePreview\SpacePreviewSetAction;
 use Blokctl\Action\Story\StoriesTagsAssignAction;
 use Blokctl\Action\Story\StoriesWorkflowAssignAction;
 use Storyblok\ManagementApi\Data\AppProvision;
+use Storyblok\ManagementApi\Data\Asset;
+use Storyblok\ManagementApi\Data\AssetFolder;
 use Storyblok\ManagementApi\Data\Component;
 use Storyblok\ManagementApi\Data\Space;
 use Storyblok\ManagementApi\Data\SpaceEnvironment;
 use Storyblok\ManagementApi\Data\StoryBaseData;
 use Storyblok\ManagementApi\Endpoints\AppProvisionApi;
+use Storyblok\ManagementApi\Endpoints\AssetApi;
+use Storyblok\ManagementApi\Endpoints\AssetFolderApi;
 use Storyblok\ManagementApi\Endpoints\ComponentApi;
 use Storyblok\ManagementApi\Endpoints\ManagementApi;
 use Storyblok\ManagementApi\Endpoints\SpaceApi;
 use Storyblok\ManagementApi\Endpoints\StoryApi;
 use Storyblok\ManagementApi\ManagementApiClient;
 use Storyblok\ManagementApi\QueryParameters\PaginationParams;
+use Storyblok\ManagementApi\QueryParameters\AssetsParams;
 use Storyblok\ManagementApi\QueryParameters\StoriesParams;
 
 final readonly class SpaceSetupProvisioner
@@ -41,6 +46,7 @@ final readonly class SpaceSetupProvisioner
         bool $dryRun,
         bool $continueOnError,
         string $mode,
+        string $configDirectory = '.',
     ): SpaceSetupReporter {
         $reporter = new SpaceSetupReporter($dryRun);
         $reporter->start($spaceId, $mode);
@@ -53,6 +59,7 @@ final readonly class SpaceSetupProvisioner
             $this->provisionStoryMoves($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionApps($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionDimensions($reporter, $spaceId, $config, $dryRun, $continueOnError);
+            $this->provisionAssets($reporter, $spaceId, $config, $configDirectory, $dryRun, $continueOnError);
             $this->provisionComponentFields($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionTags($reporter, $spaceId, $config, $dryRun, $continueOnError);
         } catch (\Exception $exception) {
@@ -518,6 +525,123 @@ final readonly class SpaceSetupProvisioner
     /**
      * @param array<string, mixed> $config
      */
+    private function provisionAssets(
+        SpaceSetupReporter $reporter,
+        string $spaceId,
+        array $config,
+        string $configDirectory,
+        bool $dryRun,
+        bool $continueOnError,
+    ): void {
+        $assets = $this->arrayValue($config['assets'] ?? []);
+        $uploadDirectories = $this->listValue($assets['upload_directory'] ?? []);
+        if ($uploadDirectories === []) {
+            return;
+        }
+
+        $folderState = [
+            'folders' => [],
+            'paths' => [],
+        ];
+        if (!$dryRun) {
+            $folderState = $this->assetFolderState($spaceId);
+        }
+
+        $assetFilenameCache = [];
+        foreach ($uploadDirectories as $uploadDirectory) {
+            if (!is_array($uploadDirectory)) {
+                continue;
+            }
+
+            $source = $this->stringValue($uploadDirectory['source'] ?? '');
+            $targetFolder = trim($this->stringValue($uploadDirectory['target_folder'] ?? ''), '/');
+            $recursive = $this->boolValue($uploadDirectory['recursive'] ?? false);
+            $include = $this->stringListValue($uploadDirectory['include'] ?? []);
+            if ($targetFolder === '') {
+                throw new \RuntimeException('Asset upload directories require target_folder.');
+            }
+
+            if (str_contains($targetFolder, '//')) {
+                throw new \RuntimeException('Asset target_folder must not contain empty path segments.');
+            }
+
+            $files = new SpaceSetupAssetDirectoryScanner()->scan(
+                $configDirectory,
+                $source,
+                $recursive,
+                $include,
+            );
+            $folderPaths = [$targetFolder];
+            foreach ($files as $file) {
+                if ($recursive && $file['relative_directory'] !== '') {
+                    $folderPaths[] = $targetFolder . '/' . $file['relative_directory'];
+                }
+            }
+
+            $folderPaths = array_values(array_unique($folderPaths));
+            usort($folderPaths, static fn(string $left, string $right): int => substr_count($left, '/') <=> substr_count($right, '/'));
+
+            foreach ($folderPaths as $folderPath) {
+                $label = 'Ensure asset folder: ' . $folderPath;
+                $reporter->run($label, SpaceSetupOperationStatus::Created, $continueOnError, function () use ($spaceId, $folderPath, $dryRun, &$folderState, $label): SpaceSetupOperationResult|null {
+                    if ($dryRun) {
+                        return null;
+                    }
+
+                    $created = $this->ensureAssetFolderPath($spaceId, $folderPath, $folderState);
+                    if (!$created) {
+                        return new SpaceSetupOperationResult(
+                            SpaceSetupOperationStatus::Skipped,
+                            $label,
+                            'Asset folder already exists.',
+                        );
+                    }
+
+                    return null;
+                });
+            }
+
+            foreach ($files as $file) {
+                $folderPath = $targetFolder;
+                if ($recursive && $file['relative_directory'] !== '') {
+                    $folderPath .= '/' . $file['relative_directory'];
+                }
+
+                $label = 'Upload asset: ' . $folderPath . '/' . $file['filename'];
+                $reporter->run($label, SpaceSetupOperationStatus::Created, $continueOnError, function () use ($spaceId, $folderPath, $file, $dryRun, &$folderState, &$assetFilenameCache, $label): SpaceSetupOperationResult|null {
+                    if ($dryRun) {
+                        return new SpaceSetupOperationResult(
+                            SpaceSetupOperationStatus::Created,
+                            $label,
+                            $file['relative_path'],
+                        );
+                    }
+
+                    $folderId = $folderState['paths'][$folderPath] ?? null;
+                    if (!is_int($folderId)) {
+                        throw new \RuntimeException('Asset folder was not resolved: ' . $folderPath);
+                    }
+
+                    $assetFilenameCache[$folderId] ??= $this->assetFilenamesInFolder($spaceId, $folderId);
+                    if (in_array($file['filename'], $assetFilenameCache[$folderId], true)) {
+                        return new SpaceSetupOperationResult(
+                            SpaceSetupOperationStatus::Skipped,
+                            $label,
+                            'Asset with the same filename already exists in the target folder.',
+                        );
+                    }
+
+                    new AssetApi($this->client, $spaceId)->upload($file['path'], $folderId)->data();
+                    $assetFilenameCache[$folderId][] = $file['filename'];
+                    return null;
+                });
+            }
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
     private function provisionComponentFields(
         SpaceSetupReporter $reporter,
         string $spaceId,
@@ -948,6 +1072,135 @@ final readonly class SpaceSetupProvisioner
 
         /** @var array<string, mixed> $item */
         return $item;
+    }
+
+    /**
+     * @return array{folders: array<int, array{id: int, name: string, parent_id: int|null}>, paths: array<string, int>}
+     */
+    private function assetFolderState(string $spaceId): array
+    {
+        $folders = [];
+        foreach (new AssetFolderApi($this->client, $spaceId)->page()->data() as $folder) {
+            if (!$folder instanceof AssetFolder) {
+                continue;
+            }
+
+            $folders[] = [
+                'id' => (int) $folder->id(),
+                'name' => $folder->name(),
+                'parent_id' => $folder->parentId(),
+            ];
+        }
+
+        return [
+            'folders' => $folders,
+            'paths' => $this->assetFolderPaths($folders),
+        ];
+    }
+
+    /**
+     * @param array{folders: array<int, array{id: int, name: string, parent_id: int|null}>, paths: array<string, int>} $state
+     */
+    private function ensureAssetFolderPath(string $spaceId, string $path, array &$state): bool
+    {
+        if (array_key_exists($path, $state['paths'])) {
+            return false;
+        }
+
+        $segments = explode('/', $path);
+        $currentPath = '';
+        $parentId = null;
+        $created = false;
+        foreach ($segments as $segment) {
+            $currentPath = $currentPath === '' ? $segment : $currentPath . '/' . $segment;
+            if (array_key_exists($currentPath, $state['paths'])) {
+                $parentId = $state['paths'][$currentPath];
+                continue;
+            }
+
+            $folder = new AssetFolder($segment);
+            if ($parentId !== null) {
+                $folder->set('parent_id', $parentId);
+            }
+
+            $response = new AssetFolderApi($this->client, $spaceId)->create($folder);
+            if (!$response->isOk()) {
+                throw new \RuntimeException('Failed to create asset folder "' . $currentPath . '": ' . $response->getErrorMessage());
+            }
+
+            $createdFolder = $response->data();
+            $parentId = (int) $createdFolder->id();
+            $state['folders'][] = [
+                'id' => $parentId,
+                'name' => $createdFolder->name(),
+                'parent_id' => $createdFolder->parentId(),
+            ];
+            $state['paths'][$currentPath] = $parentId;
+            $created = true;
+        }
+
+        return $created;
+    }
+
+    /**
+     * @param array<int, array{id: int, name: string, parent_id: int|null}> $folders
+     *
+     * @return array<string, int>
+     */
+    private function assetFolderPaths(array $folders): array
+    {
+        $byId = [];
+        foreach ($folders as $folder) {
+            $byId[$folder['id']] = $folder;
+        }
+
+        $paths = [];
+        foreach ($folders as $folder) {
+            $segments = [$folder['name']];
+            $parentId = $folder['parent_id'];
+            $visited = [];
+            while ($parentId !== null && array_key_exists($parentId, $byId) && !in_array($parentId, $visited, true)) {
+                $visited[] = $parentId;
+                array_unshift($segments, $byId[$parentId]['name']);
+                $parentId = $byId[$parentId]['parent_id'];
+            }
+
+            $path = implode('/', $segments);
+            if (array_key_exists($path, $paths)) {
+                throw new \RuntimeException('Multiple asset folders found with path: ' . $path);
+            }
+
+            $paths[$path] = $folder['id'];
+        }
+
+        return $paths;
+    }
+
+    /**
+     * @return string[]
+     */
+    private function assetFilenamesInFolder(string $spaceId, int $folderId): array
+    {
+        $filenames = [];
+        $page = 1;
+        do {
+            $assets = new AssetApi($this->client, $spaceId)->page(
+                new AssetsParams(inFolder: $folderId),
+                new PaginationParams($page, 1000),
+            )->data();
+            foreach ($assets as $asset) {
+                if (!$asset instanceof Asset) {
+                    continue;
+                }
+
+                $path = parse_url($asset->filename(), PHP_URL_PATH);
+                $filenames[] = rawurldecode(basename(is_string($path) ? $path : $asset->filename()));
+            }
+
+            ++$page;
+        } while (count($assets) === 1000);
+
+        return array_values(array_unique($filenames));
     }
 
     /**
