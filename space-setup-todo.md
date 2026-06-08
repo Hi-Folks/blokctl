@@ -18,6 +18,28 @@ Related documentation:
 - [x] Return a non-zero exit code when individual actions report errors, including when setup continues.
 - [x] Add focused dry-run and execution tests for every supported config section.
 
+## Next: Multi-Country Demo Provisioning
+
+Move the behavior from `examples/multi-country-demo-setup.php` into declarative, idempotent `space:setup` configuration.
+
+- [ ] Add `folders.ensure` to create or reuse folders by full slug and parent.
+- [ ] Make folder reconciliation skip existing folders and fail when multiple folders ambiguously match.
+- [ ] Add `stories.move` with selectors for root-level items, explicit slugs, folders, and stories.
+- [ ] Support `include_folders`, `include_slugs`, and `exclude_slugs` selectors.
+- [ ] Resolve move targets by folder slug, paginate through all stories, and skip items already in the target folder.
+- [ ] Add `dimensions.folders` reconciliation that resolves folders by slug.
+- [ ] Preserve unmanaged Dimensions folders, add missing configured folders, and update explicitly declared AI translation codes.
+- [ ] Extend `apps.install` to accept structured app references with slug and optional ID fallback.
+- [ ] Add a complete multi-country YAML example covering Global, Italy, Germany, and France.
+- [ ] Add schema validation, dry-run planning, operation reporting, and focused execution tests for every new section.
+
+Recommended implementation order:
+
+1. `folders.ensure`
+2. `stories.move`
+3. `dimensions.folders`
+4. Structured app references
+
 ## Priority 1: Schema, Validation, and Template Definition
 
 - [x] Add required config schema version: `version: 1`.
@@ -59,7 +81,7 @@ Related documentation:
 - [x] Update component fields when requested configuration differs.
 - [x] Reconcile preview environments without unintentionally replacing existing entries.
 - [x] Skip tags already assigned to stories.
-- [ ] Reuse folders and datasources that already exist.
+- [ ] Reuse datasources that already exist.
 - [x] Rely on retry handling provided by the PHP Management Client.
 - [x] Add readiness polling after duplication before applying setup.
 - [x] Detect and report pending duplication/background tasks.
@@ -111,24 +133,6 @@ Related documentation:
 ## Priority 5: Localization, Folders, and Dimensions
 
 - [ ] Add space language configuration.
-- [ ] Add folder creation by name and parent.
-- [ ] Add declarative story/folder moves.
-- [ ] Move the behavior from `examples/multi-country-demo-setup.php` into `space:setup`.
-- [ ] Add Dimensions app configuration.
-
-  ```yaml
-  dimensions:
-    enabled: true
-    root_folders:
-      - name: Global
-      - name: Italy
-        ai_translation_code: it
-      - name: Germany
-        ai_translation_code: de
-    move_root_content_to: Global
-    exclude_slugs: [error-404, site-config]
-  ```
-
 - [ ] Add optional AI translation setup and execution.
 
 ## Priority 6: Workflows and Governance

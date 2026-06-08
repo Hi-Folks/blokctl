@@ -2,7 +2,7 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
-## 0.10.1 - WIP
+## 0.10.1 - 2026-06-08
 
 - Improving missing Management API access token errors with the required `SECRET_KEY` environment variable, setup example, and links for creating scoped Personal Access Tokens.
 
