@@ -198,6 +198,8 @@ Except for `version`, all top-level sections are optional. If a section is omitt
 | `folders` | Ensure folders exist by portable full slug. |
 | `stories` | Move selected root-level stories and folders. |
 | `apps` | Install Storyblok apps by slug or ID. |
+| `ai` | Configure Storyblok AI availability and organization configuration inheritance. |
+| `ai_translation` | Configure the disclaimer required by AI Translations. |
 | `dimensions` | Reconcile Dimensions app folders. |
 | `assets` | Upload local asset directories into Storyblok asset folders. |
 | `components` | Add fields to existing components. |
@@ -249,6 +251,13 @@ apps:
     - export
     - import
     - backups
+
+ai:
+  enabled: true
+  inherit_org_configuration: false
+
+ai_translation:
+  disclaimer_id: 173657768407244
 
 folders:
   ensure:
@@ -415,6 +424,7 @@ apps:
     - storyblok-gmbh@ai-seo
     - slug: dimensions
       id: 24
+    - id: 29942
 ```
 
 | Key | Required | Description |
@@ -423,6 +433,40 @@ apps:
 | `install` | Yes | List of app slugs or structured references containing `slug`, `id`, or both. |
 
 Apps that are already installed by matching slug or ID are reported as `SKIPPED`.
+
+For example, `id: 29942` installs the AI Translations app without requiring its slug.
+
+## `ai`
+
+Configures Storyblok AI for the target space. Installing the AI Translations app, accepting its disclaimer, and enabling Storyblok AI are separate operations.
+
+```yaml
+ai:
+  enabled: true
+  inherit_org_configuration: false
+```
+
+| Key | Required | Description |
+|---|---:|---|
+| `enabled` | No | Enable or disable Storyblok AI text generation for the space. |
+| `inherit_org_configuration` | No | Inherit the organization's AI configuration for the space. |
+
+Only explicitly declared settings are updated. `enabled: true` sends `ai_text_generator_disabled: false`, while `inherit_org_configuration: false` sends `inherit_org_ai_configuration: false`.
+
+## `ai_translation`
+
+Configures the disclaimer required by the AI Translations app.
+
+```yaml
+ai_translation:
+  disclaimer_id: 173657768407244
+```
+
+| Key | Required | Description |
+|---|---:|---|
+| `disclaimer_id` | Yes | Storyblok disclaimer ID required to activate AI Translation capabilities for the space. |
+
+`ai_translation.disclaimer_id` sends a partial space update with only `disclaimer_id`.
 
 ## `folders`
 

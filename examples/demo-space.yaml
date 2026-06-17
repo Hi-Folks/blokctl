@@ -42,6 +42,14 @@ apps:
     - export
     - import
     - backups
+    - id: 29942
+
+ai:
+  enabled: true
+  inherit_org_configuration: false
+
+ai_translation:
+  disclaimer_id: 173657768407244
 
 components:
   fields:

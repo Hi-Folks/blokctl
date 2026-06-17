@@ -5,6 +5,9 @@ All notable changes to `blokctl` will be documented in this file.
 ## 0.12.0 - 2026-06-08
 
 - Adding reconcile-safe local-directory asset upload with config-relative paths, include patterns, recursive asset folder creation, dry-run planning, and skip-existing behavior.
+- Adding declarative Storyblok AI activation and organization AI configuration inheritance through `space:setup`.
+- Adding AI Translations disclaimer acceptance through `ai_translation.disclaimer_id`.
+- Requiring `storyblok/php-management-api-client` `^1.7.1` and using `SpaceApi::activateAi()` for space-specific Storyblok AI activation.
 
 
 ## 0.11.0 - 2026-06-08

@@ -139,6 +139,8 @@ Key patterns:
 - Resolve portable folder references by full slug; keep numeric folder IDs as runtime details.
 - Preserve unmanaged Dimensions folders and move only content matched by explicit selectors.
 - Resolve local asset sources relative to the setup config, preserve nested directories, and skip existing filename-plus-folder matches.
+- Reconcile only explicitly declared space-level AI settings.
+- Keep AI Translations disclaimer acceptance separate from general Storyblok AI activation.
 - Update `space-setup-config.md`, examples, schema, changelog, roadmap, and focused tests when adding setup syntax.
 
 ### Step 3: Register in `bin/blokctl`

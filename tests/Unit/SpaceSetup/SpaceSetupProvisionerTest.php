@@ -91,6 +91,31 @@ final class SpaceSetupProvisionerTest extends TestCase
     }
 
     #[Test]
+    public function plans_storyblok_ai_configuration(): void
+    {
+        $result = $this->singleResult([
+            'ai' => [
+                'enabled' => true,
+                'inherit_org_configuration' => false,
+            ],
+        ]);
+
+        $this->assertPlanned($result, 'Configure Storyblok AI');
+    }
+
+    #[Test]
+    public function plans_ai_translation_disclaimer_configuration(): void
+    {
+        $result = $this->singleResult([
+            'ai_translation' => [
+                'disclaimer_id' => 173657768407244,
+            ],
+        ]);
+
+        $this->assertPlanned($result, 'Configure AI Translation disclaimer');
+    }
+
+    #[Test]
     public function plans_multi_country_provisioning(): void
     {
         $results = $this->provision([
@@ -534,6 +559,128 @@ final class SpaceSetupProvisionerTest extends TestCase
             ],
             $space['dimensions_app_folders'] ?? null,
         );
+    }
+
+    #[Test]
+    public function configures_only_declared_storyblok_ai_settings(): void
+    {
+        $updatePayload = [];
+        $response = $this->mockData('one-space');
+        $httpClient = new MockHttpClient(
+            static function (string $method, string $url, array $options) use (&$updatePayload, $response): MockResponse {
+                if ($method === 'PUT') {
+                    $body = $options['body'] ?? '';
+                    if (is_string($body)) {
+                        $updatePayload = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+                    }
+                }
+
+                return new MockResponse($response);
+            },
+        );
+
+        $reporter = $this->provisionWithClient(
+            ManagementApiClient::initTest($httpClient),
+            [
+                'ai' => [
+                    'enabled' => true,
+                    'inherit_org_configuration' => false,
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Updated, 'Configure Storyblok AI');
+        $this->assertSame([
+            'space' => [
+                'ai_text_generator_disabled' => false,
+                'inherit_org_ai_configuration' => false,
+            ],
+        ], $updatePayload);
+    }
+
+    #[Test]
+    public function configures_ai_translation_disclaimer(): void
+    {
+        $updatePayload = [];
+        $response = $this->mockData('one-space');
+        $httpClient = new MockHttpClient(
+            static function (string $method, string $url, array $options) use (&$updatePayload, $response): MockResponse {
+                if ($method === 'PUT') {
+                    $body = $options['body'] ?? '';
+                    if (is_string($body)) {
+                        $updatePayload = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+                    }
+                }
+
+                return new MockResponse($response);
+            },
+        );
+
+        $reporter = $this->provisionWithClient(
+            ManagementApiClient::initTest($httpClient),
+            [
+                'ai_translation' => [
+                    'disclaimer_id' => 173657768407244,
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Updated, 'Configure AI Translation disclaimer');
+        $this->assertSame([
+            'space' => [
+                'disclaimer_id' => 173657768407244,
+            ],
+        ], $updatePayload);
+    }
+
+    #[Test]
+    public function skips_matching_ai_translation_disclaimer(): void
+    {
+        $space = json_decode($this->mockData('one-space'), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertIsArray($space);
+        $spaceData = $space['space'] ?? null;
+        $this->assertIsArray($spaceData);
+        $spaceData['disclaimer_id'] = 173657768407244;
+        $space['space'] = $spaceData;
+
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                new MockResponse(json_encode($space, JSON_THROW_ON_ERROR)),
+            ),
+            [
+                'ai_translation' => [
+                    'disclaimer_id' => 173657768407244,
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Skipped, 'Configure AI Translation disclaimer');
+    }
+
+    #[Test]
+    public function skips_matching_storyblok_ai_configuration(): void
+    {
+        $space = json_decode($this->mockData('one-space'), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertIsArray($space);
+        $spaceData = $space['space'] ?? null;
+        $this->assertIsArray($spaceData);
+        $spaceData['ai_text_generator_disabled'] = false;
+        $spaceData['inherit_org_ai_configuration'] = false;
+        $space['space'] = $spaceData;
+
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                new MockResponse(json_encode($space, JSON_THROW_ON_ERROR)),
+            ),
+            [
+                'ai' => [
+                    'enabled' => true,
+                    'inherit_org_configuration' => false,
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Skipped, 'Configure Storyblok AI');
     }
 
     #[Test]

@@ -58,6 +58,8 @@ final readonly class SpaceSetupProvisioner
             $this->provisionFolders($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionStoryMoves($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionApps($reporter, $spaceId, $config, $dryRun, $continueOnError);
+            $this->provisionAi($reporter, $spaceId, $config, $dryRun, $continueOnError);
+            $this->provisionAiTranslation($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionDimensions($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionAssets($reporter, $spaceId, $config, $configDirectory, $dryRun, $continueOnError);
             $this->provisionComponentFields($reporter, $spaceId, $config, $dryRun, $continueOnError);
@@ -433,6 +435,113 @@ final readonly class SpaceSetupProvisioner
 
             throw $runtimeException;
         }
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    private function provisionAi(
+        SpaceSetupReporter $reporter,
+        string $spaceId,
+        array $config,
+        bool $dryRun,
+        bool $continueOnError,
+    ): void {
+        $ai = $this->arrayValue($config['ai'] ?? []);
+        if ($ai === []) {
+            return;
+        }
+
+        $reporter->run('Configure Storyblok AI', SpaceSetupOperationStatus::Updated, $continueOnError, function () use ($spaceId, $ai, $dryRun): SpaceSetupOperationResult|null {
+            $desired = [];
+            if (array_key_exists('enabled', $ai)) {
+                $desired['ai_text_generator_disabled'] = !$this->boolValue($ai['enabled']);
+            }
+
+            if (array_key_exists('inherit_org_configuration', $ai)) {
+                $desired['inherit_org_ai_configuration'] = $this->boolValue($ai['inherit_org_configuration']);
+            }
+
+            if ($dryRun) {
+                return null;
+            }
+
+            $spaceApi = new SpaceApi($this->client);
+            $space = $spaceApi->get($spaceId)->data()->toArray();
+            $changes = [];
+            foreach ($desired as $key => $value) {
+                if (!array_key_exists($key, $space) || $this->boolValue($space[$key]) !== $value) {
+                    $changes[$key] = $value;
+                }
+            }
+
+            if ($changes === []) {
+                return new SpaceSetupOperationResult(
+                    SpaceSetupOperationStatus::Skipped,
+                    'Configure Storyblok AI',
+                    'Storyblok AI configuration already matches.',
+                );
+            }
+
+            $activation = [
+                'ai_text_generator_disabled' => false,
+                'inherit_org_ai_configuration' => false,
+            ];
+            $response = $desired === $activation
+                ? $spaceApi->activateAi($spaceId)
+                : $spaceApi->update($spaceId, Space::forUpdate($changes));
+            if (!$response->isOk()) {
+                throw new \RuntimeException('Failed to configure Storyblok AI: ' . $response->getErrorMessage());
+            }
+
+            return null;
+        });
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    private function provisionAiTranslation(
+        SpaceSetupReporter $reporter,
+        string $spaceId,
+        array $config,
+        bool $dryRun,
+        bool $continueOnError,
+    ): void {
+        $aiTranslation = $this->arrayValue($config['ai_translation'] ?? []);
+        if ($aiTranslation === []) {
+            return;
+        }
+
+        $disclaimerId = $this->intValue($aiTranslation['disclaimer_id'] ?? 0);
+        if ($disclaimerId < 1) {
+            throw new \RuntimeException('AI Translation disclaimer_id must be a positive integer.');
+        }
+
+        $reporter->run('Configure AI Translation disclaimer', SpaceSetupOperationStatus::Updated, $continueOnError, function () use ($spaceId, $disclaimerId, $dryRun): SpaceSetupOperationResult|null {
+            if ($dryRun) {
+                return null;
+            }
+
+            $spaceApi = new SpaceApi($this->client);
+            $space = $spaceApi->get($spaceId)->data()->toArray();
+            if ($this->nullableIntValue($space['disclaimer_id'] ?? null) === $disclaimerId) {
+                return new SpaceSetupOperationResult(
+                    SpaceSetupOperationStatus::Skipped,
+                    'Configure AI Translation disclaimer',
+                    'AI Translation disclaimer already matches.',
+                );
+            }
+
+            $response = $spaceApi->update($spaceId, Space::forUpdate([
+                'disclaimer_id' => $disclaimerId,
+            ]));
+            if (!$response->isOk()) {
+                throw new \RuntimeException('Failed to configure AI Translation disclaimer: ' . $response->getErrorMessage());
+            }
+
+            return null;
+        });
     }
 
     /**

@@ -215,6 +215,8 @@ Recommended implementation order:
 - [x] Assign default or configured workflow stage to unstaged stories
 - [x] App installation by slug
 - [x] App installation by structured slug/ID reference
+- [x] Storyblok AI activation and organization configuration inheritance
+- [x] AI Translations disclaimer acceptance
 - [x] Component field additions
 - [x] Folder reconciliation by full slug and parent
 - [x] Selected root-content moves

@@ -315,6 +315,33 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     }
 
     #[Test]
+    public function accepts_storyblok_ai_configuration(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'ai' => [
+                'enabled' => true,
+                'inherit_org_configuration' => false,
+            ],
+        ]);
+
+        $this->assertTrue($result->isValid(), implode(' | ', $result->errors));
+    }
+
+    #[Test]
+    public function accepts_ai_translation_configuration(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'ai_translation' => [
+                'disclaimer_id' => 173657768407244,
+            ],
+        ]);
+
+        $this->assertTrue($result->isValid(), implode(' | ', $result->errors));
+    }
+
+    #[Test]
     public function rejects_unsupported_existing_asset_behavior(): void
     {
         $result = new SpaceSetupConfigValidator()->validate([

@@ -46,6 +46,14 @@
       "description": "Installs Storyblok apps by slug or structured slug/ID reference.",
       "$ref": "#/$defs/apps"
     },
+    "ai": {
+      "description": "Configures Storyblok AI availability and organization-level AI configuration inheritance.",
+      "$ref": "#/$defs/ai"
+    },
+    "ai_translation": {
+      "description": "Configures the disclaimer required for the AI Translations app.",
+      "$ref": "#/$defs/aiTranslation"
+    },
     "folders": {
       "description": "Ensures configured folders exist, resolving them by full slug.",
       "$ref": "#/$defs/folders"
@@ -391,6 +399,36 @@
         "id": {
           "description": "Storyblok app ID used for reconciliation and as fallback when the configured slug is not found.",
           "$ref": "#/$defs/identifier"
+        }
+      }
+    },
+    "ai": {
+      "description": "Storyblok AI space configuration. Only explicitly declared settings are updated.",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "enabled": {
+          "description": "Enable or disable Storyblok AI text generation for the space.",
+          "$ref": "#/$defs/booleanOrExpression"
+        },
+        "inherit_org_configuration": {
+          "description": "Inherit the organization's AI configuration for this space.",
+          "$ref": "#/$defs/booleanOrExpression"
+        }
+      }
+    },
+    "aiTranslation": {
+      "description": "AI Translation space configuration.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disclaimer_id"
+      ],
+      "properties": {
+        "disclaimer_id": {
+          "description": "Storyblok disclaimer ID required to activate AI Translation capabilities for the space.",
+          "$ref": "#/$defs/positiveIntegerOrExpression"
         }
       }
     },
