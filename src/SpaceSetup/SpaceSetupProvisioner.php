@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Blokctl\SpaceSetup;
 
 use Blokctl\Action\AppProvision\AppProvisionInstallAction;
+use Blokctl\Action\Asset\AssetsConvertToGlobalAction;
 use Blokctl\Action\Component\ComponentFieldAddAction;
 use Blokctl\Action\Component\ComponentFieldAddResult;
 use Blokctl\Action\Folder\FolderCreateAction;
@@ -644,7 +645,8 @@ final readonly class SpaceSetupProvisioner
     ): void {
         $assets = $this->arrayValue($config['assets'] ?? []);
         $uploadDirectories = $this->listValue($assets['upload_directory'] ?? []);
-        if ($uploadDirectories === []) {
+        $convertToGlobal = $this->listValue($assets['convert_to_global'] ?? []);
+        if ($uploadDirectories === [] && $convertToGlobal === []) {
             return;
         }
 
@@ -652,7 +654,7 @@ final readonly class SpaceSetupProvisioner
             'folders' => [],
             'paths' => [],
         ];
-        if (!$dryRun) {
+        if (!$dryRun && $uploadDirectories !== []) {
             $folderState = $this->assetFolderState($spaceId);
         }
 
@@ -745,6 +747,79 @@ final readonly class SpaceSetupProvisioner
                     return null;
                 });
             }
+        }
+
+        foreach ($convertToGlobal as $conversion) {
+            if (!is_array($conversion)) {
+                continue;
+            }
+
+            $targetSharedFolderId = $this->intValue($conversion['target_shared_folder_id'] ?? 0);
+            $assetIds = $this->intListValue($conversion['asset_ids'] ?? []);
+            $assetId = $this->nullableIntValue($conversion['asset_id'] ?? null);
+            if ($assetId !== null) {
+                $assetIds[] = $assetId;
+            }
+
+            $assetIds = array_values($assetIds);
+
+            $sourceFolderId = $this->nullableIntValue($conversion['source_folder_id'] ?? null);
+            $sourceFolderName = $this->nullableStringValue($conversion['source_folder_name'] ?? null);
+            $filters = $this->arrayValue($conversion['filters'] ?? []);
+            $filetype = $this->nullableStringValue($filters['filetype'] ?? null);
+            $extensions = array_values($this->stringListValue($filters['extensions'] ?? []));
+            $tags = array_values($this->stringListValue($filters['tags'] ?? []));
+            $label = 'Convert assets to global folder: ' . $targetSharedFolderId;
+
+            $reporter->run($label, SpaceSetupOperationStatus::Updated, $continueOnError, function () use ($spaceId, $targetSharedFolderId, $assetIds, $sourceFolderId, $sourceFolderName, $filetype, $extensions, $tags, $dryRun, $continueOnError, $label): SpaceSetupOperationResult {
+                if ($targetSharedFolderId < 1) {
+                    throw new \RuntimeException('Asset conversion entries require target_shared_folder_id.');
+                }
+
+                if ($dryRun) {
+                    $detail = $assetIds !== []
+                        ? 'Assets: ' . implode(', ', array_values(array_unique($assetIds)))
+                        : ($sourceFolderId !== null
+                            ? 'Source folder ID: ' . $sourceFolderId
+                            : 'Source folder name: ' . ($sourceFolderName ?? ''));
+
+                    return new SpaceSetupOperationResult(
+                        SpaceSetupOperationStatus::Updated,
+                        $label,
+                        $detail,
+                    );
+                }
+
+                $result = new AssetsConvertToGlobalAction($this->client)->execute(
+                    spaceId: $spaceId,
+                    targetSharedFolderId: $targetSharedFolderId,
+                    assetIds: $assetIds,
+                    sourceFolderId: $sourceFolderId,
+                    sourceFolderName: $sourceFolderName,
+                    filetype: $filetype,
+                    extensions: $extensions,
+                    tags: $tags,
+                    continueOnError: $continueOnError,
+                );
+
+                if ($result->total() === 0) {
+                    return new SpaceSetupOperationResult(
+                        SpaceSetupOperationStatus::Skipped,
+                        $label,
+                        'No matching assets found.',
+                    );
+                }
+
+                if ($result->failed() > 0) {
+                    throw new \RuntimeException(implode(' | ', $result->errors));
+                }
+
+                return new SpaceSetupOperationResult(
+                    SpaceSetupOperationStatus::Updated,
+                    $label,
+                    $result->converted() . ' asset(s) converted.',
+                );
+            });
         }
     }
 

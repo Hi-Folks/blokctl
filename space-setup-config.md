@@ -201,7 +201,7 @@ Except for `version`, all top-level sections are optional. If a section is omitt
 | `ai` | Configure Storyblok AI availability and organization configuration inheritance. |
 | `ai_translation` | Configure the disclaimer required by AI Translations. |
 | `dimensions` | Reconcile Dimensions app folders. |
-| `assets` | Upload local asset directories into Storyblok asset folders. |
+| `assets` | Upload local asset directories and convert space assets into the Global Asset Library. |
 | `components` | Add fields to existing components. |
 | `tags` | Assign tags to stories by ID or slug. |
 
@@ -548,18 +548,40 @@ assets:
         - "*.png"
         - "*.jpg"
       on_existing: skip
+
+  convert_to_global:
+    - asset_ids: [123, 456]
+      target_shared_folder_id: 987
+
+    - source_folder_name: Brand
+      target_shared_folder_id: 987
+      filters:
+        filetype: image
+        extensions: [jpg, png, webp]
+        tags: [approved]
 ```
 
 | Key | Required | Description |
 |---|---:|---|
-| `upload_directory` | Yes | Local directories to scan and upload. |
+| `upload_directory` | No | Local directories to scan and upload. |
 | `upload_directory[].source` | Yes | Local directory path, relative to the setup config file unless absolute. |
 | `upload_directory[].target_folder` | Yes | Storyblok asset folder path to create or reuse. |
 | `upload_directory[].recursive` | No | Scan nested local directories and preserve them as nested asset folders. Defaults to `false`. |
 | `upload_directory[].include` | No | Glob patterns matched against each relative path or filename. All files are included when omitted. |
 | `upload_directory[].on_existing` | No | Existing-asset behavior. Currently must be `skip`, which is also the default. |
+| `convert_to_global` | No | Assets to convert from the space asset library into the organization Global Asset Library. |
+| `convert_to_global[].asset_id` | No | Single space asset ID to convert. |
+| `convert_to_global[].asset_ids` | No | List of space asset IDs to convert. |
+| `convert_to_global[].source_folder_id` | No | Convert assets from this source space asset folder ID. |
+| `convert_to_global[].source_folder_name` | No | Convert assets from this source space asset folder name. Must resolve to exactly one folder. |
+| `convert_to_global[].target_shared_folder_id` | Yes | Target shared/global asset folder ID. |
+| `convert_to_global[].filters.filetype` | No | Folder-selection filter by content type family, such as `image` or `video`. |
+| `convert_to_global[].filters.extensions` | No | Folder-selection filter by filename extensions. |
+| `convert_to_global[].filters.tags` | No | Folder-selection filter by asset tags. |
 
 Reconcile mode creates missing target asset folders and uploads missing files. A file is considered existing only when an asset with the exact same filename is present in the same target folder. Existing assets are never replaced or deleted. Dry-run scans the local directory and reports every planned folder and file without accessing Storyblok.
+
+Each `convert_to_global` entry must define exactly one source selector: `asset_id`, `asset_ids`, `source_folder_id`, or `source_folder_name`. Folder-based selection fetches matching assets with pagination. Filters are only valid for folder-based selection. The destination is always explicit: `target_shared_folder_id` is required.
 
 See [examples/assets-space.yaml](examples/assets-space.yaml) for a runnable example.
 

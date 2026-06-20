@@ -40,6 +40,7 @@ Exceptions that do not require `-S`: `space:create`, `space:setup-validate`, `sp
 - Skips matching apps, folders, fields, tags, workflows, demo mode, preview URLs, root-content moves, and Dimensions configuration.
 - Supports multi-country setup with `folders.ensure`, `stories.move`, and `dimensions.folders`.
 - Uploads local asset directories with `assets.upload_directory`, preserving nested folders and skipping matching filenames.
+- Converts space-local assets into the Global Asset Library with `assets.convert_to_global`; requires `target_shared_folder_id` and one source selector (`asset_id`, `asset_ids`, `source_folder_id`, or `source_folder_name`).
 - Configures space-level Storyblok AI activation with `ai.enabled` and `ai.inherit_org_configuration`, and AI Translations disclaimer acceptance with `ai_translation.disclaimer_id`.
 
 Duplicate-first setup waits until Storyblok reports no pending background tasks before provisioning. If setup fails after duplication, the new space is preserved for inspection or recovery.

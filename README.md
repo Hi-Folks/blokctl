@@ -232,6 +232,22 @@ Reconcile mode is the default. Repeated setup runs preserve unmanaged resources,
 
 Local asset directories can also be reconciled into Storyblok asset folders. Paths are relative to the setup config file, nested directories can be preserved, and assets with the same filename in the same target folder are skipped.
 
+Space-local assets can also be converted into the organization Global Asset Library through `assets.convert_to_global`. Each entry requires `target_shared_folder_id` and exactly one source selector: `asset_id`, `asset_ids`, `source_folder_id`, or `source_folder_name`.
+
+```yaml
+assets:
+  convert_to_global:
+    - asset_ids: [123, 456]
+      target_shared_folder_id: 987
+
+    - source_folder_name: Brand
+      target_shared_folder_id: 987
+      filters:
+        filetype: image
+        extensions: [jpg, png, webp]
+        tags: [approved]
+```
+
 Storyblok AI can be activated independently from installing AI-related apps by declaring `ai.enabled` and `ai.inherit_org_configuration`. AI Translations disclaimer acceptance is configured separately with `ai_translation.disclaimer_id`.
 
 After duplicating a space, setup waits until Storyblok reports that the new space has no pending background tasks. The readiness timeout defaults to 120 seconds and can be configured under `space.readiness`. Blank-space creation, existing-space setup, and dry runs do not perform readiness polling.

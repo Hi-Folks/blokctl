@@ -221,6 +221,7 @@ Recommended implementation order:
 - [x] Folder reconciliation by full slug and parent
 - [x] Selected root-content moves
 - [x] Dimensions folder reconciliation
+- [x] Global Asset Library conversion with `assets.convert_to_global`
 - [x] Story tag assignments by slug or ID
 - [x] Existing-space setup with `-S`
 - [x] Configuration-driven blank-space creation with `space.create_new: true`

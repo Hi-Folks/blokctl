@@ -217,6 +217,63 @@ final class SpaceSetupProvisionerTest extends TestCase
     }
 
     #[Test]
+    public function plans_asset_conversion_to_global_library(): void
+    {
+        $results = $this->provision([
+            'assets' => [
+                'convert_to_global' => [
+                    [
+                        'asset_ids' => [123, 456],
+                        'target_shared_folder_id' => 987,
+                    ],
+                    [
+                        'source_folder_name' => 'Brand',
+                        'target_shared_folder_id' => 987,
+                        'filters' => [
+                            'filetype' => 'image',
+                            'extensions' => ['jpg', 'png', 'webp'],
+                            'tags' => ['approved'],
+                        ],
+                    ],
+                ],
+            ],
+        ])->results();
+
+        $this->assertCount(2, $results);
+        $this->assertPlanned($results[0], 'Convert assets to global folder: 987');
+        $this->assertSame('Assets: 123, 456', $results[0]->detail);
+        $this->assertPlanned($results[1], 'Convert assets to global folder: 987');
+        $this->assertSame('Source folder name: Brand', $results[1]->detail);
+    }
+
+    #[Test]
+    public function converts_asset_ids_to_global_library(): void
+    {
+        $firstConvert = new MockResponse($this->assetResponseJson(123));
+        $secondConvert = new MockResponse($this->assetResponseJson(456));
+        $reporter = $this->provisionWithClient(
+            ManagementApiClient::initTest(new MockHttpClient([
+                $firstConvert,
+                $secondConvert,
+            ])),
+            [
+                'assets' => [
+                    'convert_to_global' => [
+                        [
+                            'asset_ids' => [123, 456],
+                            'target_shared_folder_id' => 987,
+                        ],
+                    ],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Updated, 'Convert assets to global folder: 987');
+        $this->assertStringContainsString('/v1/spaces/680/assets/123/convert?target_asset_folder_id=987', $firstConvert->getRequestUrl());
+        $this->assertStringContainsString('/v1/spaces/680/assets/456/convert?target_asset_folder_id=987', $secondConvert->getRequestUrl());
+    }
+
+    #[Test]
     public function plans_each_component_field(): void
     {
         $result = $this->singleResult([
@@ -1055,6 +1112,16 @@ final class SpaceSetupProvisionerTest extends TestCase
         $this->assertSame($status, $results[0]->status);
         $this->assertSame($label, $results[0]->label);
         $this->assertFalse($reporter->hasFailures());
+    }
+
+    private function assetResponseJson(int $id): string
+    {
+        return json_encode([
+            'id' => $id,
+            'filename' => 'https://a.storyblok.com/f/680/asset-' . $id . '.jpg',
+            'content_type' => 'image/jpeg',
+            'fieldtype' => 'asset',
+        ], JSON_THROW_ON_ERROR);
     }
 
     /**

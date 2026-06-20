@@ -2,6 +2,10 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
+## 0.13.1 - WIP
+
+- Adding `assets.convert_to_global` to `space:setup` for declarative Global Asset Library conversion.
+
 ## 0.13.0 - 2026-06-20
 
 - Requiring `storyblok/php-management-api-client` `^1.8.0` for asset conversion support.

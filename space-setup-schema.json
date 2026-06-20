@@ -584,18 +584,23 @@
       }
     },
     "assets": {
-      "description": "Local asset directory upload configuration. Existing assets are preserved.",
+      "description": "Asset provisioning configuration. Existing assets are preserved.",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "upload_directory"
-      ],
+      "minProperties": 1,
       "properties": {
         "upload_directory": {
           "description": "Local directories whose matching files should be uploaded.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/assetUploadDirectory"
+          }
+        },
+        "convert_to_global": {
+          "description": "Convert space-local assets into shared assets in the Global Asset Library.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/assetConvertToGlobal"
           }
         }
       }
@@ -630,6 +635,85 @@
           "description": "Behavior when the target asset folder already contains the same filename. Only skip is currently supported.",
           "const": "skip",
           "default": "skip"
+        }
+      }
+    },
+    "assetConvertToGlobal": {
+      "description": "Converts selected space-local assets into shared assets in a target global asset folder.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_shared_folder_id"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "asset_id"
+          ]
+        },
+        {
+          "required": [
+            "asset_ids"
+          ]
+        },
+        {
+          "required": [
+            "source_folder_id"
+          ]
+        },
+        {
+          "required": [
+            "source_folder_name"
+          ]
+        }
+      ],
+      "properties": {
+        "asset_id": {
+          "description": "Single space asset ID to convert.",
+          "$ref": "#/$defs/positiveIntegerOrExpression"
+        },
+        "asset_ids": {
+          "description": "Space asset IDs to convert.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/positiveIntegerOrExpression"
+          }
+        },
+        "source_folder_id": {
+          "description": "Source space asset folder ID whose assets should be converted.",
+          "$ref": "#/$defs/positiveIntegerOrExpression"
+        },
+        "source_folder_name": {
+          "description": "Source space asset folder name whose assets should be converted. Must resolve to exactly one folder.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "target_shared_folder_id": {
+          "description": "Required target shared/global asset folder ID.",
+          "$ref": "#/$defs/positiveIntegerOrExpression"
+        },
+        "filters": {
+          "description": "Filters applied only to folder-based asset selection.",
+          "$ref": "#/$defs/assetConvertFilters"
+        }
+      }
+    },
+    "assetConvertFilters": {
+      "description": "Filters for folder-based asset conversion.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "filetype": {
+          "description": "Content type family, for example image or video.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "extensions": {
+          "description": "Filename extensions to include.",
+          "$ref": "#/$defs/stringList"
+        },
+        "tags": {
+          "description": "Asset tags to include.",
+          "$ref": "#/$defs/stringList"
         }
       }
     },

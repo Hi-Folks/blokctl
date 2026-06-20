@@ -315,6 +315,33 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     }
 
     #[Test]
+    public function accepts_asset_conversion_to_global_configuration(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'assets' => [
+                'convert_to_global' => [
+                    [
+                        'asset_ids' => [123, 456],
+                        'target_shared_folder_id' => 987,
+                    ],
+                    [
+                        'source_folder_name' => 'Brand',
+                        'target_shared_folder_id' => 987,
+                        'filters' => [
+                            'filetype' => 'image',
+                            'extensions' => ['jpg', 'png', 'webp'],
+                            'tags' => ['approved'],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->assertTrue($result->isValid(), implode(' | ', $result->errors));
+    }
+
+    #[Test]
     public function accepts_storyblok_ai_configuration(): void
     {
         $result = new SpaceSetupConfigValidator()->validate([
