@@ -6,12 +6,16 @@ execution:
   mode: reconcile
 
 inputs:
+  space_name:
+    description: "Name of the demo space to create"
+    default: "Storyblok Customer Demo"
+
   frontend_host:
     description: "Frontend host used by the default preview URL"
     default: "storyblok-demo-default-se.netlify.app"
 
 space:
-  name: "Storyblok Customer Demo"
+  name: "${{ inputs.space_name }}"
   duplicate_from: "286863409930127"
   in_org: true
   demo: false

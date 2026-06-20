@@ -13,6 +13,7 @@ foreach ($autoloadPaths as $autoloadPath) {
 }
 
 use Blokctl\Command\AssetsListCommand;
+use Blokctl\Command\AssetsConvertToGlobalCommand;
 use Blokctl\Command\AssetsUnreferencedCommand;
 use Blokctl\Command\AppProvisionInstallCommand;
 use Blokctl\Command\AppProvisionListCommand;
@@ -66,6 +67,7 @@ $dotenv = null; // already loaded above
 $application = new Application("blokctl", "1.0.0-dev");
 
 $application->addCommand(new AssetsListCommand());
+$application->addCommand(new AssetsConvertToGlobalCommand());
 $application->addCommand(new AssetsUnreferencedCommand());
 $application->addCommand(new AppProvisionInstallCommand());
 $application->addCommand(new AppProvisionListCommand());

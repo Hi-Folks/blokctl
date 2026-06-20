@@ -5,7 +5,7 @@
   "license": "MIT",
   "require": {
     "php": ">=8.4.1",
-    "storyblok/php-management-api-client": "^1.7.1",
+    "storyblok/php-management-api-client": "^1.8.0",
     "vlucas/phpdotenv": "^5.6",
     "laravel/prompts": "^0.3.7",
     "nunomaduro/termwind": "^2.3",

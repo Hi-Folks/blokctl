@@ -96,6 +96,7 @@ See `space-setup-config.md` for complete syntax. Reports contain stable JSON sta
 
 - **`assets:list`** — List assets. Options: `--search`, `--page` (`-p`), `--per-page` (max 1000). Management API only, no preview token needed.
 - **`assets:unreferenced`** — Detect orphaned assets not referenced in any story. Fetches all assets via Management API (1000/page), scans all stories via CDN API (higher rate limits), then diffs.
+- **`assets:convert-to-global`** — Convert space-local assets into shared assets in the Global Asset Library. Requires `--target-shared-folder-id`. Source selector: repeatable `--asset-id`, comma-separated `--asset-ids`, `--source-folder-id`, or `--source-folder-name`. Folder selection supports `--filetype`, repeatable `--extension`, repeatable `--tag`, `--dry-run`, and `--continue-on-error`.
 
 ### Workflows
 

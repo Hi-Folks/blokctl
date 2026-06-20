@@ -949,6 +949,45 @@ Detects orphaned assets by comparing the full asset list against asset reference
 
 Shows a summary (total, referenced, unreferenced, stories scanned) followed by each unreferenced asset with its ID, content type, and file size.
 
+#### `assets:convert-to-global` — Convert assets to the Global Asset Library
+
+```bash
+# Convert one or more explicit asset IDs
+php bin/blokctl assets:convert-to-global -S 290817118944379 \
+  --asset-id=123 --asset-id=456 \
+  --target-shared-folder-id=987
+
+# Convert a comma-separated asset ID list
+php bin/blokctl assets:convert-to-global -S 290817118944379 \
+  --asset-ids=123,456,789 \
+  --target-shared-folder-id=987
+
+# Convert assets from a source asset folder with filters
+php bin/blokctl assets:convert-to-global -S 290817118944379 \
+  --source-folder-name=Brand \
+  --filetype=image \
+  --extension=jpg --extension=png \
+  --tag=approved \
+  --target-shared-folder-id=987
+```
+
+Converts space-local assets into shared assets in the organization Global Asset Library. The destination is always explicit: `--target-shared-folder-id` is required and must point to an existing shared/global asset folder.
+
+| Option | Description |
+|---|---|
+| `--asset-id` | Space asset ID to convert. Can be repeated |
+| `--asset-ids` | Comma-separated space asset IDs to convert |
+| `--source-folder-id` | Convert assets from this source asset folder ID |
+| `--source-folder-name` | Convert assets from the source asset folder with this exact name |
+| `--target-shared-folder-id` | Required target shared/global asset folder ID |
+| `--filetype` | Folder-selection filter by content type family, such as `image` or `video` |
+| `--extension` | Folder-selection filter by file extension. Can be repeated |
+| `--tag` | Folder-selection filter by asset tag. Can be repeated |
+| `--dry-run` | List matching assets without converting them |
+| `--continue-on-error` | Continue converting remaining assets after a conversion failure |
+
+Use exactly one source selector: explicit asset IDs, a source folder ID, or a source folder name. Folder-based selection fetches all matching assets with pagination before conversion.
+
 ### Components
 
 #### `components:list` — List components with filters
@@ -1705,6 +1744,36 @@ $result->unreferencedCount(); // int
 ```
 
 Fetches all assets via the Management API (up to 1000/page), then scans all stories via the Content Delivery API (higher rate limits) for asset references. Returns the set difference. Pass `previewToken` to skip the SpaceApi lookup (useful for OAuth-only applications).
+
+#### Convert assets to the Global Asset Library
+
+```php
+use Blokctl\Action\Asset\AssetsConvertToGlobalAction;
+
+$result = (new AssetsConvertToGlobalAction($client))->execute(
+    spaceId: $spaceId,
+    targetSharedFolderId: 987,
+    assetIds: [123, 456],
+);
+
+$result->assetIds;          // list<int>
+$result->convertedAssetIds; // list<int>
+$result->errors;            // list<string>
+```
+
+Folder-based conversion also supports pagination and filters:
+
+```php
+$result = (new AssetsConvertToGlobalAction($client))->execute(
+    spaceId: $spaceId,
+    targetSharedFolderId: 987,
+    sourceFolderName: 'Brand',
+    filetype: 'image',
+    extensions: ['jpg', 'png'],
+    tags: ['approved'],
+    dryRun: true,
+);
+```
 
 ### Components
 
