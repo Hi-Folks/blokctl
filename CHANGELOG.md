@@ -2,7 +2,7 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
-## Unreleased
+## 0.13.0 - 2026-06-20
 
 - Requiring `storyblok/php-management-api-client` `^1.8.0` for asset conversion support.
 - Adding `assets:convert-to-global`: Convert space-local assets into shared assets in the Global Asset Library with explicit asset IDs, comma-separated asset IDs, or folder-based selection.
