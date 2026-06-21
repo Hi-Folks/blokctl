@@ -248,6 +248,54 @@ assets:
         tags: [approved]
 ```
 
+Stories can be created or updated declaratively. Component updates use a deterministic content path and an expected component name, so setup fails instead of changing the wrong block when the template structure changes.
+
+```yaml
+stories:
+  create:
+    - name: Auto Created
+      slug: auto-created
+      content:
+        component: default-page
+        body:
+          - component: hero-section
+            eyebrow: "Provisioned by blokctl"
+            text: "This story was automatically created by the provisioning system."
+            image:
+              asset:
+                _find:
+                  search: "joyful-banner.png"
+                  in_folder: Provisioned
+                  require_unique: true
+                alt: "Automatically provisioned demo hero image"
+            headline:
+              - component: headline-segment
+                text: "Automatically created by the provisioning system"
+
+  update:
+    - slug: home
+      components:
+        - path: content.body[0].headline[0]
+          component: headline-segment
+          fields:
+            text: "${{ inputs.space_name }}"
+```
+
+Asset fields can use `asset._find` to resolve an existing uploaded asset by Management API filters such as `search`, `in_folder`, `by_alt`, `by_title`, `by_copyright`, and `tags`. By default `require_unique` is true, so setup fails if no asset or multiple assets match.
+
+Workflow stages can be assigned globally to unstaged stories, or explicitly to selected story slugs or IDs:
+
+```yaml
+workflow:
+  assign_unstaged: true
+  stage_id: null
+  assign:
+    - stories:
+        slugs: [home, about]
+      workflow: Default
+      stage: Drafting
+```
+
 Storyblok AI can be activated independently from installing AI-related apps by declaring `ai.enabled` and `ai.inherit_org_configuration`. AI Translations disclaimer acceptance is configured separately with `ai_translation.disclaimer_id`.
 
 After duplicating a space, setup waits until Storyblok reports that the new space has no pending background tasks. The readiness timeout defaults to 120 seconds and can be configured under `space.readiness`. Blank-space creation, existing-space setup, and dry runs do not perform readiness polling.

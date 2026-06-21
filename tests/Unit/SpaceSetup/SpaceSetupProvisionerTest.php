@@ -159,6 +159,404 @@ final class SpaceSetupProvisionerTest extends TestCase
     }
 
     #[Test]
+    public function plans_story_component_updates_and_story_creation(): void
+    {
+        $results = $this->provision([
+            'stories' => [
+                'update' => [
+                    [
+                        'slug' => 'home',
+                        'components' => [
+                            [
+                                'path' => 'content.body[0]',
+                                'component' => 'hero-section',
+                                'fields' => ['eyebrow' => 'Welcome to'],
+                            ],
+                        ],
+                    ],
+                ],
+                'create' => [
+                    [
+                        'name' => 'Landing Page',
+                        'slug' => 'landing',
+                        'content' => [
+                            'component' => 'default-page',
+                            'body' => [],
+                        ],
+                    ],
+                ],
+            ],
+        ])->results();
+
+        $this->assertCount(2, $results);
+        $this->assertPlanned($results[0], 'Update story components: home');
+        $this->assertSame('1 component update(s) planned.', $results[0]->detail);
+        $this->assertPlanned($results[1], 'Create story: landing');
+    }
+
+    #[Test]
+    public function plans_asset_uploads_before_story_creation(): void
+    {
+        $directory = $this->temporaryAssetDirectory([
+            'hero.png' => 'hero',
+        ]);
+
+        try {
+            $results = $this->provision([
+                'assets' => [
+                    'upload_directory' => [
+                        [
+                            'source' => $directory,
+                            'target_folder' => 'Provisioned',
+                        ],
+                    ],
+                ],
+                'stories' => [
+                    'create' => [
+                        [
+                            'name' => 'Auto Created',
+                            'slug' => 'auto-created',
+                            'content' => [
+                                'component' => 'default-page',
+                            ],
+                        ],
+                    ],
+                ],
+            ])->results();
+        } finally {
+            $this->removeDirectory($directory);
+        }
+
+        $this->assertCount(3, $results);
+        $this->assertPlanned($results[0], 'Ensure asset folder: Provisioned');
+        $this->assertPlanned($results[1], 'Upload asset: Provisioned/hero.png');
+        $this->assertPlanned($results[2], 'Create story: auto-created');
+    }
+
+    #[Test]
+    public function plans_workflow_assignment_after_story_creation(): void
+    {
+        $results = $this->provision([
+            'stories' => [
+                'create' => [
+                    [
+                        'name' => 'Auto Created',
+                        'slug' => 'auto-created',
+                        'content' => [
+                            'component' => 'default-page',
+                        ],
+                    ],
+                ],
+            ],
+            'workflow' => [
+                'assign_unstaged' => true,
+                'stage_id' => 653554,
+            ],
+        ])->results();
+
+        $this->assertCount(2, $results);
+        $this->assertPlanned($results[0], 'Create story: auto-created');
+        $this->assertPlanned($results[1], 'Assign workflow stages');
+    }
+
+    #[Test]
+    public function plans_specific_workflow_assignments(): void
+    {
+        $results = $this->provision([
+            'workflow' => [
+                'assign' => [
+                    [
+                        'stories' => [
+                            'slugs' => ['home', 'about'],
+                        ],
+                        'workflow' => 'Default',
+                        'stage' => 'Drafting',
+                    ],
+                ],
+            ],
+        ])->results();
+
+        $this->assertCount(1, $results);
+        $this->assertPlanned($results[0], 'Assign workflow stage: Default/Drafting');
+        $this->assertSame('2 story assignment(s) planned.', $results[0]->detail);
+    }
+
+    #[Test]
+    public function updates_story_component_fields_by_path(): void
+    {
+        $updateResponse = new MockResponse($this->storyJson([
+            'body' => [
+                [
+                    '_uid' => 'hero',
+                    'component' => 'hero-section',
+                    'eyebrow' => 'Welcome to',
+                    'image' => [
+                        'id' => 123,
+                        'filename' => 'https://a.storyblok.com/f/680/hero.jpg',
+                        'fieldtype' => 'asset',
+                        'alt' => 'New alt',
+                    ],
+                    'headline' => [
+                        [
+                            '_uid' => 'headline',
+                            'component' => 'headline-segment',
+                            'text' => 'Acme Demo Space!',
+                        ],
+                    ],
+                ],
+            ],
+        ]));
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                new MockResponse($this->storiesJson([['id' => 440448565, 'slug' => 'home']])),
+                new MockResponse($this->storyJson([
+                    'body' => [
+                        [
+                            '_uid' => 'hero',
+                            'component' => 'hero-section',
+                            'eyebrow' => 'Old',
+                            'image' => [
+                                'id' => 123,
+                                'filename' => 'https://a.storyblok.com/f/680/hero.jpg',
+                                'fieldtype' => 'asset',
+                                'alt' => 'Old alt',
+                            ],
+                            'headline' => [
+                                [
+                                    '_uid' => 'headline',
+                                    'component' => 'headline-segment',
+                                    'text' => 'Old headline',
+                                ],
+                            ],
+                        ],
+                    ],
+                ])),
+                $updateResponse,
+            ),
+            [
+                'stories' => [
+                    'update' => [
+                        [
+                            'slug' => 'home',
+                            'components' => [
+                                [
+                                    'path' => 'content.body[0]',
+                                    'component' => 'hero-section',
+                                    'fields' => [
+                                        'eyebrow' => 'Welcome to',
+                                        'image' => [
+                                            'alt' => 'New alt',
+                                        ],
+                                    ],
+                                ],
+                                [
+                                    'path' => 'content.body[0].headline[0]',
+                                    'component' => 'headline-segment',
+                                    'fields' => [
+                                        'text' => 'Acme Demo Space!',
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Updated, 'Update story components: home');
+        $payload = $this->requestJsonPayload($updateResponse);
+        $this->assertSame('Welcome to', $this->valueAtPath($payload, ['story', 'content', 'body', 0, 'eyebrow']));
+        $this->assertSame('Acme Demo Space!', $this->valueAtPath($payload, ['story', 'content', 'body', 0, 'headline', 0, 'text']));
+        $this->assertSame('New alt', $this->valueAtPath($payload, ['story', 'content', 'body', 0, 'image', 'alt']));
+        $this->assertSame('https://a.storyblok.com/f/680/hero.jpg', $this->valueAtPath($payload, ['story', 'content', 'body', 0, 'image', 'filename']));
+    }
+
+    #[Test]
+    public function resolves_asset_find_directives_in_story_component_updates(): void
+    {
+        $assetsResponse = new MockResponse($this->assetsJson([
+            [
+                'id' => 8801,
+                'filename' => 'https://a.storyblok.com/f/680/customer-hero.png',
+                'content_type' => 'image/png',
+                'fieldtype' => 'asset',
+            ],
+        ]));
+        $updateResponse = new MockResponse($this->storyJson([
+            'body' => [
+                [
+                    '_uid' => 'hero',
+                    'component' => 'hero-section',
+                    'image' => [
+                        'id' => 8801,
+                        'filename' => 'https://a.storyblok.com/f/680/customer-hero.png',
+                        'fieldtype' => 'asset',
+                        'alt' => 'Hero image for Acme',
+                    ],
+                ],
+            ],
+        ]));
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                new MockResponse($this->storiesJson([['id' => 440448565, 'slug' => 'home']])),
+                new MockResponse($this->storyJson([
+                    'body' => [
+                        [
+                            '_uid' => 'hero',
+                            'component' => 'hero-section',
+                            'image' => [
+                                'id' => 123,
+                                'filename' => 'https://a.storyblok.com/f/680/old-hero.jpg',
+                                'fieldtype' => 'asset',
+                            ],
+                        ],
+                    ],
+                ])),
+                new MockResponse('{"asset_folders":[{"id":3001,"name":"Brand","parent_id":null}]}'),
+                $assetsResponse,
+                $updateResponse,
+            ),
+            [
+                'stories' => [
+                    'update' => [
+                        [
+                            'slug' => 'home',
+                            'components' => [
+                                [
+                                    'path' => 'content.body[0]',
+                                    'component' => 'hero-section',
+                                    'fields' => [
+                                        'image' => [
+                                            'asset' => [
+                                                '_find' => [
+                                                    'search' => 'customer-hero.png',
+                                                    'in_folder' => 'Brand',
+                                                    'tags' => ['customer-demo'],
+                                                    'require_unique' => true,
+                                                ],
+                                                'alt' => 'Hero image for Acme',
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Updated, 'Update story components: home');
+        $this->assertStringContainsString('in_folder=3001', $assetsResponse->getRequestUrl());
+        $this->assertStringContainsString('search=customer-hero.png', urldecode($assetsResponse->getRequestUrl()));
+        $this->assertStringContainsString('with_tags=customer-demo', urldecode($assetsResponse->getRequestUrl()));
+        $payload = $this->requestJsonPayload($updateResponse);
+        $this->assertSame(8801, $this->valueAtPath($payload, ['story', 'content', 'body', 0, 'image', 'id']));
+        $this->assertSame('Hero image for Acme', $this->valueAtPath($payload, ['story', 'content', 'body', 0, 'image', 'alt']));
+        $this->assertSame('asset', $this->valueAtPath($payload, ['story', 'content', 'body', 0, 'image', 'fieldtype']));
+        $image = $this->valueAtPath($payload, ['story', 'content', 'body', 0, 'image']);
+        $this->assertIsArray($image);
+        $this->assertArrayNotHasKey('_find', $image);
+    }
+
+    #[Test]
+    public function creates_story_from_inline_content(): void
+    {
+        $createResponse = new MockResponse($this->storyJson(['body' => []], name: 'Landing Page', slug: 'landing', id: 991));
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                new MockResponse($this->storiesJson([])),
+                $createResponse,
+            ),
+            [
+                'stories' => [
+                    'create' => [
+                        [
+                            'name' => 'Landing Page',
+                            'slug' => 'landing',
+                            'content' => [
+                                'component' => 'default-page',
+                                'body' => [],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Created, 'Create story: landing');
+        $payload = $this->requestJsonPayload($createResponse);
+        $this->assertSame('Landing Page', $this->valueAtPath($payload, ['story', 'name']));
+        $this->assertSame('landing', $this->valueAtPath($payload, ['story', 'slug']));
+        $this->assertSame('default-page', $this->valueAtPath($payload, ['story', 'content', 'component']));
+    }
+
+    #[Test]
+    public function creates_story_from_content_file(): void
+    {
+        $configDirectory = sys_get_temp_dir() . '/blokctl-story-create-' . bin2hex(random_bytes(4));
+        mkdir($configDirectory);
+        file_put_contents($configDirectory . '/landing.json', json_encode([
+            'component' => 'default-page',
+            'body' => [],
+        ], JSON_THROW_ON_ERROR));
+
+        try {
+            $createResponse = new MockResponse($this->storyJson(['body' => []], name: 'Landing Page', slug: 'landing', id: 991));
+            $reporter = $this->provisionWithClient(
+                $this->createMockClient(
+                    new MockResponse($this->storiesJson([])),
+                    $createResponse,
+                ),
+                [
+                    'stories' => [
+                        'create' => [
+                            [
+                                'name' => 'Landing Page',
+                                'slug' => 'landing',
+                                'content_file' => './landing.json',
+                            ],
+                        ],
+                    ],
+                ],
+                configDirectory: $configDirectory,
+            );
+        } finally {
+            unlink($configDirectory . '/landing.json');
+            rmdir($configDirectory);
+        }
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Created, 'Create story: landing');
+        $payload = $this->requestJsonPayload($createResponse);
+        $this->assertSame('default-page', $this->valueAtPath($payload, ['story', 'content', 'component']));
+    }
+
+    #[Test]
+    public function skips_story_creation_when_slug_already_exists(): void
+    {
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                new MockResponse($this->storiesJson([['id' => 991, 'slug' => 'landing']])),
+            ),
+            [
+                'stories' => [
+                    'create' => [
+                        [
+                            'name' => 'Landing Page',
+                            'slug' => 'landing',
+                            'content' => [
+                                'component' => 'default-page',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Skipped, 'Create story: landing');
+    }
+
+    #[Test]
     public function plans_local_asset_directory_uploads(): void
     {
         $directory = $this->temporaryAssetDirectory([
@@ -442,6 +840,45 @@ final class SpaceSetupProvisionerTest extends TestCase
 
         $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Updated, 'Assign workflow stages');
         $this->assertSame('2 stories assigned.', $reporter->results()[0]->detail);
+    }
+
+    #[Test]
+    public function assigns_specific_stories_to_workflow_stage(): void
+    {
+        $homeLookup = $this->mockResponse('list-stories-single');
+        $aboutLookup = $this->mockResponse('list-stories-single');
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                $this->mockResponse('list-workflows'),
+                $this->mockResponse('list-workflow-stages'),
+                $homeLookup,
+                $this->mockResponse('one-story-with-stage'),
+                $this->mockResponse('one-workflow-stage-change'),
+                $this->mockResponse('list-workflows'),
+                $this->mockResponse('list-workflow-stages'),
+                $aboutLookup,
+                $this->mockResponse('one-story-with-stage'),
+                $this->mockResponse('one-workflow-stage-change'),
+            ),
+            [
+                'workflow' => [
+                    'assign' => [
+                        [
+                            'stories' => [
+                                'slugs' => ['home', 'about'],
+                            ],
+                            'workflow' => 'Default one',
+                            'stage' => 'Drafting',
+                        ],
+                    ],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Updated, 'Assign workflow stage: Default one/Drafting');
+        $this->assertSame('2 story assignment(s) applied.', $reporter->results()[0]->detail);
+        $this->assertStringContainsString('with_slug=home', urldecode($homeLookup->getRequestUrl()));
+        $this->assertStringContainsString('with_slug=about', urldecode($aboutLookup->getRequestUrl()));
     }
 
     #[Test]
@@ -1086,6 +1523,7 @@ final class SpaceSetupProvisionerTest extends TestCase
         array $config,
         bool $dryRun = false,
         bool $continueOnError = false,
+        string $configDirectory = '.',
     ): SpaceSetupReporter {
         return new SpaceSetupProvisioner($client)->run(
             spaceId: '680',
@@ -1093,6 +1531,7 @@ final class SpaceSetupProvisionerTest extends TestCase
             dryRun: $dryRun,
             continueOnError: $continueOnError,
             mode: 'Existing space',
+            configDirectory: $configDirectory,
         );
     }
 
@@ -1122,6 +1561,81 @@ final class SpaceSetupProvisionerTest extends TestCase
             'content_type' => 'image/jpeg',
             'fieldtype' => 'asset',
         ], JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * @param list<array{id: int, filename: string, content_type: string, fieldtype?: string}> $assets
+     */
+    private function assetsJson(array $assets): string
+    {
+        return json_encode(['assets' => $assets], JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * @param array<string, mixed> $content
+     */
+    private function storyJson(array $content, string $name = 'Home', string $slug = 'home', int $id = 440448565): string
+    {
+        $content = ['_uid' => 'root', 'component' => 'default-page'] + $content;
+
+        return json_encode([
+            'story' => [
+                'name' => $name,
+                'id' => $id,
+                'uuid' => 'e656e146-f4ed-44a2-8017-013e5a9d9395',
+                'slug' => $slug,
+                'full_slug' => $slug,
+                'content' => $content,
+                'parent_id' => 0,
+            ],
+        ], JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * @param list<array{id: int, slug: string}> $stories
+     */
+    private function storiesJson(array $stories): string
+    {
+        return json_encode([
+            'stories' => array_map(static fn(array $story): array => [
+                'name' => ucfirst($story['slug']),
+                'id' => $story['id'],
+                'slug' => $story['slug'],
+                'full_slug' => $story['slug'],
+                'content' => [
+                    'component' => 'default-page',
+                ],
+            ], $stories),
+        ], JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    private function requestJsonPayload(MockResponse $response): array
+    {
+        $body = $response->getRequestOptions()['body'];
+        $this->assertIsString($body);
+        $payload = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+        $this->assertIsArray($payload);
+
+        return $payload;
+    }
+
+    /**
+     * @param array<mixed> $payload
+     * @param list<int|string> $path
+     */
+    private function valueAtPath(array $payload, array $path): mixed
+    {
+        $current = $payload;
+        foreach ($path as $segment) {
+            $this->assertIsArray($current);
+            $this->assertArrayHasKey($segment, $current);
+            $current = $current[$segment];
+        }
+
+        return $current;
     }
 
     /**

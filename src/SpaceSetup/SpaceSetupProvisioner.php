@@ -11,14 +11,19 @@ use Blokctl\Action\Component\ComponentFieldAddResult;
 use Blokctl\Action\Folder\FolderCreateAction;
 use Blokctl\Action\Space\SpaceDemoRemoveAction;
 use Blokctl\Action\SpacePreview\SpacePreviewSetAction;
+use Blokctl\Action\Story\StoryCreateAction;
+use Blokctl\Action\Story\StoryWorkflowChangeAction;
 use Blokctl\Action\Story\StoriesTagsAssignAction;
 use Blokctl\Action\Story\StoriesWorkflowAssignAction;
 use Storyblok\ManagementApi\Data\AppProvision;
 use Storyblok\ManagementApi\Data\Asset;
 use Storyblok\ManagementApi\Data\AssetFolder;
 use Storyblok\ManagementApi\Data\Component;
+use Storyblok\ManagementApi\Data\Fields\AssetField;
 use Storyblok\ManagementApi\Data\Space;
 use Storyblok\ManagementApi\Data\SpaceEnvironment;
+use Storyblok\ManagementApi\Data\Story;
+use Storyblok\ManagementApi\Data\StoryComponent;
 use Storyblok\ManagementApi\Data\StoryBaseData;
 use Storyblok\ManagementApi\Endpoints\AppProvisionApi;
 use Storyblok\ManagementApi\Endpoints\AssetApi;
@@ -55,14 +60,16 @@ final readonly class SpaceSetupProvisioner
         try {
             $this->provisionPreview($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionDemoMode($reporter, $spaceId, $config, $dryRun, $continueOnError);
-            $this->provisionWorkflow($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionFolders($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionStoryMoves($reporter, $spaceId, $config, $dryRun, $continueOnError);
+            $this->provisionAssets($reporter, $spaceId, $config, $configDirectory, $dryRun, $continueOnError);
+            $this->provisionStoryUpdates($reporter, $spaceId, $config, $dryRun, $continueOnError);
+            $this->provisionStoryCreates($reporter, $spaceId, $config, $configDirectory, $dryRun, $continueOnError);
+            $this->provisionWorkflow($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionApps($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionAi($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionAiTranslation($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionDimensions($reporter, $spaceId, $config, $dryRun, $continueOnError);
-            $this->provisionAssets($reporter, $spaceId, $config, $configDirectory, $dryRun, $continueOnError);
             $this->provisionComponentFields($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionTags($reporter, $spaceId, $config, $dryRun, $continueOnError);
         } catch (\Exception $exception) {
@@ -199,6 +206,172 @@ final readonly class SpaceSetupProvisioner
     /**
      * @param array<string, mixed> $config
      */
+    private function provisionStoryUpdates(
+        SpaceSetupReporter $reporter,
+        string $spaceId,
+        array $config,
+        bool $dryRun,
+        bool $continueOnError,
+    ): void {
+        $stories = $this->arrayValue($config['stories'] ?? []);
+        foreach ($this->listValue($stories['update'] ?? []) as $update) {
+            if (!is_array($update)) {
+                continue;
+            }
+
+            $storySlug = $this->nullableStringValue($update['slug'] ?? null);
+            $storyId = $this->nullableStringValue($update['id'] ?? null);
+            $components = $this->listValue($update['components'] ?? []);
+            $label = 'Update story components: ' . ($storySlug ?? $storyId ?? '');
+            $reporter->run($label, SpaceSetupOperationStatus::Updated, $continueOnError, function () use ($spaceId, $storySlug, $storyId, $components, $dryRun, $label): SpaceSetupOperationResult {
+                if (($storySlug === null && $storyId === null) || ($storySlug !== null && $storyId !== null)) {
+                    throw new \RuntimeException('Story update entries require exactly one of slug or id.');
+                }
+
+                if ($components === []) {
+                    throw new \RuntimeException('Story update entries require components.');
+                }
+
+                if ($dryRun) {
+                    return new SpaceSetupOperationResult(
+                        SpaceSetupOperationStatus::Updated,
+                        $label,
+                        count($components) . ' component update(s) planned.',
+                    );
+                }
+
+                $storyApi = new StoryApi($this->client, $spaceId);
+                $resolvedStoryId = $storyId ?? $this->requireStoryIdBySlug($storyApi, (string) $storySlug);
+                $story = Story::make($storyApi->get($resolvedStoryId)->data()->toArray());
+                $content = $story->content()->toArray();
+                $changes = 0;
+
+                foreach ($components as $componentUpdate) {
+                    if (!is_array($componentUpdate)) {
+                        continue;
+                    }
+
+                    $path = $this->stringValue($componentUpdate['path'] ?? '');
+                    $expectedComponent = $this->stringValue($componentUpdate['component'] ?? '');
+                    $fields = $this->arrayValue($componentUpdate['fields'] ?? []);
+                    if ($path === '' || $expectedComponent === '' || $fields === []) {
+                        throw new \RuntimeException('Story component updates require path, component, and fields.');
+                    }
+
+                    $fields = $this->resolveStorySetupDirectives($spaceId, $fields);
+                    $component = &$this->componentAtPath($content, $path);
+                    $actualComponent = $this->stringValue($component['component'] ?? '');
+                    if ($actualComponent !== $expectedComponent) {
+                        throw new \RuntimeException(sprintf(
+                            'Expected component "%s" at "%s", found "%s".',
+                            $expectedComponent,
+                            $path,
+                            $actualComponent === '' ? 'none' : $actualComponent,
+                        ));
+                    }
+
+                    if ($this->mergeDeclaredFields($component, $fields)) {
+                        ++$changes;
+                    }
+
+                    unset($component);
+                }
+
+                if ($changes === 0) {
+                    return new SpaceSetupOperationResult(
+                        SpaceSetupOperationStatus::Skipped,
+                        $label,
+                        'Story component fields already match.',
+                    );
+                }
+
+                $story->setContent(StoryComponent::make($content));
+                $response = $storyApi->update($resolvedStoryId, $story);
+                if (!$response->isOk()) {
+                    throw new \RuntimeException('Failed to update story components: ' . $response->getErrorMessage());
+                }
+
+                return new SpaceSetupOperationResult(
+                    SpaceSetupOperationStatus::Updated,
+                    $label,
+                    $changes . ' component(s) updated.',
+                );
+            });
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    private function provisionStoryCreates(
+        SpaceSetupReporter $reporter,
+        string $spaceId,
+        array $config,
+        string $configDirectory,
+        bool $dryRun,
+        bool $continueOnError,
+    ): void {
+        $stories = $this->arrayValue($config['stories'] ?? []);
+        foreach ($this->listValue($stories['create'] ?? []) as $create) {
+            if (!is_array($create)) {
+                continue;
+            }
+
+            $name = $this->stringValue($create['name'] ?? '');
+            $slug = $this->nullableStringValue($create['slug'] ?? null);
+            $parentId = $this->nullableIntValue($create['parent_id'] ?? null);
+            $parentSlug = $this->nullableStringValue($create['parent_slug'] ?? null);
+            $publish = $this->boolValue($create['publish'] ?? false);
+            $label = 'Create story: ' . ($slug ?? $name);
+            $reporter->run($label, SpaceSetupOperationStatus::Created, $continueOnError, function () use ($spaceId, $create, $name, $slug, $parentId, $parentSlug, $publish, $configDirectory, $dryRun, $label): SpaceSetupOperationResult {
+                if ($name === '') {
+                    throw new \RuntimeException('Story create entries require name.');
+                }
+
+                if ($parentId !== null && $parentSlug !== null) {
+                    throw new \RuntimeException('Story create entries must not combine parent_id and parent_slug.');
+                }
+
+                if ($dryRun) {
+                    return new SpaceSetupOperationResult(
+                        SpaceSetupOperationStatus::Created,
+                        $label,
+                        $parentSlug !== null ? 'Parent: ' . $parentSlug : 'Parent ID: ' . ($parentId ?? 0),
+                    );
+                }
+
+                $content = $this->resolveStorySetupDirectives($spaceId, $this->storyCreateContent($create, $configDirectory));
+                $storySlug = $slug ?? $this->slugify($name);
+                if ($this->storyExistsBySlug($spaceId, $storySlug)) {
+                    return new SpaceSetupOperationResult(
+                        SpaceSetupOperationStatus::Skipped,
+                        $label,
+                        'Story already exists.',
+                    );
+                }
+
+                $resolvedParentId = $parentId ?? ($parentSlug === null ? 0 : $this->requireFolderId($spaceId, $parentSlug));
+                $result = new StoryCreateAction($this->client)->execute(
+                    spaceId: $spaceId,
+                    name: $name,
+                    content: $content,
+                    slug: $storySlug,
+                    parentId: $resolvedParentId,
+                    publish: $publish,
+                );
+
+                return new SpaceSetupOperationResult(
+                    SpaceSetupOperationStatus::Created,
+                    $label,
+                    'Story ID: ' . $result->story->id(),
+                );
+            });
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
     private function provisionPreview(
         SpaceSetupReporter $reporter,
         string $spaceId,
@@ -321,43 +494,111 @@ final readonly class SpaceSetupProvisioner
         bool $continueOnError,
     ): void {
         $workflow = $this->arrayValue($config['workflow'] ?? []);
-        if (!$this->boolValue($workflow['assign_unstaged'] ?? false)) {
-            return;
+        if ($this->boolValue($workflow['assign_unstaged'] ?? false)) {
+            $reporter->run('Assign workflow stages', SpaceSetupOperationStatus::Updated, $continueOnError, function () use ($spaceId, $workflow, $dryRun): ?SpaceSetupOperationResult {
+                $stageId = $this->nullableIntValue($workflow['stage_id'] ?? null);
+
+                if ($dryRun) {
+                    return null;
+                }
+
+                $action = new StoriesWorkflowAssignAction($this->client);
+                $preflight = $action->preflight($spaceId);
+                if ($preflight->countWithoutStage === 0) {
+                    return new SpaceSetupOperationResult(
+                        SpaceSetupOperationStatus::Skipped,
+                        'Assign workflow stages',
+                        'All stories already have workflow stages.',
+                    );
+                }
+
+                $stageId ??= $this->nullableIntValue($preflight->defaultStageId);
+                if ($stageId === null) {
+                    throw new \RuntimeException('workflow.stage_id is required because no default workflow stage could be resolved.');
+                }
+
+                $result = $action->execute($spaceId, $preflight, $stageId);
+                if ($result['errors'] !== []) {
+                    throw new \RuntimeException(implode(' | ', $result['errors']));
+                }
+
+                return new SpaceSetupOperationResult(
+                    SpaceSetupOperationStatus::Updated,
+                    'Assign workflow stages',
+                    count($result['assigned']) . ' stories assigned.',
+                );
+            });
         }
 
-        $reporter->run('Assign workflow stages', SpaceSetupOperationStatus::Updated, $continueOnError, function () use ($spaceId, $workflow, $dryRun): ?SpaceSetupOperationResult {
-            $stageId = $this->nullableIntValue($workflow['stage_id'] ?? null);
-
-            if ($dryRun) {
-                return null;
+        foreach ($this->listValue($workflow['assign'] ?? []) as $assignment) {
+            if (!is_array($assignment)) {
+                continue;
             }
 
-            $action = new StoriesWorkflowAssignAction($this->client);
-            $preflight = $action->preflight($spaceId);
-            if ($preflight->countWithoutStage === 0) {
+            $stories = $this->arrayValue($assignment['stories'] ?? []);
+            $storySlugs = $this->stringListValue($stories['slugs'] ?? []);
+            $storyIds = $this->stringListValue($stories['ids'] ?? []);
+            $workflowName = $this->nullableStringValue($assignment['workflow'] ?? null);
+            $workflowId = $this->nullableStringValue($assignment['workflow_id'] ?? null);
+            $stageName = $this->nullableStringValue($assignment['stage'] ?? null);
+            $stageId = $this->nullableIntValue($assignment['stage_id'] ?? null);
+            $label = 'Assign workflow stage: ' . ($workflowName ?? $workflowId ?? 'default') . '/' . ($stageName ?? $stageId ?? '');
+
+            $reporter->run($label, SpaceSetupOperationStatus::Updated, $continueOnError, function () use ($spaceId, $storySlugs, $storyIds, $workflowName, $workflowId, $stageName, $stageId, $dryRun, $label): SpaceSetupOperationResult {
+                if ($storySlugs === [] && $storyIds === []) {
+                    throw new \RuntimeException('workflow.assign entries require stories.slugs or stories.ids.');
+                }
+
+                if ($workflowName !== null && $workflowId !== null) {
+                    throw new \RuntimeException('workflow.assign entries require only one of workflow or workflow_id.');
+                }
+
+                if (($stageName === null && $stageId === null) || ($stageName !== null && $stageId !== null)) {
+                    throw new \RuntimeException('workflow.assign entries require exactly one of stage or stage_id.');
+                }
+
+                $storyCount = count(array_unique($storySlugs)) + count(array_unique($storyIds));
+                if ($dryRun) {
+                    return new SpaceSetupOperationResult(
+                        SpaceSetupOperationStatus::Updated,
+                        $label,
+                        $storyCount . ' story assignment(s) planned.',
+                    );
+                }
+
+                $action = new StoryWorkflowChangeAction($this->client);
+                $assigned = 0;
+                foreach (array_unique($storySlugs) as $storySlug) {
+                    $action->execute(
+                        spaceId: $spaceId,
+                        storySlug: $storySlug,
+                        stageName: $stageName,
+                        stageId: $stageId,
+                        workflowName: $workflowName,
+                        workflowId: $workflowId,
+                    );
+                    ++$assigned;
+                }
+
+                foreach (array_unique($storyIds) as $storyId) {
+                    $action->execute(
+                        spaceId: $spaceId,
+                        storyId: $storyId,
+                        stageName: $stageName,
+                        stageId: $stageId,
+                        workflowName: $workflowName,
+                        workflowId: $workflowId,
+                    );
+                    ++$assigned;
+                }
+
                 return new SpaceSetupOperationResult(
-                    SpaceSetupOperationStatus::Skipped,
-                    'Assign workflow stages',
-                    'All stories already have workflow stages.',
+                    SpaceSetupOperationStatus::Updated,
+                    $label,
+                    $assigned . ' story assignment(s) applied.',
                 );
-            }
-
-            $stageId ??= $this->nullableIntValue($preflight->defaultStageId);
-            if ($stageId === null) {
-                throw new \RuntimeException('workflow.stage_id is required because no default workflow stage could be resolved.');
-            }
-
-            $result = $action->execute($spaceId, $preflight, $stageId);
-            if ($result['errors'] !== []) {
-                throw new \RuntimeException(implode(' | ', $result['errors']));
-            }
-
-            return new SpaceSetupOperationResult(
-                SpaceSetupOperationStatus::Updated,
-                'Assign workflow stages',
-                count($result['assigned']) . ' stories assigned.',
-            );
-        });
+            });
+        }
     }
 
     /**
@@ -953,6 +1194,354 @@ final readonly class SpaceSetupProvisioner
         }
 
         return $merged;
+    }
+
+    private function requireStoryIdBySlug(StoryApi $storyApi, string $slug): string
+    {
+        $stories = $storyApi->page(new StoriesParams(withSlug: $slug))->data();
+        if (count($stories) !== 1) {
+            throw new \RuntimeException('Story not found with slug: ' . $slug);
+        }
+
+        /** @var array{id: int|string} $story */
+        $story = $stories[0];
+
+        return (string) $story['id'];
+    }
+
+    private function storyExistsBySlug(string $spaceId, string $slug): bool
+    {
+        return count(new StoryApi($this->client, $spaceId)->page(new StoriesParams(withSlug: $slug))->data()) > 0;
+    }
+
+    private function slugify(string $name): string
+    {
+        $slug = mb_strtolower($name);
+        $slug = (string) preg_replace('/[^a-z0-9\s-]/', '', $slug);
+        $slug = (string) preg_replace('/[\s-]+/', '-', $slug);
+
+        return trim($slug, '-');
+    }
+
+    /**
+     * @param array<string, mixed> $content
+     * @return array<string, mixed>
+     */
+    private function &componentAtPath(array &$content, string $path): array
+    {
+        $segments = $this->pathSegments($path);
+        if ($segments === [] || $segments[0] !== 'content') {
+            throw new \RuntimeException('Story component update paths must start with content.');
+        }
+
+        $current = &$content;
+        foreach (array_slice($segments, 1) as $segment) {
+            if (is_string($segment)) {
+                if (!is_array($current) || !array_key_exists($segment, $current)) {
+                    throw new \RuntimeException('Path not found: ' . $path);
+                }
+
+                $current = &$current[$segment];
+                continue;
+            }
+
+            if (!is_array($current) || !array_key_exists($segment, $current)) {
+                throw new \RuntimeException('Path not found: ' . $path);
+            }
+
+            $current = &$current[$segment];
+        }
+
+        if (!is_array($current)) {
+            throw new \RuntimeException('Path does not resolve to a component object: ' . $path);
+        }
+
+        /** @var array<string, mixed> $current */
+        return $current;
+    }
+
+    /**
+     * @return list<int|string>
+     */
+    private function pathSegments(string $path): array
+    {
+        $segments = [];
+        $length = strlen($path);
+        $offset = 0;
+        $expectSegment = true;
+        while ($offset < $length) {
+            if ($expectSegment) {
+                if (!preg_match('/\\G[A-Za-z_][A-Za-z0-9_-]*/', $path, $match, 0, $offset)) {
+                    throw new \RuntimeException('Invalid path: ' . $path);
+                }
+
+                $segments[] = $match[0];
+                $offset += strlen($match[0]);
+                $expectSegment = false;
+                continue;
+            }
+
+            if ($path[$offset] === '.') {
+                ++$offset;
+                $expectSegment = true;
+                continue;
+            }
+
+            if ($path[$offset] === '[' && preg_match('/\\G\\[(\\d+)]/', $path, $match, 0, $offset)) {
+                $segments[] = (int) $match[1];
+                $offset += strlen($match[0]);
+                continue;
+            }
+
+            throw new \RuntimeException('Invalid path: ' . $path);
+        }
+
+        if ($segments === [] || $expectSegment) {
+            throw new \RuntimeException('Invalid path: ' . $path);
+        }
+
+        return $segments;
+    }
+
+    /**
+     * @param array<mixed> $target
+     * @param array<mixed> $fields
+     */
+    private function mergeDeclaredFields(array &$target, array $fields): bool
+    {
+        $changed = false;
+        foreach ($fields as $field => $value) {
+            if (!is_string($field) || $field === '') {
+                throw new \RuntimeException('Story component field names must be non-empty strings.');
+            }
+
+            $existing = $target[$field] ?? null;
+            if (is_array($existing) && is_array($value) && $this->isAssociativeArray($existing) && $this->isAssociativeArray($value)) {
+                if ($this->mergeDeclaredFields($existing, $value)) {
+                    $target[$field] = $existing;
+                    $changed = true;
+                }
+
+                continue;
+            }
+
+            if ($existing !== $value) {
+                $target[$field] = $value;
+                $changed = true;
+            }
+        }
+
+        return $changed;
+    }
+
+    /**
+     * @param array<mixed> $value
+     */
+    private function isAssociativeArray(array $value): bool
+    {
+        return array_keys($value) !== range(0, count($value) - 1);
+    }
+
+    /**
+     * @param array<string, mixed> $create
+     * @return array<string, mixed>
+     */
+    private function storyCreateContent(array $create, string $configDirectory): array
+    {
+        if (array_key_exists('content', $create)) {
+            return $this->arrayValue($create['content']);
+        }
+
+        $contentFile = $this->stringValue($create['content_file'] ?? '');
+        if ($contentFile === '') {
+            throw new \RuntimeException('Story create entries require content or content_file.');
+        }
+
+        $path = $this->resolveConfigRelativePath($configDirectory, $contentFile);
+        $json = file_get_contents($path);
+        if ($json === false) {
+            throw new \RuntimeException('Failed to read story content file: ' . $path);
+        }
+
+        try {
+            $content = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $jsonException) {
+            throw new \RuntimeException('Invalid story content JSON: ' . $jsonException->getMessage(), $jsonException->getCode(), previous: $jsonException);
+        }
+
+        return $this->arrayValue($content);
+    }
+
+    /**
+     * @param array<string, mixed> $content
+     * @return array<string, mixed>
+     */
+    private function resolveStorySetupDirectives(string $spaceId, array $content): array
+    {
+        /** @var array<string, mixed> $resolved */
+        $resolved = [];
+        foreach ($content as $key => $value) {
+            $resolved[$key] = $this->resolveStorySetupValue($spaceId, $value);
+        }
+
+        return $resolved;
+    }
+
+    private function resolveStorySetupValue(string $spaceId, mixed $value): mixed
+    {
+        if (!is_array($value)) {
+            return $value;
+        }
+
+        if ($this->isAssetDirective($value)) {
+            /** @var array<string, mixed> $assetConfig */
+            $assetConfig = $value['asset'];
+
+            return $this->resolveAssetDirective($spaceId, $assetConfig);
+        }
+
+        $resolved = [];
+        foreach ($value as $key => $item) {
+            $resolved[$key] = $this->resolveStorySetupValue($spaceId, $item);
+        }
+
+        return $resolved;
+    }
+
+    /**
+     * @param array<mixed> $value
+     */
+    private function isAssetDirective(array $value): bool
+    {
+        return count($value) === 1
+            && array_key_exists('asset', $value)
+            && is_array($value['asset'])
+            && array_key_exists('_find', $value['asset']);
+    }
+
+    /**
+     * @param array<string, mixed> $assetConfig
+     * @return array<string, mixed>
+     */
+    private function resolveAssetDirective(string $spaceId, array $assetConfig): array
+    {
+        $find = $this->arrayValue($assetConfig['_find'] ?? []);
+        if ($find === []) {
+            throw new \RuntimeException('Asset directives require _find criteria.');
+        }
+
+        foreach (array_keys($assetConfig) as $key) {
+            if (is_string($key) && str_starts_with($key, '_') && $key !== '_find') {
+                throw new \RuntimeException('Unsupported asset directive key: ' . $key);
+            }
+        }
+
+        $asset = $this->findAsset($spaceId, $find);
+        $field = AssetField::makeFromAsset($asset)->toArray();
+        foreach ($assetConfig as $key => $value) {
+            if (!is_string($key)) {
+                continue;
+            }
+
+            if (str_starts_with($key, '_')) {
+                continue;
+            }
+
+            $field[$key] = $this->resolveStorySetupValue($spaceId, $value);
+        }
+
+        return $field;
+    }
+
+    /**
+     * @param array<string, mixed> $find
+     */
+    private function findAsset(string $spaceId, array $find): Asset
+    {
+        $requireUnique = $this->boolValue($find['require_unique'] ?? true);
+        $assets = $this->findAssets($spaceId, $find);
+        if ($assets === []) {
+            throw new \RuntimeException('No asset found for _find criteria.');
+        }
+
+        if ($requireUnique && count($assets) > 1) {
+            throw new \RuntimeException('Multiple assets found for _find criteria.');
+        }
+
+        return $assets[0];
+    }
+
+    /**
+     * @param array<string, mixed> $find
+     * @return list<Asset>
+     */
+    private function findAssets(string $spaceId, array $find): array
+    {
+        $folder = $find['in_folder'] ?? null;
+        $folderId = null;
+        if ($folder !== null) {
+            $folderId = is_int($folder) ? $folder : $this->resolveAssetFolderIdForFind($spaceId, $this->stringValue($folder));
+        }
+
+        $tags = $this->stringListValue($find['tags'] ?? $find['with_tags'] ?? []);
+        $assetApi = new AssetApi($this->client, $spaceId);
+        $assets = [];
+        $page = 1;
+        do {
+            $pageAssets = $assetApi->page(
+                new AssetsParams(
+                    inFolder: $folderId,
+                    search: $this->nullableStringValue($find['search'] ?? null),
+                    byAlt: $this->nullableStringValue($find['by_alt'] ?? null),
+                    byCopyright: $this->nullableStringValue($find['by_copyright'] ?? null),
+                    byTitle: $this->nullableStringValue($find['by_title'] ?? null),
+                    withTags: $tags === [] ? null : $tags,
+                ),
+                new PaginationParams($page, 1000),
+            )->data();
+
+            foreach ($pageAssets as $asset) {
+                if ($asset instanceof Asset) {
+                    $assets[] = $asset;
+                }
+            }
+
+            ++$page;
+        } while (count($pageAssets) === 1000);
+
+        return $assets;
+    }
+
+    private function resolveAssetFolderIdForFind(string $spaceId, string $folder): int
+    {
+        if ($folder === '') {
+            throw new \RuntimeException('Asset _find in_folder must not be empty.');
+        }
+
+        if (ctype_digit($folder)) {
+            return (int) $folder;
+        }
+
+        $state = $this->assetFolderState($spaceId);
+        $folderId = $state['paths'][$folder] ?? null;
+        if (!is_int($folderId)) {
+            throw new \RuntimeException('Asset folder not found for _find: ' . $folder);
+        }
+
+        return $folderId;
+    }
+
+    private function resolveConfigRelativePath(string $configDirectory, string $path): string
+    {
+        if ($path === '') {
+            throw new \RuntimeException('Path must not be empty.');
+        }
+
+        if (str_starts_with($path, DIRECTORY_SEPARATOR)) {
+            return $path;
+        }
+
+        return rtrim($configDirectory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $path;
     }
 
     /**

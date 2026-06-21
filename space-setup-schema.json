@@ -317,12 +317,10 @@
       }
     },
     "workflow": {
-      "description": "Workflow assignment configuration for stories without a workflow stage.",
+      "description": "Workflow assignment configuration.",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "assign_unstaged"
-      ],
+      "minProperties": 1,
       "properties": {
         "assign_unstaged": {
           "description": "Assign a workflow stage to every story that currently has no stage.",
@@ -342,6 +340,82 @@
               "$ref": "#/$defs/expression"
             }
           ]
+        },
+        "assign": {
+          "description": "Assign specific stories to a workflow stage.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/workflowAssignment"
+          }
+        }
+      }
+    },
+    "workflowAssignment": {
+      "description": "Assigns selected stories to a specific workflow stage.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stories"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "stage"
+          ]
+        },
+        {
+          "required": [
+            "stage_id"
+          ]
+        }
+      ],
+      "not": {
+        "required": [
+          "workflow",
+          "workflow_id"
+        ]
+      },
+      "properties": {
+        "stories": {
+          "$ref": "#/$defs/workflowAssignmentStories"
+        },
+        "workflow": {
+          "description": "Workflow name used to resolve the stage.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "workflow_id": {
+          "description": "Workflow ID used to resolve the stage.",
+          "$ref": "#/$defs/positiveIntegerOrExpression"
+        },
+        "stage": {
+          "description": "Workflow stage name to assign.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "stage_id": {
+          "description": "Workflow stage ID to assign.",
+          "$ref": "#/$defs/positiveIntegerOrExpression"
+        }
+      }
+    },
+    "workflowAssignmentStories": {
+      "description": "Story selectors for workflow assignment.",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "slugs": {
+          "description": "Story full slugs to assign.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        },
+        "ids": {
+          "description": "Story IDs to assign.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/positiveIntegerOrExpression"
+          }
         }
       }
     },
@@ -476,9 +550,7 @@
       "description": "Story operation configuration.",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "move"
-      ],
+      "minProperties": 1,
       "properties": {
         "move": {
           "description": "Root-content move operations applied in declaration order.",
@@ -486,6 +558,142 @@
           "items": {
             "$ref": "#/$defs/storyMove"
           }
+        },
+        "update": {
+          "description": "Story component field updates applied by deterministic component path.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/storyUpdate"
+          }
+        },
+        "create": {
+          "description": "Story creation operations from inline content or config-relative JSON files.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/storyCreate"
+          }
+        }
+      }
+    },
+    "storyUpdate": {
+      "description": "Updates fields on existing components within a story.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "components"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "slug"
+          ]
+        },
+        {
+          "required": [
+            "id"
+          ]
+        }
+      ],
+      "properties": {
+        "slug": {
+          "description": "Story full slug.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "id": {
+          "description": "Story ID.",
+          "$ref": "#/$defs/positiveIntegerOrExpression"
+        },
+        "components": {
+          "description": "Component field updates addressed by path and protected by component assertion.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/storyComponentUpdate"
+          }
+        }
+      }
+    },
+    "storyComponentUpdate": {
+      "description": "Updates declared fields on one component instance.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "component",
+        "fields"
+      ],
+      "properties": {
+        "path": {
+          "description": "Path to the component object, for example content.body[0] or content.body[0].headline[0].",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "component": {
+          "description": "Expected component technical name at the path.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "fields": {
+          "description": "Fields to set on the component. Object values are merged recursively with existing object fields.",
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": true
+        }
+      }
+    },
+    "storyCreate": {
+      "description": "Creates a story from inline content or a JSON content file.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "content"
+          ]
+        },
+        {
+          "required": [
+            "content_file"
+          ]
+        }
+      ],
+      "not": {
+        "required": [
+          "parent_id",
+          "parent_slug"
+        ]
+      },
+      "properties": {
+        "name": {
+          "description": "Story name.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "slug": {
+          "description": "Story slug. Defaults to a slug generated from name.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "parent_id": {
+          "description": "Parent folder ID. Omit for root.",
+          "$ref": "#/$defs/integerOrExpression"
+        },
+        "parent_slug": {
+          "description": "Parent folder full slug. Mutually exclusive with parent_id.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "content": {
+          "description": "Inline Storyblok content object. Must include component.",
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": true
+        },
+        "content_file": {
+          "description": "JSON file containing the Storyblok content object, relative to the setup config file unless absolute.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "publish": {
+          "description": "Publish immediately after creation.",
+          "$ref": "#/$defs/booleanOrExpression",
+          "default": false
         }
       }
     },

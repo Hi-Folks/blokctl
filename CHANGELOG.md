@@ -2,9 +2,13 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
-## 0.13.1 - WIP
+## 0.14.0 - 2026-06-21
 
 - Adding `assets.convert_to_global` to `space:setup` for declarative Global Asset Library conversion.
+- Adding `stories.update` to `space:setup` for component field updates by deterministic path and expected component.
+- Adding `stories.create` to `space:setup` for story creation from inline content or JSON content files.
+- Adding `asset._find` directives for resolving Storyblok asset fields in `stories.update` and `stories.create`.
+- Adding `workflow.assign` to `space:setup` for assigning selected stories to a specific workflow stage.
 
 ## 0.13.0 - 2026-06-20
 

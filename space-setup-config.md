@@ -405,12 +405,24 @@ Assigns a workflow stage to stories that do not have one.
 workflow:
   assign_unstaged: true
   stage_id: null
+  assign:
+    - stories:
+        slugs: [home, about]
+      workflow: Default
+      stage: Drafting
 ```
 
 | Key | Required | Description |
 |---|---:|---|
-| `assign_unstaged` | Yes | Boolean. When `true`, assign a workflow stage to unstaged stories. |
+| `assign_unstaged` | No | Boolean. When `true`, assign a workflow stage to unstaged stories. |
 | `stage_id` | No | Workflow stage ID. If `null`, blokctl tries to use the default workflow's first stage. |
+| `assign` | No | Specific story-to-stage assignments. |
+| `assign[].stories.slugs` | No | Story full slugs to assign. |
+| `assign[].stories.ids` | No | Story IDs to assign. |
+| `assign[].workflow` | No | Workflow name used to resolve `stage`. Mutually exclusive with `workflow_id`. |
+| `assign[].workflow_id` | No | Workflow ID used to resolve `stage` or `stage_id`. Mutually exclusive with `workflow`. |
+| `assign[].stage` | No | Workflow stage name to assign. Use exactly one of `stage` or `stage_id`. |
+| `assign[].stage_id` | No | Workflow stage ID to assign. Use exactly one of `stage` or `stage_id`. |
 
 ## `apps`
 
@@ -510,6 +522,78 @@ stories:
 | `select.include_slugs` | No | Move only items with one of these slugs. |
 | `select.exclude_slugs` | No | Preserve items with one of these slugs at root. |
 | `to_folder` | Yes | Target folder full slug. |
+
+## `stories.update`
+
+Updates fields on existing components inside a story. Each component update uses a deterministic `path` and an expected `component` value, so setup fails instead of updating the wrong block when the template structure changes.
+
+```yaml
+stories:
+  update:
+    - slug: home
+      components:
+        - path: content.body[0]
+          component: hero-section
+          fields:
+            eyebrow: "Welcome to"
+            image:
+              asset:
+                _find:
+                  search: "customer-hero.png"
+                  in_folder: Brand
+                  tags: [customer-demo]
+                  require_unique: true
+                alt: "Hero image for ${{ inputs.customer_name }}"
+
+        - path: content.body[0].headline[0]
+          component: headline-segment
+          fields:
+            text: "${{ inputs.customer_name }} Demo Space!"
+```
+
+| Key | Required | Description |
+|---|---:|---|
+| `update[].slug` | No | Story full slug. Use exactly one of `slug` or `id`. |
+| `update[].id` | No | Story ID. Use exactly one of `slug` or `id`. |
+| `update[].components` | Yes | Component updates to apply. |
+| `components[].path` | Yes | Path to the component object, for example `content.body[0]` or `content.body[0].headline[0]`. |
+| `components[].component` | Yes | Expected component technical name at the path. |
+| `components[].fields` | Yes | Fields to set on that component. |
+
+Only declared fields are changed. Object values are merged recursively with existing object fields, which allows partial asset updates such as changing `image.alt` while preserving `image.id`, `image.filename`, and `image.fieldtype`.
+
+Asset fields can be resolved from existing space assets with `asset._find`. The resolver uses the Management API asset list filters, converts the matching asset into a Storyblok asset field, removes `_find`, and applies the remaining asset keys such as `alt`, `title`, `source`, `copyright`, or `focus`. By default `require_unique` is `true`, so setup fails when no asset or multiple assets match. `in_folder` accepts an asset folder ID or a configured folder path such as `Brand` or `Brand/products`.
+
+## `stories.create`
+
+Creates stories from inline content or from a JSON content file. Repeated setup runs skip creation when a story with the target slug already exists.
+
+```yaml
+stories:
+  create:
+    - name: Landing Page
+      slug: landing
+      parent_slug: campaigns
+      content:
+        component: default-page
+        body: []
+
+    - name: Legal Notice
+      slug: legal-notice
+      content_file: ./stories/legal-notice.json
+```
+
+| Key | Required | Description |
+|---|---:|---|
+| `create[].name` | Yes | Story name. |
+| `create[].slug` | No | Story slug. Defaults to a slug generated from `name`. |
+| `create[].parent_id` | No | Parent folder ID. Mutually exclusive with `parent_slug`. |
+| `create[].parent_slug` | No | Parent folder full slug. Mutually exclusive with `parent_id`. |
+| `create[].content` | No | Inline content object. Use exactly one of `content` or `content_file`. |
+| `create[].content_file` | No | JSON content file, relative to the setup config file unless absolute. |
+| `create[].publish` | No | Publish immediately after creation. Defaults to `false`. |
+
+The content object must include `component`.
 
 ## `dimensions`
 

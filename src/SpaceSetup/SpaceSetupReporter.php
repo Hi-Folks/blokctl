@@ -89,7 +89,7 @@ final class SpaceSetupReporter
 
     public function hasFailures(): bool
     {
-        return array_any($this->results, fn($result): bool => $result->status === SpaceSetupOperationStatus::Failed);
+        return array_any($this->results, fn(\Blokctl\SpaceSetup\SpaceSetupOperationResult $result): bool => $result->status === SpaceSetupOperationStatus::Failed);
     }
 
     public function completionMessage(): string

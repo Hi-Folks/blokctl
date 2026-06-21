@@ -90,24 +90,53 @@ Recommended implementation order:
 
 ## Priority 3: Customer Personalization
 
-- [ ] Add story field updates by story slug or ID.
+- [x] Add story component field updates by story slug or ID, using deterministic component paths and expected component assertions.
 
   ```yaml
   stories:
     update:
-      - slug: site-config
-        fields:
-          company_name: "${{ inputs.customer_name }}"
-          primary_color: "{{ primary_color }}"
       - slug: home
-        fields:
-          headline: "Welcome to ${{ inputs.customer_name }}"
+        components:
+          - path: content.body[0]
+            component: hero-section
+            fields:
+              eyebrow: "Welcome to"
+              text: "We bring fresh ideas to life for ${{ inputs.customer_name }}."
+
+          - path: content.body[0].headline[0]
+            component: headline-segment
+            fields:
+              text: "${{ inputs.customer_name }} Demo Space!"
+  ```
+
+- [x] Add story creation from inline content or JSON files.
+- [ ] Add deterministic component insertion into array fields.
+
+  ```yaml
+  stories:
+    insert_component:
+      - slug: home
+        target:
+          path: content.body
+          index: 1
+        component:
+          component: banner-section
+          title: "Special offer for ${{ inputs.customer_name }}"
+  ```
+
+- [ ] Add safe component removal requiring both path and expected component.
+
+  ```yaml
+  stories:
+    remove_component:
+      - slug: home
+        target:
+          path: content.body[3]
+          component: newsletter-form-section
   ```
 
 - [ ] Add story publishing and unpublishing.
-- [ ] Add story creation from inline content or JSON files.
-- [ ] Add story moving and folder assignment.
-- [ ] Support nested content field updates.
+- [x] Support nested object field merge for component fields, including partial asset field updates.
 - [ ] Add standard demo parameters for customer logo, colors, contact details, navigation, and homepage content.
 - [ ] Assert that required stories and components exist in the duplicated template.
 
@@ -213,6 +242,8 @@ Recommended implementation order:
 - [x] Setup input defaults, required values, and repeatable `--set` overrides
 - [x] Demo-mode removal
 - [x] Assign default or configured workflow stage to unstaged stories
+- [x] Create stories from inline content or JSON content files
+- [x] Update existing story component fields by deterministic path and expected component
 - [x] App installation by slug
 - [x] App installation by structured slug/ID reference
 - [x] Storyblok AI activation and organization configuration inheritance

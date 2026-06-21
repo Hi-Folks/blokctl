@@ -369,6 +369,95 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     }
 
     #[Test]
+    public function accepts_story_update_and_create_configuration(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'stories' => [
+                'update' => [
+                    [
+                        'slug' => 'home',
+                        'components' => [
+                            [
+                                'path' => 'content.body[0]',
+                                'component' => 'hero-section',
+                                'fields' => [
+                                    'eyebrow' => 'Welcome to',
+                                ],
+                            ],
+                            [
+                                'path' => 'content.body[0].headline[0]',
+                                'component' => 'headline-segment',
+                                'fields' => [
+                                    'text' => '${{ inputs.customer_name }} Demo Space!',
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                'create' => [
+                    [
+                        'name' => 'Landing Page',
+                        'slug' => 'landing',
+                        'content' => [
+                            'component' => 'default-page',
+                            'body' => [],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->assertTrue($result->isValid(), implode(' | ', $result->errors));
+    }
+
+    #[Test]
+    public function accepts_specific_workflow_assignments(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'workflow' => [
+                'assign' => [
+                    [
+                        'stories' => [
+                            'slugs' => ['home', 'about'],
+                            'ids' => [123],
+                        ],
+                        'workflow' => 'Default',
+                        'stage' => 'Drafting',
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->assertTrue($result->isValid(), implode(' | ', $result->errors));
+    }
+
+    #[Test]
+    public function rejects_story_creation_with_parent_id_and_parent_slug(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'stories' => [
+                'create' => [
+                    [
+                        'name' => 'Landing Page',
+                        'parent_id' => 123,
+                        'parent_slug' => 'campaigns',
+                        'content' => [
+                            'component' => 'default-page',
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertErrorsContain($result->errors, '$.stories.create[0]');
+        $this->assertErrorsContain($result->errors, 'must not match schema');
+    }
+
+    #[Test]
     public function rejects_unsupported_existing_asset_behavior(): void
     {
         $result = new SpaceSetupConfigValidator()->validate([
