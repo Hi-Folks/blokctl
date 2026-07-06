@@ -997,6 +997,10 @@
           "description": "Mark the field as translatable. Defaults to false when creating a field; existing fields change only when declared.",
           "$ref": "#/$defs/booleanOrExpression",
           "default": false
+        },
+        "customize_toolbar": {
+          "description": "Enable or disable richtext toolbar customization on fields that support it.",
+          "$ref": "#/$defs/booleanOrExpression"
         }
       }
     },

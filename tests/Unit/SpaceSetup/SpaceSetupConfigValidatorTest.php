@@ -92,6 +92,26 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     }
 
     #[Test]
+    public function accepts_component_field_toolbar_customization(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'components' => [
+                'fields' => [
+                    [
+                        'component' => 'article-page',
+                        'field' => 'text',
+                        'type' => 'richtext',
+                        'customize_toolbar' => false,
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->assertTrue($result->isValid(), implode(' | ', $result->errors));
+    }
+
+    #[Test]
     public function rejects_invalid_property_types(): void
     {
         $result = new SpaceSetupConfigValidator()->validate([

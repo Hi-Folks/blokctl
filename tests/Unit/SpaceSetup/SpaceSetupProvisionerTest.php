@@ -1392,6 +1392,35 @@ final class SpaceSetupProvisionerTest extends TestCase
     }
 
     #[Test]
+    public function updates_component_field_toolbar_customization(): void
+    {
+        $updateResponse = $this->mockResponse('one-article-page');
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                $this->mockResponse('list-components'),
+                $this->mockResponse('one-article-page'),
+                $updateResponse,
+            ),
+            [
+                'components' => [
+                    'fields' => [
+                        [
+                            'component' => 'article-page',
+                            'field' => 'body',
+                            'type' => 'textarea',
+                            'customize_toolbar' => false,
+                        ],
+                    ],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Updated, 'Add component field: article-page.body');
+        $payload = $this->requestJsonPayload($updateResponse);
+        $this->assertFalse($this->valueAtPath($payload, ['component', 'schema', 'body', 'customize_toolbar']));
+    }
+
+    #[Test]
     public function skips_story_tags_that_are_already_present(): void
     {
         $reporter = $this->provisionWithClient(

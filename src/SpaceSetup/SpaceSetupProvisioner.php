@@ -1628,6 +1628,7 @@ final readonly class SpaceSetupProvisioner
             'pos' => ['pos'],
             'required' => ['required'],
             'translatable' => ['translatable'],
+            'customize_toolbar' => ['customize_toolbar'],
         ];
 
         foreach ($aliases as $target => $sourceKeys) {
@@ -1639,7 +1640,7 @@ final readonly class SpaceSetupProvisioner
                 $value = $declared[$sourceKey];
                 if ($target === 'pos') {
                     $value = $this->nullableIntValue($value);
-                } elseif (in_array($target, ['required', 'translatable'], true)) {
+                } elseif (in_array($target, ['required', 'translatable', 'customize_toolbar'], true)) {
                     $value = $this->boolValue($value);
                 } else {
                     $value = $this->nullableStringValue($value);

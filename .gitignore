@@ -14,3 +14,4 @@
 /docs/*
 test-push-results.sh
 .DS_Store
+examples/demos/

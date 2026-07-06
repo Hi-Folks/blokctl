@@ -354,7 +354,7 @@ Permanently deletes a Storyblok space. Two safety checks are enforced before del
 1. The authenticated user must be the **owner** of the space
 2. There must be **no other collaborators** (user is the sole collaborator)
 
-Prompts for confirmation before deleting. Use `-n` to skip the confirmation prompt.
+Before asking for confirmation, the command prints the space recap, activity signals exposed by the Management API (`created_at`, `updated_at`, pending tasks), useful metadata, owner, and collaborators. Prompts for confirmation before deleting. Use `-n` to skip the confirmation prompt.
 
 #### `space:demo-remove` — Remove demo mode from a space
 

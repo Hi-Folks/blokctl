@@ -684,6 +684,11 @@ components:
       display_name: SEO
       required: false
       translatable: false
+
+    - component: article-page
+      field: text
+      type: richtext
+      customize_toolbar: false
 ```
 
 | Key | Required | Description |
@@ -698,6 +703,7 @@ components:
 | `fields[].display_name` | No | Human-readable field label. |
 | `fields[].required` | No | Boolean. Defaults to `false` when creating a field. Existing fields change only when declared. |
 | `fields[].translatable` | No | Boolean. Defaults to `false` when creating a field. Existing fields change only when declared. |
+| `fields[].customize_toolbar` | No | Boolean. Enable or disable richtext toolbar customization on fields that support it. Existing fields change only when declared. |
 
 Missing fields are created. Existing fields are compared using only properties declared in the setup config: matching fields are skipped and differing declared properties are updated. Unmanaged field properties are preserved.
 

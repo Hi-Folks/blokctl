@@ -2,6 +2,10 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
+## 0.14.1 - WIP
+- Adding `customize_toolbar` support for declarative component field reconciliation in `space:setup`.
+
+
 ## 0.14.0 - 2026-06-21
 
 - Adding `assets.convert_to_global` to `space:setup` for declarative Global Asset Library conversion.

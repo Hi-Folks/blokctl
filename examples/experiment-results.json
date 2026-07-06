@@ -5,7 +5,7 @@
       "title": "Conversion Rate by Variant",
       "xLabel": "Variant",
       "yLabel": "Conversion rate",
-      "labels": ["Default", "Joyful Variant"],
+      "labels": ["Light", "Dark"],
       "series": [
         {
           "label": "Conversion rate",
@@ -18,7 +18,7 @@
       "title": "Visitors by Variant",
       "xLabel": "Variant",
       "yLabel": "Visitors",
-      "labels": ["Default", "Joyful Variant"],
+      "labels": ["Light", "Dark"],
       "series": [
         {
           "label": "Visitors",
@@ -42,11 +42,11 @@
       ],
       "series": [
         {
-          "label": "Default",
+          "label": "Light",
           "data": [0.111, 0.119, 0.121, 0.126, 0.128, 0.123, 0.124]
         },
         {
-          "label": "Joyful Variant",
+          "label": "Dark",
           "data": [0.132, 0.141, 0.149, 0.151, 0.158, 0.162, 0.157]
         }
       ]
@@ -54,7 +54,7 @@
     {
       "kind": "text",
       "title": "Mock Experiment Summary",
-      "body": "Joyful Variant is currently outperforming the control in this demo dataset. These values are static mock results intended for dashboard experimentation."
+      "body": "Dark is currently outperforming the control in this demo dataset. These values are static mock results intended for dashboard experimentation."
     }
   ]
 }

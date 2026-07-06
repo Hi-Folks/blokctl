@@ -58,6 +58,10 @@ components:
       type: custom
       field_type: sb-ai-seo
       tab: SEO
+    - component: article-page
+      field: text
+      type: richtext
+      customize_toolbar: false
 
 assets:
   upload_directory:

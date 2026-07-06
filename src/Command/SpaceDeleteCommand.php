@@ -48,6 +48,27 @@ class SpaceDeleteCommand extends AbstractCommand
             "NOT a DEMO/Example space",
         );
 
+        // Display activity signals exposed by the space payload.
+        Render::titleSection("Activity");
+        Render::labelValue("Created", $this->displayValue($space->createdAt()));
+        Render::labelValue(
+            "Last updated",
+            $this->displayValue($space->updatedAt()),
+        );
+        Render::labelValue(
+            "Pending tasks",
+            $space->getBoolean("has_pending_tasks", false) ? "Yes" : "No",
+        );
+
+        // Display space metadata useful before deleting a space.
+        Render::titleSection("Metadata");
+        Render::labelValue("Region", $this->displayValue($space->region()));
+        Render::labelValue("Domain", $this->displayValue($space->domain()));
+        Render::labelValue(
+            "Environments",
+            (string) $space->environments()->howManyEnvironments(),
+        );
+
         // Display owner
         Render::titleSection("Owner");
         Render::labelValueCondition(
@@ -124,5 +145,10 @@ class SpaceDeleteCommand extends AbstractCommand
         }
 
         return self::SUCCESS;
+    }
+
+    private function displayValue(?string $value): string
+    {
+        return $value === null || $value === "" ? "-" : $value;
     }
 }
