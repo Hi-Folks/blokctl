@@ -14,7 +14,7 @@ use function Laravel\Prompts\confirm;
 
 #[AsCommand(
     name: "space:delete",
-    description: "Delete a Storyblok space (owner-only, no other collaborators)",
+    description: "Delete a Storyblok space (owner-only)",
 ),]
 class SpaceDeleteCommand extends AbstractCommand
 {
@@ -97,13 +97,11 @@ class SpaceDeleteCommand extends AbstractCommand
         }
 
         if (!$result->isSolo) {
-            Render::error(
+            Render::notice(
                 "This space has " .
                     $collaborators->count() .
-                    " collaborators. " .
-                    "You can only delete a space when you are the sole collaborator.",
+                    " collaborators. Deleting it will remove the space for everyone.",
             );
-            return self::FAILURE;
         }
 
         // Confirmation

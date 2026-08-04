@@ -61,4 +61,28 @@ final class SpaceCreateActionTest extends TestCase
             'in_org' => '1',
         ], $payload);
     }
+
+    #[Test]
+    public function execute_includes_validation_error_details_when_space_creation_fails(): void
+    {
+        $client = ManagementApiClient::initTest(new MockHttpClient([
+            new MockResponse(
+                json_encode([
+                    'base' => [
+                        'You reached the maximum number of spaces you can create.',
+                    ],
+                ], JSON_THROW_ON_ERROR),
+                ['http_code' => 422],
+            ),
+        ]));
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Failed to create space: You reached the maximum number of spaces you can create.');
+
+        new SpaceCreateAction($client)->execute(
+            name: 'NEW SPACE FROM TEMPLATE',
+            duplicateFrom: '286863409930127',
+            inOrg: true,
+        );
+    }
 }

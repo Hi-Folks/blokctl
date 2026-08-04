@@ -116,6 +116,36 @@ final class SpaceSetupProvisionerTest extends TestCase
     }
 
     #[Test]
+    public function plans_space_languages(): void
+    {
+        $result = $this->singleResult([
+            'space' => [
+                'languages' => ['it', 'de'],
+            ],
+        ]);
+
+        $this->assertPlanned($result, 'Add space languages');
+        $this->assertSame('it, de', $result->detail);
+    }
+
+    #[Test]
+    public function plans_space_language_adds_and_removals(): void
+    {
+        $results = $this->provision([
+            'space' => [
+                'languages' => [
+                    'add' => ['it'],
+                    'remove' => ['fr'],
+                ],
+            ],
+        ])->results();
+
+        $this->assertCount(2, $results);
+        $this->assertPlanned($results[0], 'Add space languages');
+        $this->assertPlanned($results[1], 'Remove space languages');
+    }
+
+    #[Test]
     public function plans_multi_country_provisioning(): void
     {
         $results = $this->provision([
@@ -192,6 +222,26 @@ final class SpaceSetupProvisionerTest extends TestCase
         $this->assertPlanned($results[0], 'Update story components: home');
         $this->assertSame('1 component update(s) planned.', $results[0]->detail);
         $this->assertPlanned($results[1], 'Create story: landing');
+    }
+
+    #[Test]
+    public function plans_translated_slug_reconciliation(): void
+    {
+        $result = $this->singleResult([
+            'stories' => [
+                'translated_slugs' => [
+                    [
+                        'story_slug' => '/about',
+                        'lang' => 'it',
+                        'translated_slug' => '/chi-siamo',
+                        'name' => 'Chi siamo',
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->assertPlanned($result, 'Ensure translated slug: /about.it');
+        $this->assertSame('Language: it; translated slug: chi-siamo', $result->detail);
     }
 
     #[Test]
@@ -369,6 +419,210 @@ final class SpaceSetupProvisionerTest extends TestCase
         $this->assertSame('Acme Demo Space!', $this->valueAtPath($payload, ['story', 'content', 'body', 0, 'headline', 0, 'text']));
         $this->assertSame('New alt', $this->valueAtPath($payload, ['story', 'content', 'body', 0, 'image', 'alt']));
         $this->assertSame('https://a.storyblok.com/f/680/hero.jpg', $this->valueAtPath($payload, ['story', 'content', 'body', 0, 'image', 'filename']));
+    }
+
+    #[Test]
+    public function updates_story_translated_slug(): void
+    {
+        $updateResponse = new MockResponse($this->storyJson([], name: 'About', slug: 'about'));
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                new MockResponse($this->appProvisionsJson(['translatable-slugs'])),
+                new MockResponse($this->spaceJson(['it'])),
+                new MockResponse($this->storiesJson([['id' => 440448565, 'slug' => 'about']])),
+                new MockResponse($this->storyJson([], name: 'About', slug: 'about')),
+                $updateResponse,
+            ),
+            [
+                'stories' => [
+                    'translated_slugs' => [
+                        [
+                            'story_slug' => '/about',
+                            'lang' => 'it',
+                            'translated_slug' => '/chi-siamo',
+                            'name' => 'Chi siamo',
+                        ],
+                    ],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Updated, 'Ensure translated slug: /about.it');
+        $payload = $this->requestJsonPayload($updateResponse);
+        $this->assertSame('it', $this->valueAtPath($payload, ['story', 'translated_slugs_attributes', 0, 'lang']));
+        $this->assertSame('chi-siamo', $this->valueAtPath($payload, ['story', 'translated_slugs_attributes', 0, 'slug']));
+        $this->assertSame('Chi siamo', $this->valueAtPath($payload, ['story', 'translated_slugs_attributes', 0, 'name']));
+    }
+
+    #[Test]
+    public function ensures_space_languages_before_story_translated_slugs(): void
+    {
+        $spaceUpdateResponse = new MockResponse($this->spaceJson(['de', 'it']));
+        $storyUpdateResponse = new MockResponse($this->storyJson([], name: 'About', slug: 'about'));
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                new MockResponse($this->spaceJson(['de'])),
+                $spaceUpdateResponse,
+                new MockResponse($this->spaceJson(['de', 'it'])),
+                new MockResponse($this->appProvisionsJson(['translatable-slugs'])),
+                new MockResponse($this->spaceJson(['de'])),
+                new MockResponse($this->storiesJson([['id' => 440448565, 'slug' => 'about']])),
+                new MockResponse($this->storyJson([], name: 'About', slug: 'about')),
+                $storyUpdateResponse,
+            ),
+            [
+                'space' => [
+                    'languages' => ['it'],
+                ],
+                'stories' => [
+                    'translated_slugs' => [
+                        [
+                            'story_slug' => '/about',
+                            'lang' => 'it',
+                            'translated_slug' => '/chi-siamo',
+                            'name' => 'Chi siamo',
+                        ],
+                    ],
+                ],
+            ],
+        );
+
+        $results = $reporter->results();
+        $this->assertCount(2, $results);
+        $this->assertSame(SpaceSetupOperationStatus::Updated, $results[0]->status);
+        $this->assertSame('Add space languages', $results[0]->label);
+        $this->assertSame(SpaceSetupOperationStatus::Updated, $results[1]->status);
+        $this->assertSame('Ensure translated slug: /about.it', $results[1]->label);
+        $this->assertSame('it', $this->valueAtPath($this->requestJsonPayload($spaceUpdateResponse), ['space', 'options', 'languages', 1, 'code']));
+        $this->assertSame('it', $this->valueAtPath($this->requestJsonPayload($storyUpdateResponse), ['story', 'translated_slugs_attributes', 0, 'lang']));
+    }
+
+    #[Test]
+    public function removes_space_languages(): void
+    {
+        $updateResponse = new MockResponse($this->spaceJson(['de']));
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                new MockResponse($this->spaceJson(['de', 'it'])),
+                $updateResponse,
+                new MockResponse($this->spaceJson(['de'])),
+            ),
+            [
+                'space' => [
+                    'languages' => [
+                        'remove' => ['it'],
+                    ],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Updated, 'Remove space languages');
+        $this->assertSame('de', $this->valueAtPath($this->requestJsonPayload($updateResponse), ['space', 'options', 'languages', 0, 'code']));
+    }
+
+    #[Test]
+    public function updates_story_translated_slugs_in_batch(): void
+    {
+        $updateResponse = new MockResponse($this->storyJson([], name: 'About', slug: 'about'));
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                new MockResponse($this->appProvisionsJson(['translatable-slugs'])),
+                new MockResponse($this->spaceJson(['it', 'de'])),
+                new MockResponse($this->storiesJson([['id' => 440448565, 'slug' => 'about']])),
+                new MockResponse($this->storyJson([], name: 'About', slug: 'about')),
+                $updateResponse,
+            ),
+            [
+                'stories' => [
+                    'translated_slugs' => [
+                        [
+                            'story_slug' => '/about',
+                            'translations' => [
+                                'it' => [
+                                    'slug' => '/chi-siamo',
+                                    'name' => 'Chi siamo',
+                                ],
+                                'de' => [
+                                    'slug' => '/uber-uns',
+                                    'name' => 'Uber uns',
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Updated, 'Ensure translated slugs: /about');
+        $payload = $this->requestJsonPayload($updateResponse);
+        $this->assertSame('it', $this->valueAtPath($payload, ['story', 'translated_slugs_attributes', 0, 'lang']));
+        $this->assertSame('chi-siamo', $this->valueAtPath($payload, ['story', 'translated_slugs_attributes', 0, 'slug']));
+        $this->assertSame('de', $this->valueAtPath($payload, ['story', 'translated_slugs_attributes', 1, 'lang']));
+        $this->assertSame('uber-uns', $this->valueAtPath($payload, ['story', 'translated_slugs_attributes', 1, 'slug']));
+    }
+
+    #[Test]
+    public function skips_story_translated_slug_when_it_already_matches(): void
+    {
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                new MockResponse($this->appProvisionsJson(['translatable-slugs'])),
+                new MockResponse($this->spaceJson(['it'])),
+                new MockResponse($this->storiesJson([['id' => 440448565, 'slug' => 'about']])),
+                new MockResponse($this->storyJson(
+                    [],
+                    name: 'About',
+                    slug: 'about',
+                    translatedSlugs: [
+                        [
+                            'id' => 3001,
+                            'lang' => 'it',
+                            'slug' => 'chi-siamo',
+                            'name' => 'Chi siamo',
+                        ],
+                    ],
+                )),
+            ),
+            [
+                'stories' => [
+                    'translated_slugs' => [
+                        [
+                            'story_slug' => 'about',
+                            'lang' => 'it',
+                            'translated_slug' => 'chi-siamo',
+                            'name' => 'Chi siamo',
+                        ],
+                    ],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Skipped, 'Ensure translated slug: about.it');
+    }
+
+    #[Test]
+    public function translated_slug_fails_when_language_is_not_enabled(): void
+    {
+        $this->expectException(SpaceSetupProvisioningException::class);
+        $this->expectExceptionMessage('Language "it" is not enabled for this space.');
+
+        $this->provisionWithClient(
+            $this->createMockClient(
+                new MockResponse($this->appProvisionsJson(['translatable-slugs'])),
+                new MockResponse($this->spaceJson(['de'])),
+            ),
+            [
+                'stories' => [
+                    'translated_slugs' => [
+                        [
+                            'story_slug' => 'about',
+                            'lang' => 'it',
+                            'translated_slug' => 'chi-siamo',
+                        ],
+                    ],
+                ],
+            ],
+        );
     }
 
     #[Test]
@@ -688,7 +942,7 @@ final class SpaceSetupProvisionerTest extends TestCase
             ],
         ]);
 
-        $this->assertPlanned($result, 'Add component field: article-page.SEO');
+        $this->assertPlanned($result, 'Ensure component field: article-page.SEO');
     }
 
     #[Test]
@@ -779,7 +1033,7 @@ final class SpaceSetupProvisionerTest extends TestCase
             $results = $spaceSetupProvisioningException->reporter->results();
             $this->assertCount(1, $results);
             $this->assertSame(SpaceSetupOperationStatus::Failed, $results[0]->status);
-            $this->assertSame('Add component field: article-page.SEO', $results[0]->label);
+            $this->assertSame('Ensure component field: article-page.SEO', $results[0]->label);
         }
     }
 
@@ -1297,7 +1551,36 @@ final class SpaceSetupProvisionerTest extends TestCase
             ],
         );
 
-        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Created, 'Add component field: article-page.subtitle');
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Created, 'Ensure component field: article-page.subtitle');
+    }
+
+    #[Test]
+    public function creates_component_field_with_toolbar_customization(): void
+    {
+        $updateResponse = $this->mockResponse('one-article-page');
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                $this->mockResponse('list-components'),
+                $this->mockResponse('one-article-page'),
+                $updateResponse,
+            ),
+            [
+                'components' => [
+                    'fields' => [
+                        [
+                            'component' => 'article-page',
+                            'field' => 'text',
+                            'type' => 'richtext',
+                            'customize_toolbar' => false,
+                        ],
+                    ],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Created, 'Ensure component field: article-page.text');
+        $payload = $this->requestJsonPayload($updateResponse);
+        $this->assertFalse($this->valueAtPath($payload, ['component', 'schema', 'text', 'customize_toolbar']));
     }
 
     #[Test]
@@ -1362,7 +1645,7 @@ final class SpaceSetupProvisionerTest extends TestCase
             ],
         );
 
-        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Skipped, 'Add component field: article-page.title');
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Skipped, 'Ensure component field: article-page.title');
     }
 
     #[Test]
@@ -1388,7 +1671,7 @@ final class SpaceSetupProvisionerTest extends TestCase
             ],
         );
 
-        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Updated, 'Add component field: article-page.title');
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Updated, 'Ensure component field: article-page.title');
     }
 
     #[Test]
@@ -1415,7 +1698,7 @@ final class SpaceSetupProvisionerTest extends TestCase
             ],
         );
 
-        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Updated, 'Add component field: article-page.body');
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Updated, 'Ensure component field: article-page.body');
         $payload = $this->requestJsonPayload($updateResponse);
         $this->assertFalse($this->valueAtPath($payload, ['component', 'schema', 'body', 'customize_toolbar']));
     }
@@ -1602,9 +1885,15 @@ final class SpaceSetupProvisionerTest extends TestCase
 
     /**
      * @param array<string, mixed> $content
+     * @param list<array<string, mixed>> $translatedSlugs
      */
-    private function storyJson(array $content, string $name = 'Home', string $slug = 'home', int $id = 440448565): string
-    {
+    private function storyJson(
+        array $content,
+        string $name = 'Home',
+        string $slug = 'home',
+        int $id = 440448565,
+        array $translatedSlugs = [],
+    ): string {
         $content = ['_uid' => 'root', 'component' => 'default-page'] + $content;
 
         return json_encode([
@@ -1616,6 +1905,37 @@ final class SpaceSetupProvisionerTest extends TestCase
                 'full_slug' => $slug,
                 'content' => $content,
                 'parent_id' => 0,
+                'translated_slugs' => $translatedSlugs,
+            ],
+        ], JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * @param string[] $slugs
+     */
+    private function appProvisionsJson(array $slugs): string
+    {
+        return json_encode([
+            'app_provisions' => array_map(static fn(string $slug): array => [
+                'slug' => $slug,
+                'app_id' => crc32($slug),
+                'name' => $slug,
+            ], $slugs),
+        ], JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * @param string[] $languages
+     */
+    private function spaceJson(array $languages): string
+    {
+        return json_encode([
+            'space' => [
+                'id' => 680,
+                'name' => 'Example Space',
+                'languages' => array_map(static fn(string $code): array => [
+                    'code' => $code,
+                ], $languages),
             ],
         ], JSON_THROW_ON_ERROR);
     }

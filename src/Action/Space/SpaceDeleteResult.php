@@ -20,6 +20,6 @@ final readonly class SpaceDeleteResult
 
     public function canDelete(): bool
     {
-        return $this->isOwner && $this->isSolo;
+        return $this->isOwner;
     }
 }

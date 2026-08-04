@@ -19,6 +19,8 @@ space:
   duplicate_from: "286863409930127"
   in_org: true
   demo: false
+  languages:
+    - it
   readiness:
     timeout_seconds: 120
     poll_interval_seconds: 2
@@ -42,6 +44,7 @@ apps:
     - export
     - import
     - backups
+    - translatable-slugs
     - id: 29942
 
 ai:
@@ -71,6 +74,13 @@ assets:
         - joyful-banner.png
 
 stories:
+  translated_slugs:
+    - story_slug: /about
+      translations:
+        it:
+          slug: /chi-siamo
+          name: "Chi siamo"
+
   create:
     - name: Auto Created
       slug: auto-created

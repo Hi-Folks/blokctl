@@ -37,15 +37,12 @@ final readonly class SpaceDeleteAction
     /**
      * Delete the space. Call only after preflight confirms canDelete().
      *
-     * @throws \RuntimeException if safety checks fail
+     * @throws \RuntimeException if the current user is not the owner
      */
     public function execute(string $spaceId, SpaceDeleteResult $preflight): void
     {
         if (!$preflight->canDelete()) {
-            throw new \RuntimeException(
-                'Cannot delete space: '
-                . ($preflight->isOwner ? 'other collaborators exist' : 'you are not the owner'),
-            );
+            throw new \RuntimeException('Cannot delete space: you are not the owner');
         }
 
         new SpaceApi($this->client)->delete($spaceId);

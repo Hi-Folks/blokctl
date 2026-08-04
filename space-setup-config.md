@@ -42,7 +42,7 @@ Dry-run and real execution share the same compact operation report:
 Operations
   PLANNED    Configure preview URLs
   PLANNED    Install app: backups
-  PLANNED    Add component field: article-page.SEO
+  PLANNED    Ensure component field: article-page.SEO
 
 Summary
   Planned: 3
@@ -154,6 +154,11 @@ space:
   duplicate_from: "286863409930127"
   in_org: true
   demo: false
+  languages:
+    add:
+      - it
+    remove:
+      - fr
   readiness:
     timeout_seconds: 120
     poll_interval_seconds: 2
@@ -166,9 +171,21 @@ space:
 | `duplicate_from` | No | Source template space ID. Omit when targeting an existing space with `-S`. |
 | `in_org` | No | Create the duplicated space inside the current organization. Defaults to `false`. |
 | `demo` | No | Mark the created or duplicated space as a demo/example space. Defaults to `false`. |
+| `languages` | No | Language codes to add/remove before story operations run. Array form is shorthand for `add`. Existing unmanaged languages are preserved unless listed under `remove`. |
 | `readiness` | No | Readiness polling settings used after duplication. |
 
 `space.demo: true` cannot be combined with `demo_mode.remove: true`.
+
+`space.languages` can also be declared as a simple add-only list:
+
+```yaml
+space:
+  languages:
+    - it
+    - de
+```
+
+Do not declare the same language under both `add`/`ensure` and `remove`.
 
 `space.create_new: true`, `space.duplicate_from`, and `--space-id (-S)` are mutually exclusive target modes. Creating a blank space is always explicit; a `space.name` alone never creates a space.
 
@@ -196,7 +213,7 @@ Except for `version`, all top-level sections are optional. If a section is omitt
 | `demo_mode` | Remove demo/example mode. |
 | `workflow` | Assign a workflow stage to stories without one. |
 | `folders` | Ensure folders exist by portable full slug. |
-| `stories` | Move selected root-level stories and folders. |
+| `stories` | Move selected root-level stories/folders, update components, create stories, and reconcile translated slugs. |
 | `apps` | Install Storyblok apps by slug or ID. |
 | `ai` | Configure Storyblok AI availability and organization configuration inheritance. |
 | `ai_translation` | Configure the disclaimer required by AI Translations. |
@@ -224,6 +241,8 @@ space:
   duplicate_from: "286863409930127"
   in_org: true
   demo: false
+  languages:
+    - it
   readiness:
     timeout_seconds: 120
     poll_interval_seconds: 2
@@ -594,6 +613,42 @@ stories:
 | `create[].publish` | No | Publish immediately after creation. Defaults to `false`. |
 
 The content object must include `component`.
+
+## `stories.translated_slugs`
+
+Ensures translated slugs for existing stories. This requires the `translatable-slugs` app to be installed and the target language to be enabled in the space.
+
+```yaml
+apps:
+  install:
+    - translatable-slugs
+
+stories:
+  translated_slugs:
+    - story_slug: /about
+      translations:
+        it:
+          slug: /chi-siamo
+          name: Chi siamo
+        de:
+          slug: /uber-uns
+          name: Uber uns
+```
+
+| Key | Required | Description |
+|---|---:|---|
+| `translated_slugs[].story_slug` | Yes* | Default-language story full slug, with or without a leading slash. |
+| `translated_slugs[].story_id` | Yes* | Story ID. |
+| `translated_slugs[].translations` | Yes** | Map of language code to translated slug definition. |
+| `translated_slugs[].translations.<lang>.slug` | Yes** | Translated slug value, with or without a leading slash. |
+| `translated_slugs[].translations.<lang>.name` | No | Translated label/name for the slug. |
+| `translated_slugs[].translations.<lang>.published` | No | Translated slug published state. Existing values change only when declared. |
+| `translated_slugs[].lang` | Yes** | Legacy single-language form: enabled language code for the translated slug. |
+| `translated_slugs[].translated_slug` | Yes** | Legacy single-language form: translated slug value, with or without a leading slash. |
+| `translated_slugs[].name` | No | Legacy single-language form: translated label/name for the slug. |
+| `translated_slugs[].published` | No | Legacy single-language form: translated slug published state. Existing values change only when declared. |
+
+Use exactly one of `story_slug` or `story_id`. Use either `translations` for batch updates or `lang` plus `translated_slug` for the legacy single-language form. Repeated setup runs skip updates when the translated slug already matches.
 
 ## `dimensions`
 

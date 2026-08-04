@@ -10,8 +10,12 @@ use Blokctl\Action\Component\ComponentFieldAddAction;
 use Blokctl\Action\Component\ComponentFieldAddResult;
 use Blokctl\Action\Folder\FolderCreateAction;
 use Blokctl\Action\Space\SpaceDemoRemoveAction;
+use Blokctl\Action\Space\SpaceLanguagesEnsureAction;
+use Blokctl\Action\Space\SpaceLanguagesRemoveAction;
 use Blokctl\Action\SpacePreview\SpacePreviewSetAction;
 use Blokctl\Action\Story\StoryCreateAction;
+use Blokctl\Action\Story\StoryTranslatedSlugInput;
+use Blokctl\Action\Story\StoryTranslatedSlugsEnsureAction;
 use Blokctl\Action\Story\StoryWorkflowChangeAction;
 use Blokctl\Action\Story\StoriesTagsAssignAction;
 use Blokctl\Action\Story\StoriesWorkflowAssignAction;
@@ -60,6 +64,7 @@ final readonly class SpaceSetupProvisioner
         try {
             $this->provisionPreview($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionDemoMode($reporter, $spaceId, $config, $dryRun, $continueOnError);
+            $this->provisionLanguages($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionFolders($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionStoryMoves($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionAssets($reporter, $spaceId, $config, $configDirectory, $dryRun, $continueOnError);
@@ -67,6 +72,7 @@ final readonly class SpaceSetupProvisioner
             $this->provisionStoryCreates($reporter, $spaceId, $config, $configDirectory, $dryRun, $continueOnError);
             $this->provisionWorkflow($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionApps($reporter, $spaceId, $config, $dryRun, $continueOnError);
+            $this->provisionTranslatedSlugs($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionAi($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionAiTranslation($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionDimensions($reporter, $spaceId, $config, $dryRun, $continueOnError);
@@ -80,6 +86,138 @@ final readonly class SpaceSetupProvisioner
         $reporter->finish();
 
         return $reporter;
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    private function provisionLanguages(
+        SpaceSetupReporter $reporter,
+        string $spaceId,
+        array $config,
+        bool $dryRun,
+        bool $continueOnError,
+    ): void {
+        $space = $this->arrayValue($config['space'] ?? []);
+        $languageConfig = $space['languages'] ?? [];
+        $addLanguages = $this->languageAddList($languageConfig);
+        $removeLanguages = $this->languageRemoveList($languageConfig);
+        $conflictingLanguages = array_values(array_intersect($addLanguages, $removeLanguages));
+        if ($conflictingLanguages !== []) {
+            throw new \RuntimeException('Space languages cannot be both added and removed: ' . implode(', ', $conflictingLanguages));
+        }
+
+        if ($addLanguages === [] && $removeLanguages === []) {
+            return;
+        }
+
+        if ($addLanguages !== []) {
+            $this->provisionLanguageAdd($reporter, $spaceId, $addLanguages, $dryRun, $continueOnError);
+        }
+
+        if ($removeLanguages !== []) {
+            $this->provisionLanguageRemove($reporter, $spaceId, $removeLanguages, $dryRun, $continueOnError);
+        }
+    }
+
+    /**
+     * @param string[] $languages
+     */
+    private function provisionLanguageAdd(
+        SpaceSetupReporter $reporter,
+        string $spaceId,
+        array $languages,
+        bool $dryRun,
+        bool $continueOnError,
+    ): void {
+        $reporter->run('Add space languages', SpaceSetupOperationStatus::Updated, $continueOnError, function () use ($spaceId, $languages, $dryRun): SpaceSetupOperationResult {
+            if ($dryRun) {
+                return new SpaceSetupOperationResult(
+                    SpaceSetupOperationStatus::Updated,
+                    'Add space languages',
+                    implode(', ', $languages),
+                );
+            }
+
+            $result = new SpaceLanguagesEnsureAction($this->client)->execute($spaceId, $languages);
+            if (!$result->changed) {
+                return new SpaceSetupOperationResult(
+                    SpaceSetupOperationStatus::Skipped,
+                    'Add space languages',
+                    'Space languages already match.',
+                );
+            }
+
+            return new SpaceSetupOperationResult(
+                SpaceSetupOperationStatus::Updated,
+                'Add space languages',
+                'Added language(s): ' . implode(', ', $result->addedLanguages),
+            );
+        });
+    }
+
+    /**
+     * @param string[] $languages
+     */
+    private function provisionLanguageRemove(
+        SpaceSetupReporter $reporter,
+        string $spaceId,
+        array $languages,
+        bool $dryRun,
+        bool $continueOnError,
+    ): void {
+        $reporter->run('Remove space languages', SpaceSetupOperationStatus::Updated, $continueOnError, function () use ($spaceId, $languages, $dryRun): SpaceSetupOperationResult {
+            if ($dryRun) {
+                return new SpaceSetupOperationResult(
+                    SpaceSetupOperationStatus::Updated,
+                    'Remove space languages',
+                    implode(', ', $languages),
+                );
+            }
+
+            $result = new SpaceLanguagesRemoveAction($this->client)->execute($spaceId, $languages);
+            if (!$result->changed) {
+                return new SpaceSetupOperationResult(
+                    SpaceSetupOperationStatus::Skipped,
+                    'Remove space languages',
+                    'Space languages already match.',
+                );
+            }
+
+            return new SpaceSetupOperationResult(
+                SpaceSetupOperationStatus::Updated,
+                'Remove space languages',
+                'Removed language(s): ' . implode(', ', $result->removedLanguages),
+            );
+        });
+    }
+
+    /**
+     * @return string[]
+     */
+    private function languageAddList(mixed $languageConfig): array
+    {
+        if (!is_array($languageConfig)) {
+            return [];
+        }
+
+        if (array_is_list($languageConfig)) {
+            return $this->stringListValue($languageConfig);
+        }
+
+        return $this->stringListValue($languageConfig['add'] ?? $languageConfig['ensure'] ?? []);
+    }
+
+    /**
+     * @return string[]
+     */
+    private function languageRemoveList(mixed $languageConfig): array
+    {
+        if (!is_array($languageConfig) || array_is_list($languageConfig)) {
+            return [];
+        }
+
+        return $this->stringListValue($languageConfig['remove'] ?? []);
     }
 
     /**
@@ -682,6 +820,147 @@ final readonly class SpaceSetupProvisioner
     /**
      * @param array<string, mixed> $config
      */
+    private function provisionTranslatedSlugs(
+        SpaceSetupReporter $reporter,
+        string $spaceId,
+        array $config,
+        bool $dryRun,
+        bool $continueOnError,
+    ): void {
+        $space = $this->arrayValue($config['space'] ?? []);
+        $knownEnabledLanguages = $this->languageAddList($space['languages'] ?? []);
+        $stories = $this->arrayValue($config['stories'] ?? []);
+        $translatedSlugs = $this->listValue($stories['translated_slugs'] ?? []);
+        foreach ($translatedSlugs as $translatedSlug) {
+            if (!is_array($translatedSlug)) {
+                continue;
+            }
+
+            $storySlug = $this->nullableStringValue($translatedSlug['story_slug'] ?? $translatedSlug['slug'] ?? null);
+            $storyId = $this->nullableStringValue($translatedSlug['story_id'] ?? $translatedSlug['id'] ?? null);
+            $translations = $this->translatedSlugInputs($translatedSlug);
+            $label = 'Ensure translated slugs: ' . ($storySlug ?? $storyId ?? '');
+            if (count($translations) === 1) {
+                $label = 'Ensure translated slug: ' . ($storySlug ?? $storyId ?? '') . '.' . $translations[0]->lang;
+            }
+
+            $reporter->run($label, SpaceSetupOperationStatus::Updated, $continueOnError, function () use ($spaceId, $storySlug, $storyId, $translations, $knownEnabledLanguages, $dryRun, $label): SpaceSetupOperationResult {
+                if (($storySlug === null && $storyId === null) || ($storySlug !== null && $storyId !== null)) {
+                    throw new \RuntimeException('Translated slug entries require exactly one of story_slug or story_id.');
+                }
+
+                if ($translations === []) {
+                    throw new \RuntimeException('Translated slug entries require lang and translated_slug.');
+                }
+
+                if ($dryRun) {
+                    return new SpaceSetupOperationResult(
+                        SpaceSetupOperationStatus::Updated,
+                        $label,
+                        $this->translatedSlugDetail($translations),
+                    );
+                }
+
+                $result = new StoryTranslatedSlugsEnsureAction($this->client)->execute(
+                    spaceId: $spaceId,
+                    storySlug: $storySlug,
+                    storyId: $storyId,
+                    translations: $translations,
+                    knownEnabledLanguages: $knownEnabledLanguages,
+                );
+                if (!$result->changed) {
+                    return new SpaceSetupOperationResult(
+                        SpaceSetupOperationStatus::Skipped,
+                        $label,
+                        'Translated slug already matches.',
+                    );
+                }
+
+                return new SpaceSetupOperationResult(
+                    SpaceSetupOperationStatus::Updated,
+                    $label,
+                    $result->changedCount . ' translated slug(s) updated.',
+                );
+            });
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $translatedSlug
+     * @return list<StoryTranslatedSlugInput>
+     */
+    private function translatedSlugInputs(array $translatedSlug): array
+    {
+        if (array_key_exists('translations', $translatedSlug)) {
+            $translations = $translatedSlug['translations'];
+            if (!is_array($translations)) {
+                return [];
+            }
+
+            $inputs = [];
+            foreach ($translations as $lang => $translation) {
+                if (is_array($translation)) {
+                    $inputLang = is_string($lang) ? $lang : $this->stringValue($translation['lang'] ?? '');
+                    $slug = $this->stringValue($translation['slug'] ?? $translation['translated_slug'] ?? '');
+                    $name = $this->nullableStringValue($translation['name'] ?? null);
+                    $published = array_key_exists('published', $translation)
+                        ? $this->boolValue($translation['published'])
+                        : null;
+                } else {
+                    $inputLang = is_string($lang) ? $lang : '';
+                    $slug = $this->stringValue($translation);
+                    $name = null;
+                    $published = null;
+                }
+
+                $inputs[] = new StoryTranslatedSlugInput(
+                    lang: $inputLang,
+                    translatedSlug: $this->normalizedSlug($slug),
+                    name: $name,
+                    published: $published,
+                );
+            }
+
+            return $inputs;
+        }
+
+        return [
+            new StoryTranslatedSlugInput(
+                lang: $this->stringValue($translatedSlug['lang'] ?? ''),
+                translatedSlug: $this->normalizedSlug($this->stringValue($translatedSlug['translated_slug'] ?? '')),
+                name: $this->nullableStringValue($translatedSlug['name'] ?? null),
+                published: array_key_exists('published', $translatedSlug)
+                    ? $this->boolValue($translatedSlug['published'])
+                    : null,
+            ),
+        ];
+    }
+
+    /**
+     * @param list<StoryTranslatedSlugInput> $translations
+     */
+    private function translatedSlugDetail(array $translations): string
+    {
+        if (count($translations) === 1) {
+            return 'Language: ' . $translations[0]->lang . '; translated slug: ' . $translations[0]->translatedSlug;
+        }
+
+        $details = array_map(
+            static fn(StoryTranslatedSlugInput $translation): string => $translation->lang . '=' . $translation->translatedSlug,
+            $translations,
+        );
+
+        return count($translations) . ' translation(s) planned: ' . implode(', ', $details);
+    }
+
+    private function normalizedSlug(string $slug): string
+    {
+        return trim($slug, '/');
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
     private function provisionAi(
         SpaceSetupReporter $reporter,
         string $spaceId,
@@ -1082,7 +1361,7 @@ final readonly class SpaceSetupProvisioner
 
             $componentName = $this->stringValue($field['component'] ?? '');
             $fieldName = $this->stringValue($field['field'] ?? '');
-            $reporter->run('Add component field: ' . $componentName . '.' . $fieldName, SpaceSetupOperationStatus::Created, $continueOnError, function () use ($spaceId, $field, $componentName, $fieldName, $dryRun): ?SpaceSetupOperationResult {
+            $reporter->run('Ensure component field: ' . $componentName . '.' . $fieldName, SpaceSetupOperationStatus::Created, $continueOnError, function () use ($spaceId, $field, $componentName, $fieldName, $dryRun): ?SpaceSetupOperationResult {
                 $type = $this->stringValue($field['type'] ?? '');
                 $tab = $this->stringValue($field['tab'] ?? 'General');
                 if ($componentName === '' || $fieldName === '' || $type === '') {
@@ -1558,7 +1837,7 @@ final readonly class SpaceSetupProvisioner
         $componentApi = new ComponentApi($this->client, $spaceId);
         $component = $this->findComponent($componentApi, $componentName);
         $schema = $component->getSchema();
-        $label = 'Add component field: ' . $componentName . '.' . $fieldName;
+        $label = 'Ensure component field: ' . $componentName . '.' . $fieldName;
 
         if (!array_key_exists($fieldName, $schema)) {
             new ComponentFieldAddAction($this->client)->execute(
@@ -1572,6 +1851,9 @@ final readonly class SpaceSetupProvisioner
                 displayName: $this->nullableStringValue($field['display_name'] ?? $field['displayName'] ?? null),
                 required: $this->boolValue($field['required'] ?? false),
                 translatable: $this->boolValue($field['translatable'] ?? false),
+                customizeToolbar: array_key_exists('customize_toolbar', $field)
+                    ? $this->boolValue($field['customize_toolbar'])
+                    : null,
             );
 
             return new SpaceSetupOperationResult(SpaceSetupOperationStatus::Created, $label);

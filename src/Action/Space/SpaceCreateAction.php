@@ -42,7 +42,7 @@ final readonly class SpaceCreateAction
         $response = new ManagementApi($this->client)->post('spaces', $payload);
         if (!$response->isOk()) {
             throw new \RuntimeException(
-                'Failed to create space: ' . $response->getErrorMessage(),
+                'Failed to create space: ' . $this->errorMessage($response->getErrorMessage(), $response->getResponseBody()),
             );
         }
 
@@ -56,5 +56,86 @@ final readonly class SpaceCreateAction
             duplicated: $duplicateFrom !== null && $duplicateFrom !== '',
             duplicateFrom: $duplicateFrom,
         );
+    }
+
+    private function errorMessage(string $fallback, string $body): string
+    {
+        $baseErrors = $this->baseErrors($body);
+        if ($baseErrors !== []) {
+            return implode(' ', $baseErrors);
+        }
+
+        $details = $this->fieldErrors($body);
+        if ($details === []) {
+            return $fallback;
+        }
+
+        return $fallback . ' ' . implode(' ', $details);
+    }
+
+    /**
+     * @return string[]
+     */
+    private function baseErrors(string $body): array
+    {
+        $payload = $this->jsonPayload($body);
+        if ($payload === null) {
+            return [];
+        }
+
+        $base = $payload['base'] ?? null;
+        if (!is_array($base)) {
+            return [];
+        }
+
+        return array_values(array_filter($base, is_string(...)));
+    }
+
+    /**
+     * @return string[]
+     */
+    private function fieldErrors(string $body): array
+    {
+        $payload = $this->jsonPayload($body);
+        if ($payload === null) {
+            return [];
+        }
+
+        $messages = [];
+        foreach ($payload as $field => $errors) {
+            if (!is_string($field)) {
+                continue;
+            }
+
+            if (!is_array($errors)) {
+                continue;
+            }
+
+            foreach ($errors as $error) {
+                if (is_string($error) && $error !== '') {
+                    $messages[] = $field . ': ' . $error;
+                }
+            }
+        }
+
+        return $messages;
+    }
+
+    /**
+     * @return array<mixed>|null
+     */
+    private function jsonPayload(string $body): array|null
+    {
+        if ($body === '') {
+            return null;
+        }
+
+        try {
+            $payload = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return null;
+        }
+
+        return is_array($payload) ? $payload : null;
     }
 }

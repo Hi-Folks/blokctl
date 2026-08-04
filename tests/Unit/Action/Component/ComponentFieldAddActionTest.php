@@ -106,6 +106,53 @@ final class ComponentFieldAddActionTest extends TestCase
     }
 
     #[Test]
+    public function execute_adds_richtext_toolbar_customization_when_declared(): void
+    {
+        $client = $this->createMockClient(
+            $this->mockResponse('list-components'),    // ComponentApi->all
+            $this->mockResponse('one-article-page'),   // ComponentApi->get
+            $this->mockResponse('one-article-page'),   // ComponentApi->update response
+        );
+
+        $action = new ComponentFieldAddAction($client);
+        $preflight = $action->preflight('680', 'article-page', 'text');
+
+        $action->execute(
+            '680',
+            $preflight,
+            'text',
+            'richtext',
+            'Content',
+            customizeToolbar: false,
+        );
+
+        $schema = $preflight->component->getSchema();
+        $this->assertArrayHasKey('text', $schema);
+        $this->assertSame('richtext', $schema['text']['type']);
+        $this->assertFalse($schema['text']['customize_toolbar']);
+    }
+
+    #[Test]
+    public function execute_omits_richtext_toolbar_customization_when_not_declared(): void
+    {
+        $client = $this->createMockClient(
+            $this->mockResponse('list-components'),    // ComponentApi->all
+            $this->mockResponse('one-article-page'),   // ComponentApi->get
+            $this->mockResponse('one-article-page'),   // ComponentApi->update response
+        );
+
+        $action = new ComponentFieldAddAction($client);
+        $preflight = $action->preflight('680', 'article-page', 'text');
+
+        $action->execute('680', $preflight, 'text', 'richtext', 'Content');
+
+        $schema = $preflight->component->getSchema();
+        $this->assertArrayHasKey('text', $schema);
+        $this->assertSame('richtext', $schema['text']['type']);
+        $this->assertArrayNotHasKey('customize_toolbar', $schema['text']);
+    }
+
+    #[Test]
     public function execute_adds_custom_field_to_existing_tab(): void
     {
         $client = $this->createMockClient(

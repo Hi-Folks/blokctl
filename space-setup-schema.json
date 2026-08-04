@@ -237,6 +237,33 @@
           "$ref": "#/$defs/booleanOrExpression",
           "default": false
         },
+        "languages": {
+          "description": "Language codes to add or remove before story operations run. Array form is shorthand for add.",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/stringList"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "minProperties": 1,
+              "properties": {
+                "add": {
+                  "description": "Language codes to add while preserving existing languages.",
+                  "$ref": "#/$defs/stringList"
+                },
+                "ensure": {
+                  "description": "Alias for add.",
+                  "$ref": "#/$defs/stringList"
+                },
+                "remove": {
+                  "description": "Language codes to remove while preserving other languages.",
+                  "$ref": "#/$defs/stringList"
+                }
+              }
+            }
+          ]
+        },
         "readiness": {
           "description": "Polling settings used after duplication while waiting for Storyblok background tasks to complete.",
           "$ref": "#/$defs/spaceReadiness"
@@ -572,6 +599,118 @@
           "items": {
             "$ref": "#/$defs/storyCreate"
           }
+        },
+        "translated_slugs": {
+          "description": "Translated slug reconciliation for existing stories. Requires the translatable-slugs app and the target language to be enabled.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/storyTranslatedSlug"
+          }
+        }
+      }
+    },
+    "storyTranslatedSlug": {
+      "description": "Ensures translated slugs for an existing story.",
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "required": [
+                "story_slug"
+              ]
+            },
+            {
+              "required": [
+                "story_id"
+              ]
+            }
+          ]
+        },
+        {
+          "anyOf": [
+            {
+              "required": [
+                "translations"
+              ]
+            },
+            {
+              "required": [
+                "lang",
+                "translated_slug"
+              ]
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "story_slug": {
+          "description": "Default-language story full slug, with or without a leading slash.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "story_id": {
+          "description": "Story ID.",
+          "$ref": "#/$defs/positiveIntegerOrExpression"
+        },
+        "lang": {
+          "description": "Enabled language code for the translated slug.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "translated_slug": {
+          "description": "Translated slug value, with or without a leading slash.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "name": {
+          "description": "Translated label/name for the slug.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "published": {
+          "description": "Translated slug published state. Existing values change only when declared.",
+          "$ref": "#/$defs/booleanOrExpression"
+        },
+        "translations": {
+          "description": "Batch translated slug definitions keyed by language code.",
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/storyTranslatedSlugTranslation"
+          }
+        }
+      }
+    },
+    "storyTranslatedSlugTranslation": {
+      "description": "Translated slug definition for one language.",
+      "type": "object",
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "slug"
+          ]
+        },
+        {
+          "required": [
+            "translated_slug"
+          ]
+        }
+      ],
+      "properties": {
+        "slug": {
+          "description": "Translated slug value, with or without a leading slash.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "translated_slug": {
+          "description": "Alias for slug.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "name": {
+          "description": "Translated label/name for the slug.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "published": {
+          "description": "Translated slug published state. Existing values change only when declared.",
+          "$ref": "#/$defs/booleanOrExpression"
         }
       }
     },
@@ -999,7 +1138,7 @@
           "default": false
         },
         "customize_toolbar": {
-          "description": "Enable or disable richtext toolbar customization on fields that support it.",
+          "description": "Enable or disable richtext toolbar customization on fields that support it. Existing fields change only when declared.",
           "$ref": "#/$defs/booleanOrExpression"
         }
       }

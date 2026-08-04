@@ -2,9 +2,55 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
-## 0.14.1 - WIP
-- Adding `customize_toolbar` support for declarative component field reconciliation in `space:setup`.
+## 0.15.0 - 2026-08-04
 
+### Added
+
+- Added `customize_toolbar` support for declarative component field reconciliation in `space:setup`.
+- Added support for Storyblok translated slugs in space setup YAML via stories.translated_slugs.
+- Added batch translated slug reconciliation for multiple languages on the same story.
+- Added story:translated-slug-set command.
+- Added space language commands:
+  - space:language-list
+  - space:language-add
+  - space:language-ensure
+  - space:language-remove
+- Added reusable PHP actions:
+  - AppProvisionInstalledCheckAction
+  - SpaceLanguageCheckAction
+  - SpaceLanguagesEnsureAction
+  - SpaceLanguagesRemoveAction
+  - StoryTranslatedSlugEnsureAction
+  - StoryTranslatedSlugsEnsureAction
+
+- Added support for richtext customize_toolbar in component field provisioning.
+- Added translated slug examples to examples/demo-space.yaml.
+- Added space.languages support in setup YAML, including add/ensure shorthand and explicit removals.
+- Added README documentation for translated slug CLI usage, language CLI usage, YAML config, and reusable PHP actions.
+
+### Changed
+
+- Changed storyblok/php-management-api-client dependency to ^1.9.1.
+- Changed component field setup reporting from Add component field to Ensure component field.
+- Changed space:delete behavior so the owner can delete a space even when other collaborators exist, after a warning and confirmation.
+- Improved space:create 422 error output to show base validation messages directly when present.
+- Improved language setup so language add/remove actions verify persistence with a read-back before reporting success.
+
+### Fixed
+
+- Fixed richtext field creation/update handling so customize_toolbar is passed to the PHP Management API client.
+- Fixed dry-run wording for component fields to avoid implying whether the field will be created or updated before checking the live space.
+- Fixed translated slug setup ordering so configured space languages are handled before translated slug reconciliation.
+
+### Tests
+
+- Added unit tests for translated slug action behavior, including batch updates and skip behavior.
+- Added unit tests for app provision installation checks.
+- Added unit tests for space language checks, additions, removals, setup ordering, and persistence verification.
+- Added tests for translated slug provisioning through YAML.
+- Added tests for richtext customize_toolbar.
+- Added tests for improved space create 422 error handling.
+- Updated space delete tests for the owner-with-collaborators flow.
 
 ## 0.14.0 - 2026-06-21
 

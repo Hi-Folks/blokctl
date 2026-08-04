@@ -64,7 +64,7 @@ final class SpaceDeleteActionTest extends TestCase
 
         $this->assertTrue($result->isOwner);
         $this->assertFalse($result->isSolo);
-        $this->assertFalse($result->canDelete());
+        $this->assertTrue($result->canDelete());
     }
 
     #[Test]
@@ -88,9 +88,13 @@ final class SpaceDeleteActionTest extends TestCase
     }
 
     #[Test]
-    public function execute_throws_not_solo_message(): void
+    public function execute_allows_owner_when_other_collaborators_exist(): void
     {
-        $client = $this->createMockClient();
+        $this->expectNotToPerformAssertions();
+
+        $client = $this->createMockClient(
+            $this->mockResponse('one-space'), // SpaceApi->delete response
+        );
 
         $action = new SpaceDeleteAction($client);
         $preflight = new SpaceDeleteResult(
@@ -100,9 +104,6 @@ final class SpaceDeleteActionTest extends TestCase
             isOwner: true,
             isSolo: false,
         );
-
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('other collaborators exist');
 
         $action->execute('680', $preflight);
     }

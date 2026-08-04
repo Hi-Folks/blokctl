@@ -89,6 +89,7 @@ final readonly class ComponentFieldAddAction
         ?string $displayName = null,
         bool $required = false,
         bool $translatable = false,
+        ?bool $customizeToolbar = null,
     ): void {
         $component = $preflight->component;
 
@@ -133,6 +134,7 @@ final readonly class ComponentFieldAddAction
             displayName: $displayName,
             required: $required,
             translatable: $translatable,
+            customizeToolbar: $customizeToolbar,
         );
 
         if ($pos !== null) {
@@ -152,6 +154,7 @@ final readonly class ComponentFieldAddAction
         ?string $displayName,
         bool $required,
         bool $translatable,
+        ?bool $customizeToolbar,
     ): FieldInterface {
         $type = strtolower($type);
 
@@ -189,6 +192,10 @@ final readonly class ComponentFieldAddAction
 
         if ($translatable) {
             $field->setTranslatable();
+        }
+
+        if ($customizeToolbar !== null && $field instanceof FieldRichtext) {
+            $field->setCustomizeToolbar($customizeToolbar);
         }
 
         return $field;

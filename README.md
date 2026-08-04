@@ -224,11 +224,15 @@ space:
   duplicate_from: "286863409930127"
   in_org: true
   demo: false
+  languages:
+    - it
   readiness:
     timeout_seconds: 120
 ```
 
 Reconcile mode is the default. Repeated setup runs preserve unmanaged resources, skip matching state, merge story tags and preview environments, and update only explicitly configured component field properties. Resources omitted from the config are never removed automatically.
+
+Languages declared under `space.languages` are ensured before story operations run. This is useful for translated slugs and field-level translations that require the language to exist in Storyblok Settings -> Internationalization. The shorthand list adds missing language codes and preserves existing unmanaged languages; use `space.languages.add`, `space.languages.ensure`, and `space.languages.remove` in the full setup syntax when removals are required.
 
 Local asset directories can also be reconciled into Storyblok asset folders. Paths are relative to the setup config file, nested directories can be preserved, and assets with the same filename in the same target folder are skipped.
 
@@ -349,12 +353,11 @@ Shows space details (ID, name, plan, demo mode status), current user info, and p
 php bin/blokctl space:delete -S 290817118944379
 ```
 
-Permanently deletes a Storyblok space. Two safety checks are enforced before deletion:
+Permanently deletes a Storyblok space. One safety check is enforced before deletion:
 
 1. The authenticated user must be the **owner** of the space
-2. There must be **no other collaborators** (user is the sole collaborator)
 
-Before asking for confirmation, the command prints the space recap, activity signals exposed by the Management API (`created_at`, `updated_at`, pending tasks), useful metadata, owner, and collaborators. Prompts for confirmation before deleting. Use `-n` to skip the confirmation prompt.
+Before asking for confirmation, the command prints the space recap, activity signals exposed by the Management API (`created_at`, `updated_at`, pending tasks), useful metadata, owner, and collaborators. When other collaborators exist, it warns that deleting the space removes it for everyone. Prompts for confirmation before deleting. Use `-n` to skip the confirmation prompt.
 
 #### `space:demo-remove` — Remove demo mode from a space
 
@@ -363,6 +366,61 @@ php bin/blokctl space:demo-remove -S 290817118944379
 ```
 
 Prompts for confirmation before removing demo mode. Use `-n` to skip the confirmation prompt.
+
+#### `space:language-list` — List enabled language codes
+
+```bash
+php bin/blokctl space:language-list -S 290817118944379
+```
+
+Reads the target space and prints the configured language codes.
+
+| Type | Name | Short | Description |
+|---|---|---|---|
+| Option | `--space-id` | `-S` | **(required)** Storyblok Space ID |
+| Option | `--region` | `-R` | Management API region |
+
+#### `space:language-add` — Add language codes
+
+```bash
+php bin/blokctl space:language-add -S 290817118944379 it de fr
+```
+
+Reads the target space, preserves existing language codes, and updates the space with any missing codes. Each shorthand code is sent as a language object with a derived display name and AI translation code, then the action reads the space back and fails if Storyblok did not persist the requested code.
+
+| Type | Name | Short | Description |
+|---|---|---|---|
+| Argument | `languages` | | **(required)** One or more language codes, e.g. `it de fr` |
+| Option | `--space-id` | `-S` | **(required)** Storyblok Space ID |
+| Option | `--region` | `-R` | Management API region |
+
+#### `space:language-ensure` — Ensure language codes are enabled
+
+```bash
+php bin/blokctl space:language-ensure -S 290817118944379 it de fr
+```
+
+Alias-style idempotent add command. It uses the same action as `space:language-add`, preserving existing language codes, adding only missing codes, and verifying persistence with a read-back.
+
+| Type | Name | Short | Description |
+|---|---|---|---|
+| Argument | `languages` | | **(required)** One or more language codes, e.g. `it de fr` |
+| Option | `--space-id` | `-S` | **(required)** Storyblok Space ID |
+| Option | `--region` | `-R` | Management API region |
+
+#### `space:language-remove` — Remove language codes
+
+```bash
+php bin/blokctl space:language-remove -S 290817118944379 fr
+```
+
+Reads the target space, removes the requested language codes when present, preserves every other language code, and verifies with a read-back that Storyblok persisted the removal.
+
+| Type | Name | Short | Description |
+|---|---|---|---|
+| Argument | `languages` | | **(required)** One or more language codes to remove, e.g. `fr it` |
+| Option | `--space-id` | `-S` | **(required)** Storyblok Space ID |
+| Option | `--region` | `-R` | Management API region |
 
 ### Preview URLs
 
@@ -738,6 +796,44 @@ Value types:
 - **`text`** (default) — sets the value as a plain string
 - **`json`** — parses the value as JSON (for objects, arrays, numbers, booleans)
 - **`asset`** — treats the value as an image: a URL is downloaded and uploaded to Storyblok; a local file path is uploaded directly
+
+#### `story:translated-slug-set` — Set translated slugs on a story
+
+Requires the `translatable-slugs` app to be installed and each target language to be enabled in the space.
+
+```bash
+# Set one translated slug
+php bin/blokctl story:translated-slug-set -S 290817118944379 \
+  --by-slug=about \
+  --lang=it \
+  --slug=/chi-siamo \
+  --name="Chi siamo"
+
+# Batch multiple languages in one story update
+php bin/blokctl story:translated-slug-set -S 290817118944379 \
+  --by-slug=about \
+  --translation='it;/chi-siamo;Chi siamo;true' \
+  --translation='de;/uber-uns;Uber uns'
+```
+
+**Story lookup options** (mutually exclusive):
+
+| Option | Description |
+|---|---|
+| `--by-slug` | Find story by full slug (e.g. `about`) |
+| `--by-id` | Find story by numeric ID |
+
+**Translation options:**
+
+| Option | Description |
+|---|---|
+| `--lang` | Language code for a single translated slug. Use with `--slug` |
+| `--slug` | Translated slug for a single translated slug. Use with `--lang` |
+| `--name` | Optional translated label for the single translated slug |
+| `--published` | Optional published flag for the single translated slug: `true`, `false`, `yes`, `no`, `1`, `0`, `on`, or `off` |
+| `--translation` | Batch translation, repeatable. Format: `lang;slug[;name[;published]]` |
+
+Use either the single translation options (`--lang` and `--slug`) or repeated `--translation` values. Do not mix both forms in the same command. The optional `published` value in `--translation` accepts the same boolean values as `--published`. Quote `--translation` values because semicolons are interpreted by most shells. Global options such as `-S/--space-id` and `-R/--region` are documented in [Global options](#global-options).
 
 #### `story:show` — Display a story as JSON
 
@@ -1314,6 +1410,47 @@ $result->errors;  // string[] — non-fatal errors (e.g. collaborator check fail
 $result->count();  // int
 ```
 
+#### Check enabled languages
+
+```php
+use Blokctl\Action\Space\SpaceLanguageCheckAction;
+
+$action = new SpaceLanguageCheckAction($client);
+
+$languages = $action->installedLanguages($spaceId); // string[]
+$isEnabled = $action->isInstalled($spaceId, 'it');  // bool
+
+$action->requireInstalled($spaceId, 'it'); // throws RuntimeException when missing
+```
+
+#### Ensure enabled languages
+
+```php
+use Blokctl\Action\Space\SpaceLanguagesEnsureAction;
+
+$result = (new SpaceLanguagesEnsureAction($client))->execute($spaceId, ['it', 'de']);
+
+$result->changed;        // bool
+$result->languages;      // string[] — complete language list after reconciliation
+$result->addedLanguages; // string[] — languages added by this run
+```
+
+This action reads the current space languages, preserves existing values, and updates the space language configuration through the Storyblok space update endpoint when any requested language is missing. It sends language objects with `code`, derived `name`, and derived `ai_translation_code`, and reads the space back before returning `changed: true`. If Storyblok accepts the request but the language is not visible after the update, it throws a `RuntimeException`.
+
+#### Remove enabled languages
+
+```php
+use Blokctl\Action\Space\SpaceLanguagesRemoveAction;
+
+$result = (new SpaceLanguagesRemoveAction($client))->execute($spaceId, ['fr']);
+
+$result->changed;          // bool
+$result->languages;        // string[] — complete language list after reconciliation
+$result->removedLanguages; // string[] — languages removed by this run
+```
+
+This action reads the current space languages, removes only requested values, and updates the space language configuration through the Storyblok space update endpoint when any requested language exists. It reads the space back before returning `changed: true` and throws a `RuntimeException` if Storyblok does not persist the removal.
+
 #### Delete a space (with safety checks)
 
 ```php
@@ -1726,6 +1863,59 @@ if ($result->countWithoutStage > 0) {
 }
 ```
 
+#### Ensure translated slugs
+
+```php
+use Blokctl\Action\Story\StoryTranslatedSlugInput;
+use Blokctl\Action\Story\StoryTranslatedSlugsEnsureAction;
+
+$result = (new StoryTranslatedSlugsEnsureAction($client))->execute(
+    spaceId: $spaceId,
+    storySlug: 'about',
+    storyId: null,
+    translations: [
+        new StoryTranslatedSlugInput('it', '/chi-siamo', 'Chi siamo', true),
+        new StoryTranslatedSlugInput('de', '/uber-uns', 'Uber uns'),
+    ],
+);
+
+$result->changed;      // bool
+$result->storyId;      // string
+$result->changedCount; // int
+$result->translations; // StoryTranslatedSlugInput[]
+```
+
+This action checks that the `translatable-slugs` app is installed, verifies that each language is enabled, resolves the story once, and sends one story update containing all changed translated slug attributes.
+
+When composing actions in the same process after enabling languages, pass `knownEnabledLanguages` to include language codes that were just ensured but may not yet be visible in an immediate space read:
+
+```php
+$result = (new StoryTranslatedSlugsEnsureAction($client))->execute(
+    spaceId: $spaceId,
+    storySlug: 'about',
+    storyId: null,
+    translations: [
+        new StoryTranslatedSlugInput('it', '/chi-siamo', 'Chi siamo'),
+    ],
+    knownEnabledLanguages: ['it'],
+);
+```
+
+For single-language callers, `StoryTranslatedSlugEnsureAction` keeps the older one-translation API:
+
+```php
+use Blokctl\Action\Story\StoryTranslatedSlugEnsureAction;
+
+$result = (new StoryTranslatedSlugEnsureAction($client))->execute(
+    spaceId: $spaceId,
+    storySlug: 'about',
+    storyId: null,
+    lang: 'it',
+    translatedSlug: '/chi-siamo',
+    name: 'Chi siamo',
+);
+```
+
 ### Workflows
 
 #### List workflows and stages
@@ -1912,6 +2102,18 @@ $result->provisions; // AppProvisions collection
 $result->count();    // int
 ```
 
+#### Check installed apps
+
+```php
+use Blokctl\Action\AppProvision\AppProvisionInstalledCheckAction;
+
+$action = new AppProvisionInstalledCheckAction($client);
+
+$isInstalled = $action->isInstalled($spaceId, 'translatable-slugs'); // bool
+
+$action->requireInstalled($spaceId, 'translatable-slugs'); // throws RuntimeException when missing
+```
+
 #### Install an app
 
 ```php
@@ -1953,8 +2155,8 @@ Each Action follows these conventions:
 
 - **Constructor** receives only the `ManagementApiClient`
 - **Methods** receive plain scalars (space ID, field name, etc.) — no framework objects
-- **Read-only Actions** have a single `execute()` method returning a typed Result DTO
-- **Mutating Actions** use `preflight()` to fetch data and evaluate preconditions, then `execute()` to perform the change
+- **Read-only Actions** have a single `execute()` method returning a typed Result DTO or scalar value
+- **Mutating Actions** expose `execute()` for the change. They use `preflight()` only when the command needs a separate confirmation/safety step before mutation
 - **Result DTOs** are `final readonly` classes with public properties and optional convenience methods (e.g. `canDelete()`, `hasEnvironments()`)
 - **Errors** are either thrown as `\RuntimeException` (for fatal issues) or collected in an `errors` array on the result (for non-fatal batch operations)
 
