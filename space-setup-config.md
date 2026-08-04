@@ -185,7 +185,7 @@ space:
     - de
 ```
 
-Do not declare the same language under both `add`/`ensure` and `remove`.
+Language add/remove operations preserve unmanaged languages. Added shorthand codes are sent as language objects with a derived display name and AI translation code, then `space:setup` reads the space back and fails the language operation if Storyblok does not expose the requested change. Do not declare the same language under both `add`/`ensure` and `remove`.
 
 `space.create_new: true`, `space.duplicate_from`, and `--space-id (-S)` are mutually exclusive target modes. Creating a blank space is always explicit; a `space.name` alone never creates a space.
 
@@ -270,6 +270,7 @@ apps:
     - export
     - import
     - backups
+    - translatable-slugs
 
 ai:
   enabled: true
@@ -292,6 +293,12 @@ stories:
         include_folders: true
         exclude_slugs: [error-404, site-config, global, italy]
       to_folder: global
+  translated_slugs:
+    - story_slug: /about
+      translations:
+        it:
+          slug: /chi-siamo
+          name: Chi siamo
 
 dimensions:
   folders:
@@ -616,9 +623,13 @@ The content object must include `component`.
 
 ## `stories.translated_slugs`
 
-Ensures translated slugs for existing stories. This requires the `translatable-slugs` app to be installed and the target language to be enabled in the space.
+Ensures translated slugs for existing stories. This requires the `translatable-slugs` app to be installed and the target language to be enabled in the space. When the same setup config declares `space.languages`, those languages are handled before translated slugs are reconciled.
 
 ```yaml
+space:
+  languages:
+    - it
+
 apps:
   install:
     - translatable-slugs
