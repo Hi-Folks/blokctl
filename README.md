@@ -213,7 +213,7 @@ php bin/blokctl space:setup \
 php bin/blokctl space:setup-validate --config examples/demo-space.yaml
 ```
 
-The setup config supports JSON and YAML and is validated against [space-setup-schema.json](space-setup-schema.json) before any space is created or modified. See [examples/demo-space.yaml](examples/demo-space.yaml) for general provisioning, [examples/multi-country-space.yaml](examples/multi-country-space.yaml) for folder, root-content move, and Dimensions reconciliation, and [examples/assets-space.yaml](examples/assets-space.yaml) for local-directory asset upload. See [space-setup-config.md](space-setup-config.md) for the full configuration syntax.
+The setup config supports JSON and YAML and is validated against [space-setup-schema.json](space-setup-schema.json) before any space is created or modified. See [examples/demo-space.yaml](examples/demo-space.yaml) for general provisioning, [examples/multi-country-space.yaml](examples/multi-country-space.yaml) for folder, root-content move, and Dimensions reconciliation, [examples/assets-space.yaml](examples/assets-space.yaml) for local-directory asset upload, and [examples/roles-space.yaml](examples/roles-space.yaml) for custom space roles. See [space-setup-config.md](space-setup-config.md) for the full configuration syntax.
 
 ```yaml
 execution:
@@ -421,6 +421,45 @@ Reads the target space, removes the requested language codes when present, prese
 | Argument | `languages` | | **(required)** One or more language codes to remove, e.g. `fr it` |
 | Option | `--space-id` | `-S` | **(required)** Storyblok Space ID |
 | Option | `--region` | `-R` | Management API region |
+
+#### `space:role-list` — List custom space roles
+
+```bash
+php bin/blokctl space:role-list -S 290817118944379
+php bin/blokctl space:role-list -S 290817118944379 --search=Editors
+```
+
+| Option | Description |
+|---|---|
+| `--search` | Filter roles by name |
+
+Shows each role with its ID, subtitle, permissions, allowed and blocked paths (as `slug (ID)`), and allowed languages. An empty list is shown as `all` (or `none` for blocked paths).
+
+#### `space:role-ensure` — Create or update a custom space role
+
+```bash
+# Create a role that can only see and edit one folder
+php bin/blokctl space:role-ensure -S 290817118944379 \
+  --name="Editors - North" \
+  --subtitle="Can edit the North region content only." \
+  -p read_stories -p save_stories -p view_content -p view_folders -p view_composer \
+  --allow=regions/north
+
+# A role limited to one language
+php bin/blokctl space:role-ensure -S 290817118944379 \
+  --name="Translators - German" -p read_stories -p save_stories -l de
+```
+
+| Option | Short | Description |
+|---|---|---|
+| `--name` | | **(required)** Role name. The role is matched by exact name (prompted if omitted) |
+| `--subtitle` | | Role description |
+| `--permission` | `-p` | Permission key, e.g. `read_stories`, `save_stories`, `publish_stories`, `view_content`, `view_folders` (repeatable) |
+| `--allow` | | Story or folder the role can access, by full slug or ID (repeatable). Elite plan only |
+| `--block` | | Story or folder the role cannot access, by full slug or ID (repeatable) |
+| `--language` | `-l` | Language code the role can edit, e.g. `default`, `de` (repeatable) |
+
+Creates the role when no role with that name exists. Otherwise it updates only the options you pass: a passed list replaces the existing list, and options you don't pass are left unchanged. Running it again with the same options changes nothing. Full slugs are matched exactly: `products` is the folder, `products/` is its start page. The Management API docs don't state whether a folder ID also covers the stories inside it, so check the result in the space.
 
 ### Preview URLs
 
@@ -1485,6 +1524,56 @@ $result->removedLanguages; // string[] — languages removed by this run
 
 This action reads the current space languages, removes only requested values, and updates the space language configuration through the Storyblok space update endpoint when any requested language exists. It reads the space back before returning `changed: true` and throws a `RuntimeException` if Storyblok does not persist the removal.
 
+#### List custom space roles
+
+```php
+use Blokctl\Action\Space\SpaceRoleListAction;
+
+$result = (new SpaceRoleListAction($client))->execute($spaceId, search: 'Editors');
+
+$result->roles;                       // list<array<string, mixed>> space role objects from the API
+$result->count();                     // int
+$result->findByName('Editors - North'); // array<string, mixed>|null, exact name match
+```
+
+#### Create or update a custom space role
+
+```php
+use Blokctl\Action\Space\SpaceRoleEnsureAction;
+use Blokctl\Action\Space\SpaceRoleEnsureResult;
+
+$result = (new SpaceRoleEnsureAction($client))->execute(
+    spaceId: $spaceId,
+    name: 'Editors - North',
+    subtitle: 'Can edit the North region content only.',
+    permissions: ['read_stories', 'save_stories', 'view_content', 'view_folders'],
+    allowedPaths: ['regions/north', 123456],   // full slugs or IDs (Elite plan)
+    blockedPaths: null,                        // null = not declared, keep the existing value
+    allowedLanguages: null,
+);
+
+$result->status;        // SpaceRoleEnsureResult::CREATED, UPDATED, or UNCHANGED
+$result->changed();     // bool
+$result->roleId();      // int
+$result->role;          // array<string, mixed> space role object
+$result->changedFields; // list<string>, e.g. ['permissions', 'allowed_paths']
+```
+
+Every property argument is optional. `null` means "not declared": the existing value is kept. A declared list replaces the existing list (order is ignored), and an empty list clears it. Throws `\RuntimeException` when a path cannot be resolved or the API request fails.
+
+#### Resolve a story or folder to its ID
+
+```php
+use Blokctl\Action\Story\StoryResolveIdAction;
+
+$resolver = new StoryResolveIdAction($client);
+$resolver->execute($spaceId, 'regions/north');                 // int, folder or story by exact full slug
+$resolver->execute($spaceId, '123456');                        // int, numeric references need no API call
+$resolver->executeMany($spaceId, ['regions/north', 'about']);  // list<int>, order kept, duplicates removed
+```
+
+Throws `\RuntimeException` when no story or folder matches the slug.
+
 #### Delete a space (with safety checks)
 
 ```php
@@ -2276,7 +2365,7 @@ South Region,editor.south@example.com,shared/south-campaign
 |---|---|
 | `group` | Group name. Each group gets one custom role, named `<prefix><group>` |
 | `email` | User email. The user receives a Storyblok invitation to join the space |
-| `content` | Story or folder the group can access: full slug (e.g. `regions/north`) or numeric ID. A folder includes its content. Repeat the row to allow several items |
+| `content` | Story or folder the group can access: full slug (e.g. `regions/north`) or numeric ID. Repeat the row to allow several items |
 
 ```bash
 # Dry run: resolves content, reads existing roles and collaborators, prints the plan
@@ -2291,7 +2380,7 @@ php examples/bulk-user-access.php <space-id> users.csv --execute --role-prefix="
 
 Each role restricts content with the space role `allowed_paths` setting and grants `read_stories`, `save_stories`, `view_content`, `view_folders`, and `view_composer`. Adjust the permissions in `createRole()` to fit your editorial process. The script is safe to run again: existing roles and collaborators are reused or skipped. Existing roles are not modified; the script warns when an existing role does not allow some of the content in the CSV.
 
-Requires a token that can manage space roles and collaborators. Run it on a test space first.
+Restricting content with `allowed_paths` is available on the Elite plan only. The API docs don't state whether a folder ID also covers the stories inside it, so verify the result in the space. Requires a token that can manage space roles and collaborators. Run it on a test space first.
 
 ## License
 

@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=../space-setup-schema.json
+
+version: 1
+
+execution:
+  mode: reconcile
+
+# Folders used by the roles below. Created first, so allowed_paths can reference them.
+folders:
+  ensure:
+    - name: Regions
+      slug: regions
+    - name: North
+      slug: regions/north
+      parent_slug: regions
+    - name: South
+      slug: regions/south
+      parent_slug: regions
+
+# One custom role per region. Each role can only see and edit its own folder.
+# allowed_paths accepts full slugs or numeric IDs and requires the Elite plan.
+roles:
+  - name: Editors - North
+    subtitle: Can edit the North region content only.
+    permissions:
+      - read_stories
+      - save_stories
+      - view_content
+      - view_folders
+      - view_composer
+    allowed_paths:
+      - regions/north
+
+  - name: Editors - South
+    subtitle: Can edit the South region content only.
+    permissions:
+      - read_stories
+      - save_stories
+      - view_content
+      - view_folders
+      - view_composer
+    allowed_paths:
+      - regions/south
+
+  - name: Translators - German
+    subtitle: Can edit German translations only.
+    permissions:
+      - read_stories
+      - save_stories
+    allowed_languages:
+      - de

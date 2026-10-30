@@ -12,6 +12,8 @@ use Blokctl\Action\Folder\FolderCreateAction;
 use Blokctl\Action\Space\SpaceDemoRemoveAction;
 use Blokctl\Action\Space\SpaceLanguagesEnsureAction;
 use Blokctl\Action\Space\SpaceLanguagesRemoveAction;
+use Blokctl\Action\Space\SpaceRoleEnsureAction;
+use Blokctl\Action\Space\SpaceRoleEnsureResult;
 use Blokctl\Action\SpacePreview\SpacePreviewSetAction;
 use Blokctl\Action\Story\StoryCreateAction;
 use Blokctl\Action\Story\StoryTranslatedSlugInput;
@@ -70,6 +72,7 @@ final readonly class SpaceSetupProvisioner
             $this->provisionAssets($reporter, $spaceId, $config, $configDirectory, $dryRun, $continueOnError);
             $this->provisionStoryUpdates($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionStoryCreates($reporter, $spaceId, $config, $configDirectory, $dryRun, $continueOnError);
+            $this->provisionRoles($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionWorkflow($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionApps($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionTranslatedSlugs($reporter, $spaceId, $config, $dryRun, $continueOnError);
@@ -1380,6 +1383,81 @@ final readonly class SpaceSetupProvisioner
     /**
      * @param array<string, mixed> $config
      */
+    private function provisionRoles(
+        SpaceSetupReporter $reporter,
+        string $spaceId,
+        array $config,
+        bool $dryRun,
+        bool $continueOnError,
+    ): void {
+        foreach ($this->listValue($config['roles'] ?? []) as $role) {
+            if (!is_array($role)) {
+                continue;
+            }
+
+            $name = $this->stringValue($role['name'] ?? '');
+            $subtitle = $this->nullableStringValue($role['subtitle'] ?? null);
+            $permissions = array_key_exists('permissions', $role) ? $this->stringListValue($role['permissions']) : null;
+            $allowedPaths = array_key_exists('allowed_paths', $role) ? $this->stringListValue($role['allowed_paths']) : null;
+            $blockedPaths = array_key_exists('blocked_paths', $role) ? $this->stringListValue($role['blocked_paths']) : null;
+            $allowedLanguages = array_key_exists('allowed_languages', $role) ? $this->stringListValue($role['allowed_languages']) : null;
+            $label = 'Ensure space role: ' . $name;
+            $reporter->run($label, SpaceSetupOperationStatus::Updated, $continueOnError, function () use ($spaceId, $name, $subtitle, $permissions, $allowedPaths, $blockedPaths, $allowedLanguages, $dryRun, $label): SpaceSetupOperationResult {
+                if ($dryRun) {
+                    $details = [];
+                    if ($permissions !== null) {
+                        $details[] = 'permissions: ' . ($permissions === [] ? 'none' : implode(', ', $permissions));
+                    }
+
+                    if ($allowedPaths !== null) {
+                        $details[] = 'allowed paths: ' . ($allowedPaths === [] ? 'all' : implode(', ', $allowedPaths));
+                    }
+
+                    if ($blockedPaths !== null) {
+                        $details[] = 'blocked paths: ' . ($blockedPaths === [] ? 'none' : implode(', ', $blockedPaths));
+                    }
+
+                    if ($allowedLanguages !== null) {
+                        $details[] = 'allowed languages: ' . ($allowedLanguages === [] ? 'all' : implode(', ', $allowedLanguages));
+                    }
+
+                    return new SpaceSetupOperationResult(SpaceSetupOperationStatus::Updated, $label, implode('; ', $details));
+                }
+
+                $result = new SpaceRoleEnsureAction($this->client)->execute(
+                    spaceId: $spaceId,
+                    name: $name,
+                    subtitle: $subtitle,
+                    permissions: $permissions,
+                    allowedPaths: $allowedPaths,
+                    blockedPaths: $blockedPaths,
+                    allowedLanguages: $allowedLanguages,
+                );
+
+                return match ($result->status) {
+                    SpaceRoleEnsureResult::CREATED => new SpaceSetupOperationResult(
+                        SpaceSetupOperationStatus::Created,
+                        $label,
+                        'Role ID ' . $result->roleId() . '.',
+                    ),
+                    SpaceRoleEnsureResult::UPDATED => new SpaceSetupOperationResult(
+                        SpaceSetupOperationStatus::Updated,
+                        $label,
+                        'Changed: ' . implode(', ', $result->changedFields) . '.',
+                    ),
+                    default => new SpaceSetupOperationResult(
+                        SpaceSetupOperationStatus::Skipped,
+                        $label,
+                        'Role already matches.',
+                    ),
+                };
+            });
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
     private function provisionTags(
         SpaceSetupReporter $reporter,
         string $spaceId,
@@ -2281,7 +2359,7 @@ final readonly class SpaceSetupProvisioner
     }
 
     /**
-     * @return string[]
+     * @return list<string>
      */
     private function stringListValue(mixed $value): array
     {

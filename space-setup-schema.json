@@ -74,6 +74,10 @@
       "description": "Creates or updates explicitly configured fields on existing components.",
       "$ref": "#/$defs/components"
     },
+    "roles": {
+      "description": "Ensures custom space roles exist with the declared properties.",
+      "$ref": "#/$defs/roles"
+    },
     "tags": {
       "description": "Assigns and merges tags on selected stories.",
       "$ref": "#/$defs/tagAssignments"
@@ -1199,6 +1203,55 @@
               "$ref": "#/$defs/nonEmptyString"
             }
           }
+        }
+      }
+    },
+    "roles": {
+      "description": "Custom space roles, matched by exact name. Missing roles are created; declared properties of existing roles are updated. Undeclared properties are left unchanged, and roles not listed here are never removed.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/spaceRole"
+      }
+    },
+    "spaceRole": {
+      "description": "A custom space role. A declared list replaces the existing list; an empty list clears it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "description": "Role name. Used to find an existing role.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "subtitle": {
+          "description": "Role description.",
+          "type": "string"
+        },
+        "permissions": {
+          "description": "Permission keys, e.g. read_stories, save_stories, publish_stories, view_content, view_folders.",
+          "$ref": "#/$defs/stringList"
+        },
+        "allowed_paths": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          },
+          "description": "Stories or folders the role can access, by full slug or numeric ID. Empty means all content. Available on the Elite plan only."
+        },
+        "blocked_paths": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          },
+          "description": "Stories or folders the role cannot access, by full slug or numeric ID."
+        },
+        "allowed_languages": {
+          "description": "Language codes the role can edit, e.g. default, de. Empty means all languages.",
+          "$ref": "#/$defs/stringList"
         }
       }
     }

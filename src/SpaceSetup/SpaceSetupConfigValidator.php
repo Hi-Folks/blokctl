@@ -81,6 +81,16 @@ final readonly class SpaceSetupConfigValidator
             $errors[] = '$.space.name: space.name is required when using space.create_new: true.';
         }
 
+        $roleNames = [];
+        foreach (is_array($config['roles'] ?? null) ? $config['roles'] : [] as $role) {
+            $name = is_array($role) && is_string($role['name'] ?? null) ? $role['name'] : null;
+            if ($name !== null && in_array($name, $roleNames, true)) {
+                $errors[] = '$.roles: Duplicate space role name "' . $name . '".';
+            }
+
+            $roleNames[] = $name;
+        }
+
         return $errors;
     }
 

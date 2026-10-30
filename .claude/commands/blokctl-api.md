@@ -36,6 +36,8 @@ Most resource-oriented commands are backed by reusable Action classes with no CL
 | `Space\SpaceDemoRemoveAction` | Remove demo mode (preflight+execute) | `->isDemo` |
 | `Space\SpaceReadinessAction` | Wait until duplicated-space tasks complete | `->attempts`, `->elapsedSeconds` |
 | `Space\SpaceTokenAction` | Retrieve first preview token | `->token` |
+| `Space\SpaceRoleListAction` | List custom space roles (optional name search) | `->roles`, `->count()`, `->findByName()` |
+| `Space\SpaceRoleEnsureAction` | Create or update a custom space role (null = keep existing value) | `->status`, `->changed()`, `->roleId()`, `->role`, `->changedFields` |
 | `SpacePreview\SpacePreviewListAction` | List preview URLs | `->defaultDomain`, `->environments` |
 | `SpacePreview\SpacePreviewSetAction` | Set preview URL (preflight+execute) | `->space` |
 | `SpacePreview\SpacePreviewAddAction` | Add environment (preflight+execute) | `->space` |
@@ -46,6 +48,7 @@ Most resource-oriented commands are backed by reusable Action classes with no CL
 | `Story\StoryUpdateAction` | Update story content | `->story`, `->appliedContent` |
 | `Story\StoryFieldSetAction` | Set a single field | `->story`, `->fieldName`, `->newValue`, `->previousValue` |
 | `Story\StoryShowAction` | Show story by slug/id/uuid | `->story`, `->fullResponse` |
+| `Story\StoryResolveIdAction` | Resolve story or folder full slug (or ID) to numeric ID | `execute()` returns `int`, `executeMany()` returns `list<int>` |
 | `Story\StoryMoveAction` | Move story to folder | `->story`, `->previousFolderId`, `->newFolderId` |
 | `Story\StoryWorkflowChangeAction` | Change or remove workflow stage | `->story`, `->workflowStageName`, `->workflowStageId`, `->previousWorkflowStageId` |
 | `Story\StoriesBulkCreateAction` | Create stories from JSON files in a directory | `->created`, `->errors`, `->count()`, `->errorCount()` |

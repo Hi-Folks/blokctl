@@ -286,7 +286,8 @@ function fetchCollaboratorEmails(ManagementApiClient $client, string $spaceId): 
 
 /**
  * Create a custom role that can only see and edit the given stories/folders.
- * allowed_paths takes numeric story IDs (a folder ID includes its content).
+ * allowed_paths takes numeric story IDs and is available on the Elite plan only.
+ * The API docs don't state whether a folder ID also covers the stories inside it.
  *
  * @param list<int> $storyIds
  * @return array{id: int, allowed_paths: list<int>}

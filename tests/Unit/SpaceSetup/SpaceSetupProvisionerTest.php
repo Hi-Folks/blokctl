@@ -946,6 +946,96 @@ final class SpaceSetupProvisionerTest extends TestCase
     }
 
     #[Test]
+    public function plans_each_space_role(): void
+    {
+        $result = $this->singleResult([
+            'roles' => [
+                [
+                    'name' => 'Editors - North',
+                    'permissions' => ['read_stories', 'save_stories'],
+                    'allowed_paths' => ['regions/north', 123],
+                    'blocked_paths' => [],
+                ],
+            ],
+        ]);
+
+        $this->assertPlanned($result, 'Ensure space role: Editors - North');
+        $this->assertSame(
+            'permissions: read_stories, save_stories; allowed paths: regions/north, 123; blocked paths: none',
+            $result->detail,
+        );
+    }
+
+    #[Test]
+    public function creates_missing_space_role(): void
+    {
+        $create = $this->mockResponse('one-space-role', 201);
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                $this->mockResponse('list-space-roles-empty'),
+                $create,
+            ),
+            [
+                'roles' => [
+                    [
+                        'name' => 'Editors - South',
+                        'permissions' => ['read_stories', 'save_stories'],
+                        'allowed_paths' => [235648969216040],
+                    ],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Created, 'Ensure space role: Editors - South');
+        $this->assertSame('Role ID 236218588950000.', $reporter->results()[0]->detail);
+        $this->assertSame([235648969216040], $this->valueAtPath($this->requestJsonPayload($create), ['space_role', 'allowed_paths']));
+    }
+
+    #[Test]
+    public function updates_changed_space_role_properties(): void
+    {
+        $update = $this->mockResponse('one-space-role');
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                $this->mockResponse('list-space-roles'),
+                $update,
+            ),
+            [
+                'roles' => [
+                    [
+                        'name' => 'Editors - North',
+                        'allowed_languages' => ['default', 'de'],
+                    ],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Updated, 'Ensure space role: Editors - North');
+        $this->assertSame('Changed: allowed_languages.', $reporter->results()[0]->detail);
+        $this->assertSame('PUT', $update->getRequestMethod());
+    }
+
+    #[Test]
+    public function skips_space_roles_that_already_match(): void
+    {
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                $this->mockResponse('list-space-roles'),
+            ),
+            [
+                'roles' => [
+                    [
+                        'name' => 'Editors - North',
+                        'permissions' => ['read_stories', 'save_stories', 'view_content', 'view_folders'],
+                    ],
+                ],
+            ],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Skipped, 'Ensure space role: Editors - North');
+    }
+
+    #[Test]
     public function plans_each_tag_assignment(): void
     {
         $result = $this->singleResult([

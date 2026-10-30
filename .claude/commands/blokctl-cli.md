@@ -27,6 +27,8 @@ Exceptions that do not require `-S`: `space:create`, `space:setup-validate`, `sp
 - **`space:demo-remove`** — Remove demo mode from a space.
 - **`space:token`** — Show the space's preview access token.
 - **`space:setup`** — Reconcile a space from validated YAML/JSON Configuration as Code. Use `-S` for an existing space, `space.create_new: true` with `space.name` for a blank space, or `space.duplicate_from` with `space.name` for a duplicated target. Options: `--config`, `--dry-run`, `--continue-on-error`, repeatable `--set`, `--report`.
+- **`space:role-list`** — List custom space roles with permissions, allowed/blocked paths, and languages. Option: `--search`.
+- **`space:role-ensure`** — Create a custom space role or update its declared properties (matched by exact name). Options: `--name`, `--subtitle`, `-p`/`--permission`, `--allow`, `--block` (full slug or ID, repeatable), `-l`/`--language`. Passed lists replace existing values; omitted options are kept. `allowed_paths` needs the Elite plan.
 - **`space:setup-validate`** — Validate a setup YAML/JSON file against `space-setup-schema.json` without accessing Storyblok. Option: `--config`. No `--space-id` needed.
 
 ### Configuration as Code setup
@@ -41,6 +43,7 @@ Exceptions that do not require `-S`: `space:create`, `space:setup-validate`, `sp
 - Supports multi-country setup with `folders.ensure`, `stories.move`, and `dimensions.folders`.
 - Uploads local asset directories with `assets.upload_directory`, preserving nested folders and skipping matching filenames.
 - Converts space-local assets into the Global Asset Library with `assets.convert_to_global`; requires `target_shared_folder_id` and one source selector (`asset_id`, `asset_ids`, `source_folder_id`, or `source_folder_name`).
+- Creates or updates custom space roles with `roles` (matched by name; only declared properties are reconciled; roles are never removed; users are not invited).
 - Configures space-level Storyblok AI activation with `ai.enabled` and `ai.inherit_org_configuration`, and AI Translations disclaimer acceptance with `ai_translation.disclaimer_id`.
 
 Duplicate-first setup waits until Storyblok reports no pending background tasks before provisioning. If setup fails after duplication, the new space is preserved for inspection or recovery.
@@ -64,6 +67,10 @@ php bin/blokctl space:setup -S <exact-space-id> \
 # Reconcile a local asset directory
 php bin/blokctl space:setup -S <exact-space-id> \
   --config examples/assets-space.yaml
+
+# Reconcile region folders and custom roles scoped to them
+php bin/blokctl space:setup -S <exact-space-id> \
+  --config examples/roles-space.yaml
 ```
 
 See `space-setup-config.md` for complete syntax. Reports contain stable JSON status, target/duplication details, masked operations, and summary counts.

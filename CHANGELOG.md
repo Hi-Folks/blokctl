@@ -8,6 +8,9 @@ All notable changes to `blokctl` will be documented in this file.
 
 - Added `components:diff` command to compare components between two spaces: components present in only one space, settings, field properties (including default values), tab placement, and optionally preset content. Supports `--component`, `--with-presets`, `--target-region`, `--json`, and `--exit-code`.
 - Added reusable PHP action `ComponentsDiffAction` with `ComponentsDiffResult`.
+- Added `space:role-list` and `space:role-ensure` commands to list custom space roles and create or update them (subtitle, permissions, allowed and blocked paths by full slug or ID, allowed languages).
+- Added `roles` section to `space:setup` YAML/JSON configs, with `examples/roles-space.yaml`.
+- Added reusable PHP actions `SpaceRoleListAction`, `SpaceRoleEnsureAction`, and `StoryResolveIdAction` (resolves stories and folders by full slug or ID).
 
 ## 0.15.0 - 2026-08-04
 

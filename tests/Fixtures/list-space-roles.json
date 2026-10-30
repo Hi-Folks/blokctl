@@ -1,0 +1,64 @@
+{
+  "space_roles": [
+    {
+      "ext_id": null,
+      "resolved_blocked_paths": null,
+      "blocked_paths": [],
+      "field_permissions": [],
+      "allowed_field_permissions": [],
+      "readonly_field_permissions": [],
+      "subtitle": "North region editors",
+      "datasource_ids": [],
+      "blocked_datasource_ids": [],
+      "component_ids": [],
+      "allowed_component_ids": [],
+      "branch_ids": [],
+      "blocked_branch_ids": [],
+      "allowed_languages": [],
+      "blocked_languages": [],
+      "asset_folder_ids": [],
+      "blocked_asset_folder_ids": [],
+      "id": 236218588949901,
+      "role": "Editors - North",
+      "permissions": [
+        "read_stories",
+        "save_stories",
+        "view_content",
+        "view_folders"
+      ],
+      "allowed_paths": [
+        235648969216038
+      ],
+      "resolved_allowed_paths": [
+        "regions/north"
+      ]
+    },
+    {
+      "ext_id": null,
+      "resolved_blocked_paths": null,
+      "blocked_paths": [],
+      "field_permissions": [],
+      "allowed_field_permissions": [],
+      "readonly_field_permissions": [],
+      "subtitle": null,
+      "datasource_ids": [],
+      "blocked_datasource_ids": [],
+      "component_ids": [],
+      "allowed_component_ids": [],
+      "branch_ids": [],
+      "blocked_branch_ids": [],
+      "allowed_languages": [],
+      "blocked_languages": [],
+      "asset_folder_ids": [],
+      "blocked_asset_folder_ids": [],
+      "id": 236218588949864,
+      "role": "Page Readers",
+      "permissions": [
+        "read_stories",
+        "save_stories"
+      ],
+      "allowed_paths": [],
+      "resolved_allowed_paths": []
+    }
+  ]
+}

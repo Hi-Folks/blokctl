@@ -43,6 +43,47 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     }
 
     #[Test]
+    public function validates_roles_example_yaml_configuration(): void
+    {
+        $config = new SpaceSetupConfigLoader()->load('examples/roles-space.yaml');
+
+        $result = new SpaceSetupConfigValidator()->validate($config);
+
+        $this->assertTrue($result->isValid(), implode(' | ', $result->errors));
+    }
+
+    #[Test]
+    public function rejects_space_roles_without_name_or_with_unknown_properties(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'roles' => [
+                ['permissions' => ['read_stories']],
+                ['name' => 'Editors', 'collaborators' => ['editor@example.com']],
+            ],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertErrorsContain($result->errors, 'name');
+        $this->assertErrorsContain($result->errors, 'collaborators');
+    }
+
+    #[Test]
+    public function rejects_duplicate_space_role_names(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'roles' => [
+                ['name' => 'Editors', 'permissions' => ['read_stories']],
+                ['name' => 'Editors', 'allowed_paths' => ['regions/north', 123]],
+            ],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertErrorsContain($result->errors, 'Duplicate space role name "Editors"');
+    }
+
+    #[Test]
     public function rejects_configuration_without_version(): void
     {
         $result = new SpaceSetupConfigValidator()->validate([

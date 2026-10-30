@@ -220,6 +220,7 @@ Except for `version`, all top-level sections are optional. If a section is omitt
 | `dimensions` | Reconcile Dimensions app folders. |
 | `assets` | Upload local asset directories and convert space assets into the Global Asset Library. |
 | `components` | Add fields to existing components. |
+| `roles` | Create or update custom space roles. |
 | `tags` | Assign tags to stories by ID or slug. |
 
 ## Full YAML Example
@@ -772,6 +773,48 @@ components:
 | `fields[].customize_toolbar` | No | Boolean. Enable or disable richtext toolbar customization on fields that support it. Existing fields change only when declared. |
 
 Missing fields are created. Existing fields are compared using only properties declared in the setup config: matching fields are skipped and differing declared properties are updated. Unmanaged field properties are preserved.
+
+## `roles`
+
+Creates custom space roles, or updates the declared properties of existing roles. Roles are matched by exact name.
+
+```yaml
+roles:
+  - name: Editors - North
+    subtitle: Can edit the North region content only.
+    permissions:
+      - read_stories
+      - save_stories
+      - view_content
+      - view_folders
+      - view_composer
+    allowed_paths:
+      - regions/north
+
+  - name: Translators - German
+    permissions:
+      - read_stories
+      - save_stories
+    allowed_languages:
+      - de
+```
+
+| Key | Required | Description |
+|---|---:|---|
+| `name` | Yes | Role name. Must be unique in the config. |
+| `subtitle` | No | Role description. |
+| `permissions` | No | Permission keys, such as `read_stories`, `save_stories`, `publish_stories`, `view_content`, `view_folders`, or `view_composer`. |
+| `allowed_paths` | No | Stories or folders the role can access, by full slug or numeric ID. An empty list means all content. Available on the Elite plan only. |
+| `blocked_paths` | No | Stories or folders the role cannot access, by full slug or numeric ID. |
+| `allowed_languages` | No | Language codes the role can edit, such as `default` or `de`. An empty list means all languages. |
+
+Missing roles are reported as `CREATED`. For existing roles, only declared properties are compared: a declared list replaces the existing list (order is ignored) and an empty list clears it. Matching roles are reported as `SKIPPED`, and roles with differences as `UPDATED`. Undeclared properties are left unchanged, and roles not listed in the config are never removed.
+
+Roles run after folders and story creation, so `allowed_paths` and `blocked_paths` can reference folders and stories created by the same config. Full slugs are matched exactly: `products` is the folder, `products/` is its start page. The Management API docs don't state whether a folder ID also covers the stories inside it, so check the result in the space.
+
+The config only manages roles. It doesn't invite users or assign roles to them.
+
+See [examples/roles-space.yaml](examples/roles-space.yaml).
 
 ## `tags`
 
