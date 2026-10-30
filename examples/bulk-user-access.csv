@@ -1,0 +1,5 @@
+group,email,content
+North Region,editor.north@example.com,regions/north
+North Region,manager.north@example.com,regions/north
+South Region,editor.south@example.com,regions/south
+South Region,editor.south@example.com,shared/south-campaign
