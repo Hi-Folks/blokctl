@@ -113,15 +113,13 @@ final readonly class SpaceCollaboratorInviteAction
             return [strtolower($role), null];
         }
 
-        $roles = new SpaceRoleListAction($this->client)->execute($spaceId);
-        foreach ($roles->roles as $spaceRole) {
-            $id = $spaceRole['id'] ?? null;
-            $name = $spaceRole['role'] ?? null;
-            if (is_numeric($id) && is_string($name) && ($name === $role || (string) $id === $role)) {
-                return [$name, (int) $id];
-            }
+        $spaceRole = new SpaceRoleListAction($this->client)->execute($spaceId)->findByNameOrId($role);
+        $id = $spaceRole['id'] ?? null;
+        $name = $spaceRole['role'] ?? null;
+        if (!is_numeric($id) || !is_string($name)) {
+            throw new \RuntimeException('Space role not found: ' . $role);
         }
 
-        throw new \RuntimeException('Space role not found: ' . $role);
+        return [$name, (int) $id];
     }
 }

@@ -33,4 +33,22 @@ final readonly class SpaceRoleListResult
 
         return null;
     }
+
+    /**
+     * Find a role by its exact name or numeric ID.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findByNameOrId(string $nameOrId): ?array
+    {
+        $nameOrId = trim($nameOrId);
+        foreach ($this->roles as $role) {
+            $id = $role['id'] ?? null;
+            if (($role['role'] ?? null) === $nameOrId || (is_scalar($id) && (string) $id === $nameOrId)) {
+                return $role;
+            }
+        }
+
+        return null;
+    }
 }

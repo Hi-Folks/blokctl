@@ -1,0 +1,40 @@
+{
+    "collaborators": [
+        {
+            "id": 10001,
+            "role": "236218588949901",
+            "space_role_id": 236218588949901,
+            "space_role_ids": [],
+            "invitation": null,
+            "user": {
+                "id": 20001,
+                "friendly_name": "Alice S.",
+                "real_email": "alice@example.com"
+            }
+        },
+        {
+            "id": 10002,
+            "role": "236218588949864",
+            "space_role_id": 236218588949864,
+            "space_role_ids": [236218588949901],
+            "invitation": null,
+            "user": {
+                "id": 20002,
+                "friendly_name": "Bob J.",
+                "real_email": "bob@example.com"
+            }
+        },
+        {
+            "id": 10003,
+            "role": "editor",
+            "space_role_id": null,
+            "space_role_ids": [],
+            "invitation": null,
+            "user": {
+                "id": 20003,
+                "friendly_name": "Carol W.",
+                "real_email": "carol@example.com"
+            }
+        }
+    ]
+}

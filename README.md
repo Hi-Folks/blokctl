@@ -490,6 +490,38 @@ php bin/blokctl space:collaborator-invite -S 290817118944379 \
 
 Current collaborators are skipped (matched by email, case-insensitive). An email that already belongs to a Storyblok user is added to the space directly. An email without a Storyblok account gets a pending invitation that expires after 7 days. Pending invitations don't appear in the collaborators list, so running the command again for the same email cannot skip them. The command exits with a non-zero code when any email fails.
 
+#### `space:collaborator-remove` — Remove collaborators
+
+```bash
+# Preview by email
+php bin/blokctl space:collaborator-remove -S 290817118944379 -e editor.north@example.com --dry-run
+
+# Remove a pending invitation by collaborator ID (asks for confirmation; -n skips the prompt)
+php bin/blokctl space:collaborator-remove -S 290817118944379 --id=236353344611718
+```
+
+| Option | Short | Description |
+|---|---|---|
+| `--email` | `-e` | Email of the collaborator to remove (repeatable) |
+| `--id` | | Collaborator ID to remove (repeatable) |
+| `--dry-run` | | Show the plan without changing the space |
+
+At least one `--email` or `--id` is required. Emails are matched against the collaborators list; an email that doesn't match is reported as not a collaborator and the command exits with a non-zero code. Pending invitations are not in that list, so remove them with `--id`, using the collaborator ID returned when the invitation was created. An `--id` that is not in the list is still sent to the API.
+
+#### `space:role-delete` — Delete a custom space role
+
+```bash
+php bin/blokctl space:role-delete -S 290817118944379 --role="Editors - North" --dry-run
+php bin/blokctl space:role-delete -S 290817118944379 --role=236218588949901
+```
+
+| Option | Description |
+|---|---|
+| `--role` | **(required)** Custom space role name or ID |
+| `--dry-run` | Show the role and its collaborators without deleting it |
+
+Before deleting, the command lists the collaborators that still have the role and asks for confirmation (`-n` skips the prompt). The Management API docs don't state what happens to those collaborators, so reassign them first if needed. Pending invitations with the role are not listed.
+
 ### Preview URLs
 
 #### `space:preview-list` — List preview URLs
@@ -1643,6 +1675,46 @@ $result->hasFailures();   // bool; per-email errors are in $result->entries[]['m
 ```
 
 `role` accepts `admin`, `editor` (default), or a custom space role name or ID. `preflight()` throws `\RuntimeException` for an invalid email, an unknown role, or an API error. `execute()` does not throw for a single email; it collects failures per email.
+
+#### Remove collaborators (preflight + execute)
+
+```php
+use Blokctl\Action\Space\SpaceCollaboratorRemoveAction;
+use Blokctl\Action\Space\SpaceCollaboratorRemoveResult;
+
+$action = new SpaceCollaboratorRemoveAction($client);
+
+// Emails are matched against the collaborators list; IDs also cover pending invitations
+$preflight = $action->preflight($spaceId, emails: ['editor@example.com'], collaboratorIds: [236353344611718]);
+$preflight->entriesWithStatus(SpaceCollaboratorRemoveResult::PLANNED);   // list of entries
+$preflight->entriesWithStatus(SpaceCollaboratorRemoveResult::NOT_FOUND); // emails that are not collaborators
+
+$result = $action->execute($spaceId, $preflight);
+$result->entriesWithStatus(SpaceCollaboratorRemoveResult::REMOVED);
+$result->hasFailures(); // bool
+```
+
+Each entry is `['email' => string, 'collaboratorId' => int|null, 'status' => string, 'message' => string]`. `email` is empty for an ID that is not in the collaborators list.
+
+#### Delete a custom space role (preflight + execute)
+
+```php
+use Blokctl\Action\Space\SpaceRoleDeleteAction;
+
+$action = new SpaceRoleDeleteAction($client);
+$preflight = $action->preflight($spaceId, 'Editors - North'); // name or ID
+
+$preflight->roleId;         // int
+$preflight->roleName;       // string
+$preflight->assignedEmails; // list<string>, collaborators that still have the role
+$preflight->isAssigned();   // bool
+
+if (!$preflight->isAssigned()) {
+    $action->execute($spaceId, $preflight);
+}
+```
+
+`preflight()` throws `\RuntimeException` when the role is not found; `execute()` throws when the API request fails.
 
 #### Delete a space (with safety checks)
 

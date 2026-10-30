@@ -41,6 +41,18 @@ final class SpaceRoleListActionTest extends TestCase
     }
 
     #[Test]
+    public function find_by_name_or_id_matches_name_or_numeric_id(): void
+    {
+        $result = new SpaceRoleListAction($this->createMockClient(
+            $this->mockResponse('list-space-roles'),
+        ))->execute('680');
+
+        $this->assertSame('Page Readers', $result->findByNameOrId('236218588949864')['role'] ?? null);
+        $this->assertSame(236218588949901, $result->findByNameOrId(' Editors - North ')['id'] ?? null);
+        $this->assertNull($result->findByNameOrId('999'));
+    }
+
+    #[Test]
     public function execute_throws_on_api_error(): void
     {
         $action = new SpaceRoleListAction($this->createMockClient(
