@@ -1,0 +1,6 @@
+{
+  "presets": [
+    {"id": 1, "name": "Default hero", "component_id": 102, "description": null, "preset": {"_uid": "p1", "component": "hero-section", "headline": "Hello", "layout": "stacked"}},
+    {"id": 2, "name": "Default banner", "component_id": 101, "description": null, "preset": {"_uid": "p2", "component": "banner", "headline": "Join us"}}
+  ]
+}

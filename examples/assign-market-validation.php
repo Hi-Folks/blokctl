@@ -6,8 +6,8 @@
  * folders that don't have a workflow stage yet.
  *
  * Usage:
- *   php scripts/assign-market-validation.php <space-id>
- *   php scripts/assign-market-validation.php <space-id> --dry-run
+ *   php examples/assign-market-validation.php <space-id>
+ *   php examples/assign-market-validation.php <space-id> --dry-run
  */
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -25,7 +25,7 @@ $spaceId = $argv[1] ?? null;
 $dryRun = in_array('--dry-run', $argv, true);
 
 if ($spaceId === null) {
-    echo "Usage: php scripts/assign-market-validation.php <space-id> [--dry-run]\n";
+    echo "Usage: php examples/assign-market-validation.php <space-id> [--dry-run]\n";
     exit(1);
 }
 

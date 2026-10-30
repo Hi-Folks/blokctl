@@ -58,7 +58,7 @@ final readonly class SpaceSetupProvisioner
         string $mode,
         string $configDirectory = '.',
     ): SpaceSetupReporter {
-        $reporter = new SpaceSetupReporter($dryRun);
+        $reporter = new SpaceSetupReporter($dryRun, $spaceId);
         $reporter->start($spaceId, $mode);
 
         try {

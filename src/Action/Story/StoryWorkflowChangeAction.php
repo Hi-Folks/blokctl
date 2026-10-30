@@ -143,9 +143,7 @@ final readonly class StoryWorkflowChangeAction
         $defaultWorkflow = null;
         /** @phpstan-ignore foreach.nonIterable */
         foreach ($workflows as $workflow) {
-            if ($defaultWorkflow === null) {
-                $defaultWorkflow = $workflow;
-            }
+            $defaultWorkflow ??= $workflow;
 
             if ($workflow->getBoolean('is_default')) {
                 $defaultWorkflow = $workflow;

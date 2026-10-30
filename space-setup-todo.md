@@ -65,6 +65,46 @@ Recommended implementation order:
   php bin/blokctl space:setup-validate --config demo-space.yaml
   ```
 
+## Priority 1A: PHP Schema as Code
+
+Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@storyblok/schema`, but make it reuse `blokctl`'s existing `space:setup` reconciliation instead of creating a parallel sync engine.
+
+- [ ] Add schema model classes: `Schema`, `Block`, `Field`, `Folder`, and `Datasource`.
+  - Suggested namespace: `Blokctl\Schema`.
+  - Keep these classes as fluent, immutable authoring objects with no HTTP client, command, or reporter dependencies.
+  - Start with the field and block properties already supported by `space:setup`: technical names, field type, display name, tab, position, required, translatable, `customize_toolbar`, and plugin/custom `field_type`.
+  - Use enums where they prevent string drift, for example `FieldType`.
+  - Validate duplicate field names, empty technical names, invalid folder paths, and unsupported field/reference combinations early.
+
+- [ ] Export PHP schema definitions to the existing `space:setup` config format.
+  - Add an exporter such as `Blokctl\Schema\Export\SpaceSetupConfigExporter`.
+  - `Schema::toSpaceSetupConfig()` should delegate to the exporter rather than embedding config-shape logic in the model classes.
+  - Generated config should pass `SpaceSetupConfigValidator` and should be executable by `SpaceSetupProvisioner`.
+  - First exporter target can emit only currently supported sections, especially `components.fields`; keep the public schema API stable so richer exports can be added later.
+
+- [ ] Expand `space:setup` to create and reconcile full components, component folders, and datasources.
+  - Add `components.ensure` for component/block creation and full schema reconciliation, instead of only adding fields to existing components.
+  - Add component folder/group reconciliation by path, matching the `Folder` model.
+  - Add datasource reconciliation by slug, including dimensions; preserve or explicitly manage datasource entries separately.
+  - Reuse existing setup primitives: validation, dry-run planning, operation reporting, continue-on-error behavior, and idempotent update checks.
+  - Keep destructive schema changes explicit and gated by the destructive-operation decision below.
+
+- [ ] Add story validation against the declared PHP schema.
+  - Validate root component names, nested `bloks` content, required fields, scalar field value types, allowed components/folders for `bloks`, datasource-backed option values where practical, and custom field plugin values when validators are available.
+  - Return non-throwing validation results with paths such as `content.body[0].headline`.
+  - Use this validation for local JSON story files before `stories.create` or `stories.update`.
+
+- [ ] Add schema commands: `schema:init`, `schema:push`, and `schema:rollback`.
+  - `schema:init` should inspect a space and generate PHP schema files as a one-time bootstrap for adopting an existing space.
+  - `schema:push` should load a PHP schema entry file, validate it, generate a plan/diff, and apply changes through the existing setup/provisioning layer where possible.
+  - `schema:rollback` should revert a saved schema changeset; define the changeset format before implementing destructive operations.
+  - Prefer composing existing `space:setup` services over adding separate API mutation paths.
+
+- [ ] Optionally generate PHPStan/Psalm types or DTO classes from PHP schema definitions.
+  - Start with generated array-shape annotations for story `content`.
+  - Consider DTO generation only after the schema model and story validation are stable.
+  - Document that PHP cannot fully mirror TypeScript literal inference, but can provide useful static-analysis support.
+
 ## Priority 2: Idempotency and Reliability
 
 - [x] Add default reconcile execution mode and scoped `continue_on_error`:

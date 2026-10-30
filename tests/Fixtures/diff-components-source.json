@@ -1,0 +1,42 @@
+{
+  "components": [
+    {
+      "name": "banner",
+      "display_name": "Banner",
+      "id": 101,
+      "is_root": false,
+      "is_nestable": true,
+      "component_group_uuid": "group-src-1",
+      "internal_tags_list": [{"id": 1, "name": "Sections"}],
+      "schema": {
+        "headline": {"type": "text", "pos": 0, "id": "a1", "required": true},
+        "text_alignment": {"type": "option", "pos": 1, "id": "a2", "default_value": "center", "options": [{"_uid": "o1", "name": "Left", "value": "left"}, {"_uid": "o2", "name": "Center", "value": "center"}]},
+        "background_color": {"type": "option", "pos": 2, "id": "a3", "default_value": "primary-background"},
+        "tab-aaa": {"type": "tab", "display_name": "Style", "keys": ["background_color"], "pos": 3}
+      }
+    },
+    {
+      "name": "hero-section",
+      "display_name": "Hero",
+      "id": 102,
+      "is_root": false,
+      "is_nestable": true,
+      "component_group_uuid": "group-src-1",
+      "internal_tags_list": [],
+      "schema": {
+        "headline": {"type": "text", "pos": 0, "id": "b1"},
+        "layout": {"type": "option", "pos": 1, "id": "b2", "default_value": "stacked"}
+      }
+    },
+    {
+      "name": "source-only",
+      "id": 103,
+      "is_root": true,
+      "is_nestable": false,
+      "schema": {}
+    }
+  ],
+  "component_groups": [
+    {"name": "Sections", "uuid": "group-src-1", "id": 1}
+  ]
+}

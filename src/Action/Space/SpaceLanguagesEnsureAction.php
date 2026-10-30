@@ -179,9 +179,7 @@ final readonly class SpaceLanguagesEnsureAction
         /** @var array<string, array{code: string, name: string, ai_translation_code?: string}> $unique */
         $unique = [];
         foreach ($languages as $language) {
-            if (!isset($unique[$language['code']])) {
-                $unique[$language['code']] = $language;
-            }
+            $unique[$language['code']] ??= $language;
         }
 
         return array_values($unique);

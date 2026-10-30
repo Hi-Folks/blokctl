@@ -1,0 +1,43 @@
+{
+  "components": [
+    {
+      "name": "banner",
+      "display_name": "Banner",
+      "id": 901,
+      "is_root": false,
+      "is_nestable": true,
+      "component_group_uuid": "group-tgt-9",
+      "internal_tags_list": [{"id": 77, "name": "Sections"}],
+      "schema": {
+        "headline": {"type": "text", "pos": 5, "id": "z1", "required": true},
+        "text_alignment": {"type": "option", "pos": 6, "id": "z2", "default_value": "left", "options": [{"_uid": "x1", "name": "Left", "value": "left"}, {"_uid": "x2", "name": "Center", "value": "center"}]},
+        "background_color": {"type": "option", "pos": 7, "id": "z3", "default_value": "primary-background"},
+        "subtitle": {"type": "text", "pos": 8, "id": "z4"},
+        "tab-zzz": {"type": "tab", "display_name": "Design", "keys": ["background_color"], "pos": 9}
+      }
+    },
+    {
+      "name": "hero-section",
+      "display_name": "Hero",
+      "id": 902,
+      "is_root": false,
+      "is_nestable": true,
+      "component_group_uuid": "group-tgt-9",
+      "internal_tags_list": [],
+      "schema": {
+        "headline": {"type": "text", "pos": 3, "id": "y1"},
+        "layout": {"type": "option", "pos": 4, "id": "y2", "default_value": "stacked"}
+      }
+    },
+    {
+      "name": "target-only",
+      "id": 903,
+      "is_root": true,
+      "is_nestable": false,
+      "schema": {}
+    }
+  ],
+  "component_groups": [
+    {"name": "Sections", "uuid": "group-tgt-9", "id": 9}
+  ]
+}

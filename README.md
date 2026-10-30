@@ -1189,6 +1189,40 @@ php bin/blokctl components:usage -S 290817118944379 --starts-with=articles/
 
 Fetches all stories via the Content Delivery API, recursively walks each story's content tree, and reports how many stories each component appears in and how many total times it is used. Results are sorted by total occurrences (descending).
 
+#### `components:diff` — Compare components between two spaces
+
+```bash
+# Compare all components of two spaces
+php bin/blokctl components:diff -S 295576087731079 --target-space=296203037271485
+
+# Only some components, including preset content
+php bin/blokctl components:diff -S 295576087731079 -T 296203037271485 \
+  -c banner -c hero-section --with-presets
+
+# Target space in another region
+php bin/blokctl components:diff -S 295576087731079 -T 123456789 --target-region=US
+
+# JSON report, exit code 1 when differences are found (CI)
+php bin/blokctl components:diff -S 295576087731079 -T 296203037271485 --json --exit-code
+```
+
+| Option | Short | Description |
+|---|---|---|
+| `--target-space` | `-T` | **(required)** The space to compare against. `--space-id` is the source (reference) |
+| `--target-region` | | Region of the target space. Defaults to `--region` |
+| `--component` | `-c` | Limit the comparison to this component (repeatable). Defaults to all |
+| `--with-presets` | | Also compare presets and their content |
+| `--json` | | Output the full report as JSON |
+| `--exit-code` | | Exit with code `1` when differences are found |
+
+Read-only: nothing is changed in either space. Components are matched by name and fields by key. The report lists components that exist in only one space, and for common components every difference in:
+
+- **Settings**: display name, description, preview field and template, root/nestable, color, icon, group name, and tags.
+- **Fields**: fields present in only one space, any changed property (`default_value`, `options`, `required`, `customize_toolbar`, ...), and fields placed in a different tab (tabs are matched by display name).
+- **Presets** (with `--with-presets`): presets matched by component and preset name, including their content.
+
+IDs, UUIDs, `_uid`, `pos`, and timestamps are ignored. Properties that store space-specific IDs (for example asset folder IDs or tag IDs in a whitelist) can report differences between unrelated spaces even when the setup is equivalent. Use `-v` to also list identical components.
+
 #### `component:field-add` — Add a field to a component
 
 ```bash
@@ -2064,6 +2098,59 @@ $result->storiesAnalyzed; // int
 $result->count();         // int (number of distinct components found)
 ```
 
+#### Compare components between two spaces
+
+Read-only: nothing is changed in either space. Same comparison rules as the `components:diff` command.
+
+```php
+use Blokctl\Action\Component\ComponentsDiffAction;
+use Blokctl\Action\Component\ComponentsDiffResult;
+
+$result = (new ComponentsDiffAction($client))->execute(
+    sourceSpaceId: '295576087731079',
+    targetSpaceId: '296203037271485',
+    componentNames: ['banner', 'hero-section'], // optional, empty = all components
+    withPresets: true,                          // optional, default false
+);
+
+$result->hasDifferences(); // bool
+$result->onlyInSource;     // list<string> component names only in the source space
+$result->onlyInTarget;     // list<string> component names only in the target space
+$result->identical;        // list<string> component names identical in both spaces
+$result->differences;      // array<string, list<change>> component name => changes
+$result->toArray();        // array, same structure as the --json output
+
+foreach ($result->differences as $component => $changes) {
+    foreach ($changes as $change) {
+        echo match ($change['type']) {
+            ComponentsDiffResult::CHANGED => "{$component}: {$change['path']} changed",
+            ComponentsDiffResult::ONLY_IN_SOURCE => "{$component}: {$change['path']} only in source",
+            ComponentsDiffResult::ONLY_IN_TARGET => "{$component}: {$change['path']} only in target",
+        } . PHP_EOL;
+    }
+}
+```
+
+Each change is an array with:
+
+| Key | Description |
+|---|---|
+| `type` | `changed`, `only_in_source`, or `only_in_target` (constants on `ComponentsDiffResult`) |
+| `path` | Where the difference is, starting with `settings.`, `fields.<field>`, or `presets.<preset>`. E.g. `fields.text_alignment.default_value`, `fields.SEO` (field exists in one space only), `fields.background_color.tab` (field in a different tab) |
+| `source` | Value in the source space (`null` for `only_in_target`) |
+| `target` | Value in the target space (`null` for `only_in_source`) |
+
+When the target space is in another region, pass a second client for it:
+
+```php
+use Storyblok\ManagementApi\Data\Enum\Region;
+
+$targetClient = new ManagementApiClient('your-personal-access-token', region: Region::US, shouldRetry: true);
+$result = (new ComponentsDiffAction($client, $targetClient))->execute($sourceSpaceId, $targetSpaceId);
+```
+
+Throws `\RuntimeException` when components or presets cannot be fetched, or when a name in `componentNames` exists in neither space.
+
 #### Add a field to a component
 
 ```php
@@ -2153,12 +2240,58 @@ $result->user; // User object (id, email, name, timezone, org, partner, ...)
 
 Each Action follows these conventions:
 
-- **Constructor** receives only the `ManagementApiClient`
+- **Constructor** receives only the `ManagementApiClient` (`ComponentsDiffAction` also accepts an optional second client for a target space in another region)
 - **Methods** receive plain scalars (space ID, field name, etc.) — no framework objects
 - **Read-only Actions** have a single `execute()` method returning a typed Result DTO or scalar value
 - **Mutating Actions** expose `execute()` for the change. They use `preflight()` only when the command needs a separate confirmation/safety step before mutation
 - **Result DTOs** are `final readonly` classes with public properties and optional convenience methods (e.g. `canDelete()`, `hasEnvironments()`)
 - **Errors** are either thrown as `\RuntimeException` (for fatal issues) or collected in an `errors` array on the result (for non-fatal batch operations)
+
+## Example scripts
+
+The [`examples/`](examples/) directory contains ready-to-adapt scripts that combine blokctl commands and Actions for common automation tasks. Run them from the project root; they read `SECRET_KEY` from `.env`. `bulk-user-access.php` and `assign-market-validation.php` support a dry run; the other scripts that change a space apply changes immediately, so use a test space.
+
+| Script | What it does |
+|---|---|
+| [`bulk-user-access.php`](examples/bulk-user-access.php) | Gives groups of users edit access to their own content only (regional offices, franchise locations, brands, departments): one custom role per group, scoped to stories or folders, then invites users by email |
+| [`assign-market-validation.php`](examples/assign-market-validation.php) | Assigns a workflow stage to stories in country folders that don't have one yet |
+| [`country-status.php`](examples/country-status.php) | Reports publishing status and workflow stage of country variants of the stories in a global folder (terminal, JSON, or Markdown) |
+| [`multi-country-demo-setup.php`](examples/multi-country-demo-setup.php) | Creates country folders, moves root content into a global folder, and installs and configures the Dimensions app |
+| [`demo-setup.sh`](examples/demo-setup.sh) | Chains CLI commands to prepare a demo space: preview URLs, demo mode removal, workflow stages |
+| [`push-experiment-results.sh`](examples/push-experiment-results.sh) | Pushes a static experiment results payload for demos |
+
+### Bulk user access
+
+Manage editors from a spreadsheet instead of inviting them one by one in the UI. Export the sheet as CSV with one row per user and content item:
+
+```csv
+group,email,content
+North Region,editor.north@example.com,regions/north
+North Region,manager.north@example.com,regions/north
+South Region,editor.south@example.com,regions/south
+South Region,editor.south@example.com,shared/south-campaign
+```
+
+| Column | Description |
+|---|---|
+| `group` | Group name. Each group gets one custom role, named `<prefix><group>` |
+| `email` | User email. The user receives a Storyblok invitation to join the space |
+| `content` | Story or folder the group can access: full slug (e.g. `regions/north`) or numeric ID. A folder includes its content. Repeat the row to allow several items |
+
+```bash
+# Dry run: resolves content, reads existing roles and collaborators, prints the plan
+php examples/bulk-user-access.php <space-id> examples/bulk-user-access.csv
+
+# Create the roles and send the invitations
+php examples/bulk-user-access.php <space-id> examples/bulk-user-access.csv --execute
+
+# Custom role name prefix (default "Group - ") and explicit region
+php examples/bulk-user-access.php <space-id> users.csv --execute --role-prefix="Team - " --region=US
+```
+
+Each role restricts content with the space role `allowed_paths` setting and grants `read_stories`, `save_stories`, `view_content`, `view_folders`, and `view_composer`. Adjust the permissions in `createRole()` to fit your editorial process. The script is safe to run again: existing roles and collaborators are reused or skipped. Existing roles are not modified; the script warns when an existing role does not allow some of the content in the CSV.
+
+Requires a token that can manage space roles and collaborators. Run it on a test space first.
 
 ## License
 

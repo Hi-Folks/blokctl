@@ -15,6 +15,7 @@ final class SpaceSetupReporter
 
     public function __construct(
         private readonly bool $dryRun,
+        private readonly string|null $spaceId = null,
     ) {}
 
     public function start(string $spaceId, string $mode): void
@@ -77,6 +78,10 @@ final class SpaceSetupReporter
         }
 
         Render::notice($this->completionMessage());
+        $spaceUrl = $this->spaceUrl();
+        if ($spaceUrl !== null) {
+            Render::notice($spaceUrl);
+        }
     }
 
     /**
@@ -101,6 +106,15 @@ final class SpaceSetupReporter
         return $this->hasFailures()
             ? 'Space setup completed with failures.'
             : 'Space setup complete.';
+    }
+
+    public function spaceUrl(): string|null
+    {
+        if ($this->dryRun || $this->spaceId === null || $this->spaceId === '') {
+            return null;
+        }
+
+        return 'https://app.storyblok.com/#/me/spaces/' . $this->spaceId;
     }
 
     /**

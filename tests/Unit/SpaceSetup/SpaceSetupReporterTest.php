@@ -30,7 +30,7 @@ final class SpaceSetupReporterTest extends TestCase
     #[Test]
     public function dry_run_records_operations_as_planned(): void
     {
-        $reporter = new SpaceSetupReporter(true);
+        $reporter = new SpaceSetupReporter(true, '123456');
 
         $reporter->run(
             'Install app: backups',
@@ -44,12 +44,13 @@ final class SpaceSetupReporterTest extends TestCase
         $this->assertSame('Install app: backups', $result->label);
         $this->assertFalse($reporter->hasFailures());
         $this->assertSame('DRY RUN: No changes were applied.', $reporter->completionMessage());
+        $this->assertNull($reporter->spaceUrl());
     }
 
     #[Test]
     public function real_run_records_success_and_structured_results(): void
     {
-        $reporter = new SpaceSetupReporter(false);
+        $reporter = new SpaceSetupReporter(false, '294778237819845');
 
         $reporter->run(
             'Install app: backups',
@@ -77,12 +78,13 @@ final class SpaceSetupReporterTest extends TestCase
         $this->assertSame(1, $reporter->counts()['skipped']);
         $this->assertSame(0, $reporter->counts()['failed']);
         $this->assertSame('Space setup complete.', $reporter->completionMessage());
+        $this->assertSame('https://app.storyblok.com/#/me/spaces/294778237819845', $reporter->spaceUrl());
     }
 
     #[Test]
     public function records_failure_and_continues_when_configured(): void
     {
-        $reporter = new SpaceSetupReporter(false);
+        $reporter = new SpaceSetupReporter(false, '294778237819845');
 
         $reporter->run(
             'Install app: unavailable',
@@ -98,5 +100,6 @@ final class SpaceSetupReporterTest extends TestCase
         $this->assertSame('App unavailable.', $result->detail);
         $this->assertTrue($reporter->hasFailures());
         $this->assertSame('Space setup completed with failures.', $reporter->completionMessage());
+        $this->assertSame('https://app.storyblok.com/#/me/spaces/294778237819845', $reporter->spaceUrl());
     }
 }

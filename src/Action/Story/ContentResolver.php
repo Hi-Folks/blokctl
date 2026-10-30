@@ -204,9 +204,7 @@ final class ContentResolver
             }
 
             // Generate _uid if not provided
-            if (!isset($blok['_uid'])) {
-                $blok['_uid'] = $this->generateUid();
-            }
+            $blok['_uid'] ??= $this->generateUid();
 
             // Recurse into the blok's fields
             /** @var array<string, mixed> $resolvedBlok */

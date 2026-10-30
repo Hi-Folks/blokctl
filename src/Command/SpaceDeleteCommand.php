@@ -59,6 +59,17 @@ class SpaceDeleteCommand extends AbstractCommand
             "Pending tasks",
             $space->getBoolean("has_pending_tasks", false) ? "Yes" : "No",
         );
+        Render::titleSection("Latest activities");
+        if ($result->latestActivities === []) {
+            Render::labelValue("Recent operations", "No recent activities found");
+        }
+
+        foreach ($result->latestActivities as $activity) {
+            Render::labelValue(
+                $activity->key(),
+                $activity->summary(),
+            );
+        }
 
         // Display space metadata useful before deleting a space.
         Render::titleSection("Metadata");

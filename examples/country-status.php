@@ -9,9 +9,9 @@
  * status, last published date, and workflow stage for each.
  *
  * Usage:
- *   php scripts/country-status.php <space-id>
- *   php scripts/country-status.php <space-id> --json
- *   php scripts/country-status.php <space-id> --md
+ *   php examples/country-status.php <space-id>
+ *   php examples/country-status.php <space-id> --json
+ *   php examples/country-status.php <space-id> --md
  */
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -30,7 +30,7 @@ $jsonOutput = in_array('--json', $argv, true);
 $mdOutput = in_array('--md', $argv, true);
 
 if ($spaceId === null) {
-    echo "Usage: php scripts/country-status.php <space-id> [--json] [--md]\n";
+    echo "Usage: php examples/country-status.php <space-id> [--json] [--md]\n";
     exit(1);
 }
 

@@ -153,9 +153,7 @@ final readonly class WorkflowStageShowAction
         $defaultWorkflow = null;
         /** @phpstan-ignore foreach.nonIterable */
         foreach ($workflows as $workflow) {
-            if ($defaultWorkflow === null) {
-                $defaultWorkflow = $workflow;
-            }
+            $defaultWorkflow ??= $workflow;
 
             if ($workflow->getBoolean('is_default')) { /** @phpstan-ignore method.nonObject */
                 $defaultWorkflow = $workflow;

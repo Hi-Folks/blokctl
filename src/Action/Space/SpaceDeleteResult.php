@@ -16,6 +16,8 @@ final readonly class SpaceDeleteResult
         public Collaborators $collaborators,
         public bool $isOwner,
         public bool $isSolo,
+        /** @var list<SpaceDeleteActivity> */
+        public array $latestActivities = [],
     ) {}
 
     public function canDelete(): bool

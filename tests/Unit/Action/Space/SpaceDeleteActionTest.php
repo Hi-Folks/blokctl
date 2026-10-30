@@ -21,6 +21,7 @@ final class SpaceDeleteActionTest extends TestCase
             $this->mockResponse('one-space'),           // SpaceApi->get
             $this->mockResponse('one-user-owner'),      // UserApi->me
             $this->mockResponse('empty-collaborators'), // CollaboratorApi->page
+            $this->mockResponse('list-activities'),      // latest activities
         );
 
         $action = new SpaceDeleteAction($client);
@@ -31,6 +32,12 @@ final class SpaceDeleteActionTest extends TestCase
         $this->assertTrue($result->isOwner);
         $this->assertTrue($result->isSolo);
         $this->assertTrue($result->canDelete());
+        $this->assertCount(3, $result->latestActivities);
+        $this->assertSame('story.update', $result->latestActivities[0]->key());
+        $this->assertSame(
+            '(Story) Home by Roberto Butti at 2026-08-28T09:12:31.000Z',
+            $result->latestActivities[0]->summary(),
+        );
     }
 
     #[Test]

@@ -2,6 +2,13 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- Added `components:diff` command to compare components between two spaces: components present in only one space, settings, field properties (including default values), tab placement, and optionally preset content. Supports `--component`, `--with-presets`, `--target-region`, `--json`, and `--exit-code`.
+- Added reusable PHP action `ComponentsDiffAction` with `ComponentsDiffResult`.
+
 ## 0.15.0 - 2026-08-04
 
 ### Added

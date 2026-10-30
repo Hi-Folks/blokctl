@@ -9,12 +9,16 @@ folders:
   ensure:
     - name: Global
       slug: global
-    - name: Italy
-      slug: italy
-    - name: Germany
-      slug: germany
     - name: France
       slug: france
+    - name: Spain
+      slug: spain
+    - name: Netherlands
+      slug: netherlands
+    - name: Norway
+      slug: norway
+    - name: Japan
+      slug: japan
 
 stories:
   move:
@@ -26,9 +30,11 @@ stories:
           - error-404
           - site-config
           - global
-          - italy
-          - germany
           - france
+          - spain
+          - netherlands
+          - norway
+          - japan
       to_folder: global
 
 apps:
@@ -48,9 +54,11 @@ dimensions:
   enabled: true
   folders:
     - slug: global
-    - slug: italy
-      ai_translation_code: it
-    - slug: germany
-      ai_translation_code: de
-    - slug: france
-      ai_translation_code: fr
+    - slug: spain
+      ai_translation_code: sp
+    - slug: netherlands
+      ai_translation_code: nl
+    - slug: norway
+      ai_translation_code: no
+    - slug: japan
+      ai_translation_code: jp

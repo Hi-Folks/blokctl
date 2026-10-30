@@ -65,9 +65,7 @@ final readonly class ComponentsUsageAction
                 $found = $this->extractComponents($content);
 
                 foreach ($found as $componentName => $count) {
-                    if (!isset($usage[$componentName])) {
-                        $usage[$componentName] = ['stories' => 0, 'total' => 0];
-                    }
+                    $usage[$componentName] ??= ['stories' => 0, 'total' => 0];
 
                     ++$usage[$componentName]['stories'];
                     $usage[$componentName]['total'] += $count;

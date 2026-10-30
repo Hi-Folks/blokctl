@@ -58,6 +58,7 @@ Most resource-oriented commands are backed by reusable Action classes with no CL
 | `Workflow\WorkflowStageShowAction` | Show stage details | `->stage`, `->workflowName` |
 | `Component\ComponentsListAction` | List/filter components | `->components`, `->count()` |
 | `Component\ComponentsUsageAction` | Analyze component usage | `->usage`, `->storiesAnalyzed` |
+| `Component\ComponentsDiffAction` | Compare components between two spaces (optional second client for another region) | `->onlyInSource`, `->onlyInTarget`, `->differences`, `->identical`, `->hasDifferences()`, `->toArray()` |
 | `Component\ComponentFieldAddAction` | Add field to component (preflight+execute) | `->component`, `->schema` |
 | `Component\ComponentShowAction` | Get component fields and schema | `->component` |
 | `AppProvision\AppProvisionListAction` | List installed apps | `->provisions`, `->count()` |

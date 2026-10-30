@@ -108,6 +108,7 @@ See `space-setup-config.md` for complete syntax. Reports contain stable JSON sta
 
 - **`components:list`** — List components. Options: `--search`, `--root-only`, `--in-group=UUID`.
 - **`components:usage`** — Analyze component usage across stories. Options: `--starts-with`, `--per-page`.
+- **`components:diff`** — Compare components (settings, fields, default values, tabs, presets) between `-S` (source) and `--target-space` / `-T`. Read-only. Options: `--target-region`, `--component` / `-c` (repeatable), `--with-presets`, `--json`, `--exit-code`.
 - **`component:show`** — Display component fields and schema. Lookup: `--by-name`, `--by-id`. Option: `--with-tabs`.
 - **`component:field-add`** — Add a field to a component. Options: `--component`, `--field`, `--type` (core type or `custom`), `--field-type` (plugin slug), `--tab`, `--display-name`, `--required`, `--translatable`.
 

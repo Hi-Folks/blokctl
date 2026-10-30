@@ -1,0 +1,57 @@
+{
+    "activities": [
+        {
+            "activity": {
+                "id": 5405,
+                "trackable_id": 123,
+                "trackable_type": "Story",
+                "owner_id": 1114,
+                "owner_type": "User",
+                "key": "story.update",
+                "parameters": {},
+                "created_at": "2026-08-28T09:12:31.000Z",
+                "updated_at": "2026-08-28T09:12:31.000Z",
+                "space_id": 680
+            }
+        },
+        {
+            "id": 5404,
+            "trackable_id": 99,
+            "trackable_type": "Component",
+            "owner_id": 1114,
+            "owner_type": "User",
+            "key": "component.create",
+            "parameters": {},
+            "created_at": "2026-08-27T16:44:09.000Z",
+            "updated_at": "2026-08-27T16:44:09.000Z",
+            "space_id": 680
+        },
+        {
+            "id": 5403,
+            "trackable_id": 77,
+            "trackable_type": "Asset",
+            "owner_id": 1114,
+            "owner_type": "User",
+            "key": "asset.delete",
+            "parameters": {},
+            "created_at": "2026-08-27T11:03:55.000Z",
+            "updated_at": "2026-08-27T11:03:55.000Z",
+            "space_id": 680
+        }
+    ],
+    "users": [
+        {
+            "id": 1114,
+            "userid": "1114",
+            "friendly_name": "Roberto Butti",
+            "active": true
+        }
+    ],
+    "trackables": [
+        {
+            "id": 123,
+            "name": "Home",
+            "slug": "home"
+        }
+    ]
+}

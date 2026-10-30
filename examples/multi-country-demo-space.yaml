@@ -1,0 +1,70 @@
+# yaml-language-server: $schema=../space-setup-schema.json
+
+version: 1
+
+execution:
+  mode: reconcile
+
+inputs:
+  space_name:
+    description: "Name of the multi-country demo space to create"
+    default: "Storyblok Multi Country Demo"
+
+space:
+  name: "${{ inputs.space_name }}"
+  duplicate_from: "286863409930127"
+  in_org: true
+  demo: false
+  readiness:
+    timeout_seconds: 120
+    poll_interval_seconds: 2
+
+folders:
+  ensure:
+    - name: Global
+      slug: global
+    - name: Italy
+      slug: italy
+    - name: Germany
+      slug: germany
+    - name: France
+      slug: france
+
+stories:
+  move:
+    - select:
+        parent: root
+        include_folders: true
+        exclude_slugs:
+          - "404"
+          - error-404
+          - site-config
+          - global
+          - italy
+          - germany
+          - france
+      to_folder: global
+
+apps:
+  install:
+    - slug: dimensions
+      id: 24
+    - id: 29942
+
+ai:
+  enabled: true
+  inherit_org_configuration: false
+
+ai_translation:
+  disclaimer_id: 173657768407244
+
+dimensions:
+  enabled: true
+  folders:
+    - slug: global
+    - slug: italy
+      ai_translation_code: it
+    - slug: germany
+      ai_translation_code: de
+    - slug: france
+      ai_translation_code: fr
