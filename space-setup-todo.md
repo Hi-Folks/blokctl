@@ -213,10 +213,13 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 - [ ] Create and reconcile workflow stages.
 - [ ] Resolve workflows and stages by name instead of requiring numeric IDs.
 - [ ] Assign workflow stages to selected stories, not only all unstaged stories.
-- [ ] Add collaborators by email.
-- [ ] Add custom roles and permissions.
-- [ ] Configure folder/path restrictions for regional editors.
-- [ ] Support demo personas such as editor, reviewer, publisher, and market editor.
+- [x] Add collaborators by email: `space:collaborator-invite`, `space:collaborator-list`, and `space:collaborator-remove` (CLI and Actions only; see Decisions to Make).
+- [x] Add custom roles and permissions: `roles` section in `space:setup`, plus `space:role-list`, `space:role-ensure`, and `space:role-delete`.
+- [x] Configure folder/path restrictions for regional editors: `allowed_paths` and `blocked_paths` by full slug or ID (Elite plan).
+- [ ] Verify in the UI whether a folder in `allowed_paths` also covers the stories inside it, then update the docs.
+- [ ] Verify what the API does when an email with a pending invitation is invited again.
+- [ ] Reconcile the other space role properties (field, component, datasource, asset folder, and branch permissions).
+- [ ] Support demo personas such as editor, reviewer, publisher, and market editor (custom roles cover the role side; assigning users stays outside `space:setup`).
 
 ## Priority 7: Datasources and Integrations
 
@@ -269,6 +272,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 - [x] Support explicit blank-space creation with `space.create_new: true`.
 - [x] Make reconcile the default execution mode.
 - [ ] Define how destructive operations are represented and confirmed.
+- [x] Keep collaborator invitations out of `space:setup` configs: invitations send real emails, and pending invitations are not returned by the collaborators list, so reruns could not skip them.
 - [x] Define whether unresolved variables fail setup or resolve to empty strings: unresolved variables fail setup.
 - [ ] Define whether IDs are permitted in portable templates or names/slugs are required.
 - [ ] Define how config secrets are masked in logs and reports.
@@ -294,6 +298,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 - [x] Dimensions folder reconciliation
 - [x] Global Asset Library conversion with `assets.convert_to_global`
 - [x] Story tag assignments by slug or ID
+- [x] Custom space roles with permissions, allowed and blocked paths by full slug or ID, and allowed languages
 - [x] Existing-space setup with `-S`
 - [x] Configuration-driven blank-space creation with `space.create_new: true`
 - [x] Configuration-driven duplicate-first setup with `space.duplicate_from`
