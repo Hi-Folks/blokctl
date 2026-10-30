@@ -29,6 +29,8 @@ Exceptions that do not require `-S`: `space:create`, `space:setup-validate`, `sp
 - **`space:setup`** — Reconcile a space from validated YAML/JSON Configuration as Code. Use `-S` for an existing space, `space.create_new: true` with `space.name` for a blank space, or `space.duplicate_from` with `space.name` for a duplicated target. Options: `--config`, `--dry-run`, `--continue-on-error`, repeatable `--set`, `--report`.
 - **`space:role-list`** — List custom space roles with permissions, allowed/blocked paths, and languages. Option: `--search`.
 - **`space:role-ensure`** — Create a custom space role or update its declared properties (matched by exact name). Options: `--name`, `--subtitle`, `-p`/`--permission`, `--allow`, `--block` (full slug or ID, repeatable), `-l`/`--language`. Passed lists replace existing values; omitted options are kept. `allowed_paths` needs the Elite plan.
+- **`space:collaborator-list`** — List collaborators with email, name, role, and ID. The owner and pending invitations are not listed by the API.
+- **`space:collaborator-invite`** — Add users by email. Options: `-e`/`--email` (repeatable), `--role` (`admin`, `editor` default, or custom role name or ID), `--dry-run`. Asks for confirmation (skip with `-n`). Current collaborators are skipped; emails without a Storyblok account get a pending invitation (expires after 7 days) that a later run cannot detect. Real emails are sent: confirm with the user before running without `--dry-run`.
 - **`space:setup-validate`** — Validate a setup YAML/JSON file against `space-setup-schema.json` without accessing Storyblok. Option: `--config`. No `--space-id` needed.
 
 ### Configuration as Code setup

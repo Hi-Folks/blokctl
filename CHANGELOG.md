@@ -11,6 +11,12 @@ All notable changes to `blokctl` will be documented in this file.
 - Added `space:role-list` and `space:role-ensure` commands to list custom space roles and create or update them (subtitle, permissions, allowed and blocked paths by full slug or ID, allowed languages).
 - Added `roles` section to `space:setup` YAML/JSON configs, with `examples/roles-space.yaml`.
 - Added reusable PHP actions `SpaceRoleListAction`, `SpaceRoleEnsureAction`, and `StoryResolveIdAction` (resolves stories and folders by full slug or ID).
+- Added `space:collaborator-list` and `space:collaborator-invite` commands (`--email`, `--role` as `admin`, `editor`, or custom role name or ID, `--dry-run`, confirmation prompt; current collaborators are skipped).
+- Added reusable PHP actions `SpaceCollaboratorListAction` and `SpaceCollaboratorInviteAction` (preflight + execute; reports added users, pending invitations, skips, and per-email failures).
+
+### Changed
+
+- `examples/bulk-user-access.php` now uses `StoryResolveIdAction`, `SpaceRoleEnsureAction`, and `SpaceCollaboratorInviteAction`. On `--execute`, existing roles are updated to match the CSV instead of only being reported.
 
 ## 0.15.0 - 2026-08-04
 

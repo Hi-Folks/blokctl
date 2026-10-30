@@ -461,6 +461,35 @@ php bin/blokctl space:role-ensure -S 290817118944379 \
 
 Creates the role when no role with that name exists. Otherwise it updates only the options you pass: a passed list replaces the existing list, and options you don't pass are left unchanged. Running it again with the same options changes nothing. Full slugs are matched exactly: `products` is the folder, `products/` is its start page. The Management API docs don't state whether a folder ID also covers the stories inside it, so check the result in the space.
 
+#### `space:collaborator-list` — List collaborators
+
+```bash
+php bin/blokctl space:collaborator-list -S 290817118944379
+```
+
+Shows each collaborator with email, name, role (custom roles as `name (ID)`), and collaborator ID. The space owner and pending invitations are not returned by the Management API collaborators list.
+
+#### `space:collaborator-invite` — Add users by email
+
+```bash
+# Preview: who would be added and who is already a collaborator
+php bin/blokctl space:collaborator-invite -S 290817118944379 \
+  -e editor.north@example.com -e manager.north@example.com \
+  --role="Editors - North" --dry-run
+
+# Add them (asks for confirmation; -n skips the prompt)
+php bin/blokctl space:collaborator-invite -S 290817118944379 \
+  -e editor.north@example.com --role="Editors - North"
+```
+
+| Option | Short | Description |
+|---|---|---|
+| `--email` | `-e` | **(required)** Email address to add (repeatable) |
+| `--role` | | `admin`, `editor` (default), or a custom space role name or ID |
+| `--dry-run` | | Show the plan without changing the space |
+
+Current collaborators are skipped (matched by email, case-insensitive). An email that already belongs to a Storyblok user is added to the space directly. An email without a Storyblok account gets a pending invitation that expires after 7 days. Pending invitations don't appear in the collaborators list, so running the command again for the same email cannot skip them. The command exits with a non-zero code when any email fails.
+
 ### Preview URLs
 
 #### `space:preview-list` — List preview URLs
@@ -1574,6 +1603,47 @@ $resolver->executeMany($spaceId, ['regions/north', 'about']);  // list<int>, ord
 
 Throws `\RuntimeException` when no story or folder matches the slug.
 
+#### List collaborators
+
+```php
+use Blokctl\Action\Space\SpaceCollaboratorListAction;
+use Blokctl\Action\Space\SpaceCollaboratorListResult;
+
+$result = (new SpaceCollaboratorListAction($client))->execute($spaceId); // all pages
+
+$result->collaborators;                          // list<array<string, mixed>> collaborator objects from the API
+$result->count();                                // int
+$result->findByEmail('editor@example.com');      // array<string, mixed>|null, case-insensitive
+SpaceCollaboratorListResult::emailOf($collaborator);   // lowercase user or invitation email
+SpaceCollaboratorListResult::isPending($collaborator); // bool, invitation without a user yet
+```
+
+The space owner and pending invitations are not returned by the Management API collaborators list.
+
+#### Add collaborators by email (preflight + execute)
+
+```php
+use Blokctl\Action\Space\SpaceCollaboratorInviteAction;
+use Blokctl\Action\Space\SpaceCollaboratorInviteResult;
+
+$action = new SpaceCollaboratorInviteAction($client);
+
+// Step 1: resolve the role and skip current collaborators (no changes)
+$preflight = $action->preflight($spaceId, ['editor@example.com', 'new@example.com'], role: 'Editors - North');
+$preflight->roleName;     // "admin", "editor", or the custom role name
+$preflight->spaceRoleId;  // int|null, null for built-in roles
+$preflight->emailsWithStatus(SpaceCollaboratorInviteResult::PLANNED); // list<string>
+$preflight->emailsWithStatus(SpaceCollaboratorInviteResult::SKIPPED); // list<string>
+
+// Step 2: add the planned emails
+$result = $action->execute($spaceId, $preflight);
+$result->emailsWithStatus(SpaceCollaboratorInviteResult::ADDED);   // existing Storyblok users
+$result->emailsWithStatus(SpaceCollaboratorInviteResult::INVITED); // pending invitations (no account yet)
+$result->hasFailures();   // bool; per-email errors are in $result->entries[]['message']
+```
+
+`role` accepts `admin`, `editor` (default), or a custom space role name or ID. `preflight()` throws `\RuntimeException` for an invalid email, an unknown role, or an API error. `execute()` does not throw for a single email; it collects failures per email.
+
 #### Delete a space (with safety checks)
 
 ```php
@@ -2342,7 +2412,7 @@ The [`examples/`](examples/) directory contains ready-to-adapt scripts that comb
 
 | Script | What it does |
 |---|---|
-| [`bulk-user-access.php`](examples/bulk-user-access.php) | Gives groups of users edit access to their own content only (regional offices, franchise locations, brands, departments): one custom role per group, scoped to stories or folders, then invites users by email |
+| [`bulk-user-access.php`](examples/bulk-user-access.php) | Gives groups of users edit access to their own content only (regional offices, franchise locations, brands, departments): one custom role per group, scoped to stories or folders, then adds users by email. Built on `SpaceRoleEnsureAction`, `StoryResolveIdAction`, and `SpaceCollaboratorInviteAction` |
 | [`assign-market-validation.php`](examples/assign-market-validation.php) | Assigns a workflow stage to stories in country folders that don't have one yet |
 | [`country-status.php`](examples/country-status.php) | Reports publishing status and workflow stage of country variants of the stories in a global folder (terminal, JSON, or Markdown) |
 | [`multi-country-demo-setup.php`](examples/multi-country-demo-setup.php) | Creates country folders, moves root content into a global folder, and installs and configures the Dimensions app |
@@ -2364,21 +2434,21 @@ South Region,editor.south@example.com,shared/south-campaign
 | Column | Description |
 |---|---|
 | `group` | Group name. Each group gets one custom role, named `<prefix><group>` |
-| `email` | User email. The user receives a Storyblok invitation to join the space |
+| `email` | User email. Existing Storyblok users are added directly; other emails get a pending invitation that expires after 7 days |
 | `content` | Story or folder the group can access: full slug (e.g. `regions/north`) or numeric ID. Repeat the row to allow several items |
 
 ```bash
 # Dry run: resolves content, reads existing roles and collaborators, prints the plan
 php examples/bulk-user-access.php <space-id> examples/bulk-user-access.csv
 
-# Create the roles and send the invitations
+# Create or update the roles and add the users
 php examples/bulk-user-access.php <space-id> examples/bulk-user-access.csv --execute
 
 # Custom role name prefix (default "Group - ") and explicit region
 php examples/bulk-user-access.php <space-id> users.csv --execute --role-prefix="Team - " --region=US
 ```
 
-Each role restricts content with the space role `allowed_paths` setting and grants `read_stories`, `save_stories`, `view_content`, `view_folders`, and `view_composer`. Adjust the permissions in `createRole()` to fit your editorial process. The script is safe to run again: existing roles and collaborators are reused or skipped. Existing roles are not modified; the script warns when an existing role does not allow some of the content in the CSV.
+Each role restricts content with the space role `allowed_paths` setting and grants `read_stories`, `save_stories`, `view_content`, `view_folders`, and `view_composer`. Adjust `ROLE_PERMISSIONS` and `ROLE_SUBTITLE` at the top of the script to fit your editorial process. On `--execute`, an existing role with the same name is updated so its subtitle, permissions, and allowed content match the CSV; a role that already matches is left unchanged. Current collaborators are skipped. Pending invitations are not returned by the collaborators list, so running `--execute` again can invite those emails again.
 
 Restricting content with `allowed_paths` is available on the Elite plan only. The API docs don't state whether a folder ID also covers the stories inside it, so verify the result in the space. Requires a token that can manage space roles and collaborators. Run it on a test space first.
 

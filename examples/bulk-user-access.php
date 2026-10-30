@@ -11,8 +11,8 @@ declare(strict_types=1);
  *
  * For each group in the CSV, the script:
  *   1. resolves the content (story or folder, by full slug or numeric ID) to a story ID
- *   2. ensures a custom space role "<prefix><group>" exists, scoped with allowed_paths
- *   3. invites each email as a collaborator with that role (existing collaborators are skipped)
+ *   2. ensures a custom space role "<prefix><group>" exists, with allowed_paths set to that content
+ *   3. adds each email as a collaborator with that role (current collaborators are skipped)
  *
  * CSV format (one row per user and content item; rows are grouped by "group"):
  *   group,email,content
@@ -25,24 +25,28 @@ declare(strict_types=1);
  *   php examples/bulk-user-access.php <space-id> <csv> --execute --role-prefix="Team - " --region=US
  *
  * Dry run by default: it reads the space (content, roles, collaborators) and prints
- * the plan. Add --execute to create roles and send the invitations.
+ * the plan. Add --execute to create or update the roles and add the collaborators.
  *
- * Management API references:
- *   https://www.storyblok.com/docs/api/management/space-roles
- *   https://www.storyblok.com/docs/api/management/collaborators/add-a-collaborator
+ * Notes:
+ *   - allowed_paths requires the Elite plan.
+ *   - Emails without a Storyblok account get a pending invitation. Pending invitations
+ *     are not returned by the collaborators list, so a second --execute run cannot skip them.
  */
 
 require __DIR__ . '/../vendor/autoload.php';
 
-use Blokctl\Action\Story\StoryMoveAction;
-use Blokctl\Action\Story\StoryShowAction;
-use Storyblok\ManagementApi\Data\Collaborator;
+use Blokctl\Action\Space\SpaceCollaboratorInviteAction;
+use Blokctl\Action\Space\SpaceCollaboratorInviteResult;
+use Blokctl\Action\Space\SpaceCollaboratorListAction;
+use Blokctl\Action\Space\SpaceRoleEnsureAction;
+use Blokctl\Action\Space\SpaceRoleListAction;
+use Blokctl\Action\Story\StoryResolveIdAction;
 use Storyblok\ManagementApi\Data\Enum\Region;
-use Storyblok\ManagementApi\Endpoints\CollaboratorApi;
-use Storyblok\ManagementApi\Endpoints\ManagementApi;
 use Storyblok\ManagementApi\ManagementApiClient;
-use Storyblok\ManagementApi\QueryParameters\PaginationParams;
 use Storyblok\ManagementApi\StoryblokUtils;
+
+const ROLE_SUBTITLE = 'Can edit only the content assigned to this group.';
+const ROLE_PERMISSIONS = ['read_stories', 'save_stories', 'view_content', 'view_folders', 'view_composer'];
 
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
 $dotenv->safeLoad();
@@ -70,12 +74,16 @@ if ($token === '') {
 }
 
 $client = new ManagementApiClient($token, region: $region, shouldRetry: true);
-$api = new ManagementApi($client);
 
 try {
-    $groups = groupRows(loadRows($csvPath), $client, $spaceId);
-    $existingRoles = fetchRoles($api, $spaceId, $rolePrefix);
-    $existingEmails = fetchCollaboratorEmails($client, $spaceId);
+    $groups = groupRows(loadRows($csvPath));
+    $resolver = new StoryResolveIdAction($client);
+    foreach ($groups as $index => $group) {
+        $groups[$index]['story_ids'] = $resolver->executeMany($spaceId, $group['content']);
+    }
+
+    $roles = new SpaceRoleListAction($client)->execute($spaceId, $rolePrefix);
+    $collaborators = new SpaceCollaboratorListAction($client)->execute($spaceId);
 } catch (RuntimeException $runtimeException) {
     echo 'ERROR: ' . $runtimeException->getMessage() . "\n";
     exit(1);
@@ -84,45 +92,58 @@ try {
 echo ($execute ? 'EXECUTE' : 'DRY RUN') . ': bulk user access' . "\n";
 echo 'Space ID: ' . $spaceId . ' (' . $region->value . ")\n\n";
 
+$failed = false;
 foreach ($groups as $group) {
     $roleName = $rolePrefix . $group['name'];
     echo 'Group: ' . $group['name'] . "\n";
     echo '  Allowed content: ' . implode(', ', $group['content']) . ' (story IDs: ' . implode(', ', $group['story_ids']) . ")\n";
 
-    $role = $existingRoles[$roleName] ?? null;
-    if ($role !== null) {
-        echo '  Reuse role: ' . $roleName . ' (ID ' . $role['id'] . ")\n";
-        $missing = array_diff($group['story_ids'], $role['allowed_paths']);
-        if ($missing !== []) {
-            echo '  WARNING: existing role does not allow story IDs ' . implode(', ', $missing) . " (not updated)\n";
+    if (!$execute) {
+        echo '  ' . ($roles->findByName($roleName) === null ? 'Create' : 'Ensure') . ' role: ' . $roleName . "\n";
+        foreach ($group['emails'] as $email) {
+            echo '  ' . ($collaborators->findByEmail($email) === null ? 'Add' : 'Skip existing collaborator') . ': ' . $email . "\n";
         }
-    } else {
-        echo '  Create role: ' . $roleName . "\n";
-        if ($execute) {
-            $role = createRole($api, $spaceId, $roleName, $group['story_ids']);
-            $existingRoles[$roleName] = $role;
-        }
+
+        echo "\n";
+        continue;
     }
 
-    foreach ($group['emails'] as $email) {
-        if (isset($existingEmails[$email])) {
-            echo '  Skip existing collaborator: ' . $email . "\n";
-            continue;
-        }
+    try {
+        // Creates the role, or updates it so subtitle, permissions, and allowed_paths match.
+        $role = new SpaceRoleEnsureAction($client)->execute(
+            spaceId: $spaceId,
+            name: $roleName,
+            subtitle: ROLE_SUBTITLE,
+            permissions: ROLE_PERMISSIONS,
+            allowedPaths: $group['story_ids'],
+        );
+        echo '  Role ' . $role->status . ': ' . $roleName . ' (ID ' . $role->roleId() . ")\n";
 
-        echo '  Invite: ' . $email . "\n";
-        if ($execute && $role !== null) {
-            inviteCollaborator($api, $spaceId, $email, $role['id']);
-            $existingEmails[$email] = true;
-        }
+        $invite = new SpaceCollaboratorInviteAction($client);
+        $result = $invite->execute($spaceId, $invite->preflight($spaceId, $group['emails'], (string) $role->roleId()));
+    } catch (RuntimeException $runtimeException) {
+        echo '  ERROR: ' . $runtimeException->getMessage() . "\n\n";
+        $failed = true;
+        continue;
     }
 
+    foreach ($result->entries as $entry) {
+        echo '  ' . match ($entry['status']) {
+            SpaceCollaboratorInviteResult::SKIPPED => 'Skip existing collaborator',
+            SpaceCollaboratorInviteResult::ADDED => 'Added existing Storyblok user',
+            SpaceCollaboratorInviteResult::INVITED => 'Invitation pending (no Storyblok account yet)',
+            default => 'FAILED (' . $entry['message'] . ')',
+        } . ': ' . $entry['email'] . "\n";
+    }
+
+    $failed = $failed || $result->hasFailures();
     echo "\n";
 }
 
 echo $execute
-    ? "Done. Invited users receive an email from Storyblok to join the space.\n"
-    : "Dry run only. Add --execute to create roles and invite collaborators.\n";
+    ? ($failed ? "Done with errors.\n" : "Done.\n")
+    : "Dry run only. Add --execute to create roles and add collaborators.\n";
+exit($failed ? 1 : 0);
 
 /**
  * @param array<int, string> $argv
@@ -182,28 +203,19 @@ function loadRows(string $csvPath): array
 }
 
 /**
- * Group rows by group name and resolve content (slug or ID) to story IDs.
+ * Group rows by group name (case-insensitive).
  *
  * @param list<array{group: string, email: string, content: string}> $rows
  * @return list<array{name: string, emails: list<string>, content: list<string>, story_ids: list<int>}>
  */
-function groupRows(array $rows, ManagementApiClient $client, string $spaceId): array
+function groupRows(array $rows): array
 {
-    $storyIds = [];
     $groups = [];
     foreach ($rows as $row) {
-        $content = $row['content'];
-        if (!isset($storyIds[$content])) {
-            $storyIds[$content] = ctype_digit($content)
-                ? (int) $content
-                : resolveContentId($client, $spaceId, $content);
-        }
-
         $key = mb_strtolower($row['group']);
         $groups[$key]['name'] ??= $row['group'];
         $groups[$key]['emails'][$row['email']] = $row['email'];
-        $groups[$key]['content'][$content] = $content;
-        $groups[$key]['story_ids'][$storyIds[$content]] = $storyIds[$content];
+        $groups[$key]['content'][$row['content']] = $row['content'];
     }
 
     return array_values(array_map(
@@ -211,131 +223,8 @@ function groupRows(array $rows, ManagementApiClient $client, string $spaceId): a
             'name' => $group['name'],
             'emails' => array_values($group['emails']),
             'content' => array_values($group['content']),
-            'story_ids' => array_values($group['story_ids']),
+            'story_ids' => [],
         ],
         $groups,
     ));
-}
-
-/**
- * Resolve a full slug to a story ID, looking for a story first and then a folder.
- */
-function resolveContentId(ManagementApiClient $client, string $spaceId, string $slug): int
-{
-    try {
-        return (int) new StoryShowAction($client)->execute($spaceId, slug: $slug)->story->id();
-    } catch (RuntimeException) {
-        try {
-            return new StoryMoveAction($client)->resolveFolderBySlug($spaceId, $slug);
-        } catch (RuntimeException) {
-            throw new RuntimeException('No story or folder found with slug: ' . $slug);
-        }
-    }
-}
-
-/**
- * Existing custom roles whose name starts with the prefix, keyed by role name.
- *
- * @return array<string, array{id: int, allowed_paths: list<int>}>
- */
-function fetchRoles(ManagementApi $api, string $spaceId, string $rolePrefix): array
-{
-    $response = $api->get('spaces/' . $spaceId . '/space_roles', ['search' => $rolePrefix]);
-    if (!$response->isOk()) {
-        throw new RuntimeException('Failed to fetch space roles: ' . $response->getErrorMessage());
-    }
-
-    $roles = [];
-    foreach ($response->toArray()['space_roles'] ?? [] as $role) {
-        if (is_array($role) && is_string($role['role'] ?? null) && str_starts_with($role['role'], $rolePrefix)) {
-            $roles[$role['role']] = [
-                'id' => (int) $role['id'],
-                'allowed_paths' => array_map(intval(...), (array) ($role['allowed_paths'] ?? [])),
-            ];
-        }
-    }
-
-    return $roles;
-}
-
-/**
- * Emails of all current collaborators of the space (lowercase), as a lookup set.
- *
- * @return array<string, true>
- */
-function fetchCollaboratorEmails(ManagementApiClient $client, string $spaceId): array
-{
-    $collaboratorApi = new CollaboratorApi($client, $spaceId);
-    $emails = [];
-    $page = 1;
-    do {
-        $collaborators = $collaboratorApi->page(page: new PaginationParams($page, 100))->data();
-        /** @var Collaborator $collaborator */
-        foreach ($collaborators as $collaborator) {
-            $email = strtolower($collaborator->realEmail());
-            if ($email !== '') {
-                $emails[$email] = true;
-            }
-        }
-
-        $page++;
-    } while ($collaborators->count() === 100);
-
-    return $emails;
-}
-
-/**
- * Create a custom role that can only see and edit the given stories/folders.
- * allowed_paths takes numeric story IDs and is available on the Elite plan only.
- * The API docs don't state whether a folder ID also covers the stories inside it.
- *
- * @param list<int> $storyIds
- * @return array{id: int, allowed_paths: list<int>}
- */
-function createRole(ManagementApi $api, string $spaceId, string $roleName, array $storyIds): array
-{
-    $response = $api->makeRequest('POST', '/v1/spaces/' . $spaceId . '/space_roles', [
-        'json' => [
-            'space_role' => [
-                'role' => $roleName,
-                'subtitle' => 'Can edit only the content assigned to this group.',
-                'allowed_paths' => $storyIds,
-                'permissions' => [
-                    'read_stories',
-                    'save_stories',
-                    'view_content',
-                    'view_folders',
-                    'view_composer',
-                ],
-            ],
-        ],
-    ]);
-
-    $role = $response->toArray()['space_role'] ?? null;
-    if (!$response->isOk() || !is_array($role)) {
-        throw new RuntimeException('Failed to create role "' . $roleName . '": ' . $response->getErrorMessage());
-    }
-
-    return ['id' => (int) $role['id'], 'allowed_paths' => $storyIds];
-}
-
-/**
- * Invite a user by email and assign the custom role.
- */
-function inviteCollaborator(ManagementApi $api, string $spaceId, string $email, int $roleId): void
-{
-    $response = $api->makeRequest('POST', '/v1/spaces/' . $spaceId . '/collaborators/', [
-        'json' => [
-            'email' => $email,
-            'role' => (string) $roleId,
-            'space_role_id' => $roleId,
-            'space_role_ids' => [],
-            'permissions' => [],
-            'allow_multiple_roles_creation' => false,
-        ],
-    ]);
-
-    if (!$response->isOk()) {
-        throw new RuntimeException('Failed to invite ' . $email . ': ' . $response->getErrorMessage());
-    }
 }

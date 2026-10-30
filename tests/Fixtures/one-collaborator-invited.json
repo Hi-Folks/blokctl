@@ -1,0 +1,20 @@
+{
+    "collaborator": {
+        "user": null,
+        "role": "236218588949901",
+        "user_id": null,
+        "permissions": [],
+        "allowed_path": "",
+        "field_permissions": "",
+        "id": 236353344611718,
+        "space_role_id": 236218588949901,
+        "invitation": {
+            "email": "new.editor@example.com",
+            "expires_at": "2026-11-06T20:44:13.287Z",
+            "is_expired": false,
+            "rid": "5e9ae60c-3aa7-42f4-90da-98a2a85f8433"
+        },
+        "space_role_ids": [],
+        "space_id": 680
+    }
+}

@@ -38,6 +38,8 @@ Most resource-oriented commands are backed by reusable Action classes with no CL
 | `Space\SpaceTokenAction` | Retrieve first preview token | `->token` |
 | `Space\SpaceRoleListAction` | List custom space roles (optional name search) | `->roles`, `->count()`, `->findByName()` |
 | `Space\SpaceRoleEnsureAction` | Create or update a custom space role (null = keep existing value) | `->status`, `->changed()`, `->roleId()`, `->role`, `->changedFields` |
+| `Space\SpaceCollaboratorListAction` | List collaborators, all pages (owner and pending invitations not included) | `->collaborators`, `->count()`, `->findByEmail()` |
+| `Space\SpaceCollaboratorInviteAction` | Add users by email with a role (preflight+execute, skips current collaborators) | `->emailsWithStatus()`, `->hasFailures()`, `->roleName`, `->spaceRoleId` |
 | `SpacePreview\SpacePreviewListAction` | List preview URLs | `->defaultDomain`, `->environments` |
 | `SpacePreview\SpacePreviewSetAction` | Set preview URL (preflight+execute) | `->space` |
 | `SpacePreview\SpacePreviewAddAction` | Add environment (preflight+execute) | `->space` |

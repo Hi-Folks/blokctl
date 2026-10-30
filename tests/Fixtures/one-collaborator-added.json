@@ -1,0 +1,19 @@
+{
+    "collaborator": {
+        "user": {
+            "id": 20009,
+            "firstname": "Carol",
+            "lastname": "White",
+            "friendly_name": "Carol White",
+            "real_email": "carol@example.com"
+        },
+        "role": "editor",
+        "user_id": 20009,
+        "permissions": [],
+        "id": 10009,
+        "space_role_id": null,
+        "invitation": null,
+        "space_role_ids": [],
+        "space_id": 680
+    }
+}
