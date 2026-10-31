@@ -110,6 +110,44 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     }
 
     #[Test]
+    public function validates_datasources_example_yaml_configuration(): void
+    {
+        $config = new SpaceSetupConfigLoader()->load('examples/datasources-space.yaml');
+
+        $result = new SpaceSetupConfigValidator()->validate($config);
+
+        $this->assertTrue($result->isValid(), implode(' | ', $result->errors));
+    }
+
+    #[Test]
+    public function rejects_duplicate_datasource_slugs_and_entry_names(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'datasources' => [
+                ['slug' => 'colors', 'entries' => [['name' => 'red', 'value' => 'Red'], ['name' => 'red', 'value' => 'Crimson']]],
+                ['slug' => 'colors', 'name' => 'Colors again'],
+            ],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertErrorsContain($result->errors, 'Duplicate datasource slug "colors"');
+        $this->assertErrorsContain($result->errors, 'Duplicate entry name "red"');
+    }
+
+    #[Test]
+    public function rejects_datasource_entries_without_value(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'datasources' => [['slug' => 'fonts', 'entries' => [['name' => 'serif']]]],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertErrorsContain($result->errors, 'value');
+    }
+
+    #[Test]
     public function rejects_unknown_workflow_stage_properties(): void
     {
         $result = new SpaceSetupConfigValidator()->validate([

@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=../space-setup-schema.json
+
+version: 1
+
+execution:
+  mode: reconcile
+
+# Datasources are matched by slug and entries by name. Missing dimensions and
+# entries are added, changed values are updated, and nothing is removed.
+datasources:
+  - slug: product-categories
+    name: Product categories
+    dimensions:
+      it: Italian
+      de: German
+    entries:
+      - name: shoes
+        value: Shoes
+        dimensions:
+          it: Scarpe
+          de: Schuhe
+      - name: bags
+        value: Bags
+        dimensions:
+          it: Borse
+          de: Taschen
+
+  # Entries from a CSV file (relative to this config): name, value, then one column per dimension code.
+  - slug: countries
+    name: Countries
+    dimensions:
+      it: Italian
+      de: German
+    entries_file: datasources/countries.csv

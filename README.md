@@ -213,7 +213,7 @@ php bin/blokctl space:setup \
 php bin/blokctl space:setup-validate --config examples/demo-space.yaml
 ```
 
-The setup config supports JSON and YAML and is validated against [space-setup-schema.json](space-setup-schema.json) before any space is created or modified. See [examples/demo-space.yaml](examples/demo-space.yaml) for general provisioning, [examples/multi-country-space.yaml](examples/multi-country-space.yaml) for folder, root-content move, and Dimensions reconciliation, [examples/assets-space.yaml](examples/assets-space.yaml) for local-directory asset upload, [examples/roles-space.yaml](examples/roles-space.yaml) for custom space roles, and [examples/governance-space.yaml](examples/governance-space.yaml) for roles plus a custom review workflow. See [space-setup-config.md](space-setup-config.md) for the full configuration syntax.
+The setup config supports JSON and YAML and is validated against [space-setup-schema.json](space-setup-schema.json) before any space is created or modified. See [examples/demo-space.yaml](examples/demo-space.yaml) for general provisioning, [examples/multi-country-space.yaml](examples/multi-country-space.yaml) for folder, root-content move, and Dimensions reconciliation, [examples/assets-space.yaml](examples/assets-space.yaml) for local-directory asset upload, [examples/roles-space.yaml](examples/roles-space.yaml) for custom space roles, [examples/datasources-space.yaml](examples/datasources-space.yaml) for datasources with dimensions and CSV entries, and [examples/governance-space.yaml](examples/governance-space.yaml) for roles plus a custom review workflow. See [space-setup-config.md](space-setup-config.md) for the full configuration syntax.
 
 ```yaml
 execution:
@@ -1190,6 +1190,74 @@ php bin/blokctl stories:workflow-assign -S 290817118944379 --workflow-stage-id=1
 Finds all stories without a workflow stage and assigns the selected stage to
 them. It does not change or remove stages from stories that already have one.
 For one specific story, or to remove a stage, use `story:workflow-change`.
+
+### Datasources
+
+#### `datasources:list` — List datasources
+
+```bash
+php bin/blokctl datasources:list -S 290817118944379
+```
+
+Shows each datasource with its name, slug, ID, and dimensions (as `code (name)`).
+
+#### `datasource:entries-list` — List the entries of a datasource
+
+```bash
+php bin/blokctl datasource:entries-list -S 290817118944379 -d colors
+php bin/blokctl datasource:entries-list -S 290817118944379 -d colors --dimension=it
+```
+
+| Option | Short | Description |
+|---|---|---|
+| `--datasource` | `-d` | **(required)** Datasource slug or ID |
+| `--dimension` | | Dimension code, e.g. `it`, to also show the value for that dimension |
+
+#### `datasource:ensure` — Create or update a datasource
+
+```bash
+php bin/blokctl datasource:ensure -S 290817118944379 \
+  --slug=colors --name="Colors" --dimension=it=Italian --dimension=de=German
+```
+
+| Option | Description |
+|---|---|
+| `--slug` | **(required)** Datasource slug. The datasource is matched by slug |
+| `--name` | Datasource name. Defaults to the slug when the datasource is created |
+| `--dimension` | Dimension as `code=Name`, e.g. `it=Italian` (repeatable) |
+
+Creates the datasource when no datasource has that slug, otherwise updates its name and adds or renames the declared dimensions. Dimensions that are not declared are kept. Running it again with the same options changes nothing.
+
+#### `datasource:entries-ensure` — Create or update datasource entries
+
+```bash
+# Inline entries
+php bin/blokctl datasource:entries-ensure -S 290817118944379 -d colors -e red=Red -e blue=Blue
+
+# Change one entry: its value and its Italian value
+php bin/blokctl datasource:entries-ensure -S 290817118944379 -d colors -e red=Crimson --dimension-value=it=Cremisi
+
+# Change only the Italian value, keeping the current value
+php bin/blokctl datasource:entries-ensure -S 290817118944379 -d colors -e red --dimension-value=it=Rosso
+
+# From a CSV file: name, value, then one column per dimension code
+php bin/blokctl datasource:entries-ensure -S 290817118944379 -d colors --csv=colors.csv
+```
+
+```csv
+name,value,it,de
+red,Red,Rosso,Rot
+blue,Blue,Blu,Blau
+```
+
+| Option | Short | Description |
+|---|---|---|
+| `--datasource` | `-d` | **(required)** Datasource slug or ID |
+| `--entry` | `-e` | Entry as `name=value` (repeatable). With `--dimension-value`, a single `name` alone keeps the current value |
+| `--dimension-value` | | Dimension value for the single `--entry`, as `code=value`, e.g. `it=Rosso` (repeatable) |
+| `--csv` | | CSV file with columns `name`, `value`, and optional dimension codes. An empty cell leaves that dimension value unchanged |
+
+Entries are matched by name (the entry key). Missing entries are created at the end of the datasource; existing entries get their value and dimension values updated when they differ. Entries that are not declared are kept, and existing entries are not reordered. Dimension codes must exist in the datasource (add them with `datasource:ensure`). The command exits with a non-zero code when an entry fails.
 
 ### Workflows
 
@@ -2324,6 +2392,55 @@ $result = (new StoryTranslatedSlugEnsureAction($client))->execute(
     name: 'Chi siamo',
 );
 ```
+
+### Datasources
+
+#### Read datasources and entries
+
+```php
+use Blokctl\Action\Datasource\DatasourceLookup;
+
+$lookup = new DatasourceLookup($client);
+$lookup->datasources($spaceId);                       // list of datasource objects (all pages)
+$datasource = $lookup->find($spaceId, 'colors');      // by slug or ID; throws when not found
+DatasourceLookup::dimensions($datasource);            // ['it' => dimension, ...] keyed by code
+$lookup->entries($spaceId, 900);                      // entries in datasource order
+$lookup->entries($spaceId, 900, dimensionId: 901);    // with dimension_value for that dimension
+```
+
+#### Create or update a datasource
+
+```php
+use Blokctl\Action\Datasource\DatasourceEnsureAction;
+
+$result = (new DatasourceEnsureAction($client))->execute($spaceId, 'colors', name: 'Colors', dimensions: ['it' => 'Italian']);
+
+$result->status;         // DatasourceEnsureResult::CREATED, UPDATED, or UNCHANGED
+$result->datasourceId(); // int
+$result->changedFields;  // e.g. ['name', 'dimensions']
+```
+
+`name: null` keeps the existing name (the slug is used to create). Declared dimensions are added or renamed by code; others are kept.
+
+#### Create or update datasource entries
+
+```php
+use Blokctl\Action\Datasource\DatasourceEntriesCsv;
+use Blokctl\Action\Datasource\DatasourceEntriesEnsureAction;
+use Blokctl\Action\Datasource\DatasourceEntriesEnsureResult;
+
+$entries = [
+    ['name' => 'red', 'value' => 'Red', 'dimensions' => ['it' => 'Rosso']],
+    ...DatasourceEntriesCsv::load('colors.csv'),
+];
+
+$result = (new DatasourceEntriesEnsureAction($client))->execute($spaceId, 'colors', $entries);
+$result->count(DatasourceEntriesEnsureResult::CREATED);  // also UPDATED, UNCHANGED, FAILED
+$result->entries;       // list of ['name', 'status', 'changed' => ['value', 'dimension:it'], 'message']
+$result->hasFailures(); // bool
+```
+
+Throws `\RuntimeException` when the datasource or a dimension code is not found, or an entry name is declared twice. Failures of single entries are collected in the result.
 
 ### Workflows
 

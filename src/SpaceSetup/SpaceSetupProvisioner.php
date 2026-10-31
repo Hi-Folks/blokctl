@@ -8,6 +8,11 @@ use Blokctl\Action\AppProvision\AppProvisionInstallAction;
 use Blokctl\Action\Asset\AssetsConvertToGlobalAction;
 use Blokctl\Action\Component\ComponentFieldAddAction;
 use Blokctl\Action\Component\ComponentFieldAddResult;
+use Blokctl\Action\Datasource\DatasourceEnsureAction;
+use Blokctl\Action\Datasource\DatasourceEnsureResult;
+use Blokctl\Action\Datasource\DatasourceEntriesCsv;
+use Blokctl\Action\Datasource\DatasourceEntriesEnsureAction;
+use Blokctl\Action\Datasource\DatasourceEntriesEnsureResult;
 use Blokctl\Action\Folder\FolderCreateAction;
 use Blokctl\Action\Space\SpaceDemoRemoveAction;
 use Blokctl\Action\Space\SpaceLanguagesEnsureAction;
@@ -75,6 +80,7 @@ final readonly class SpaceSetupProvisioner
             $this->provisionDemoMode($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionLanguages($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionFolders($reporter, $spaceId, $config, $dryRun, $continueOnError);
+            $this->provisionDatasources($reporter, $spaceId, $config, $configDirectory, $dryRun, $continueOnError);
             $this->provisionStoryMoves($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionAssets($reporter, $spaceId, $config, $configDirectory, $dryRun, $continueOnError);
             $this->provisionStoryUpdates($reporter, $spaceId, $config, $dryRun, $continueOnError);
@@ -1132,6 +1138,110 @@ final readonly class SpaceSetupProvisioner
         }
 
         return $data[$key] === 'all' ? [WorkflowStageEnsureAction::ALL] : $this->stringListValue($data[$key]);
+    }
+
+    /**
+     * Ensure datasources (by slug) with their dimensions, then their entries (by name).
+     * Undeclared dimensions and entries are kept.
+     *
+     * @param array<string, mixed> $config
+     */
+    private function provisionDatasources(
+        SpaceSetupReporter $reporter,
+        string $spaceId,
+        array $config,
+        string $configDirectory,
+        bool $dryRun,
+        bool $continueOnError,
+    ): void {
+        foreach ($this->listValue($config['datasources'] ?? []) as $datasource) {
+            if (!is_array($datasource)) {
+                continue;
+            }
+
+            $slug = $this->stringValue($datasource['slug'] ?? '');
+            $name = $this->nullableStringValue($datasource['name'] ?? null);
+            $dimensions = null;
+            if (array_key_exists('dimensions', $datasource)) {
+                $dimensions = [];
+                foreach ($this->arrayValue($datasource['dimensions']) as $code => $dimensionName) {
+                    $dimensions[(string) $code] = $this->stringValue($dimensionName);
+                }
+            }
+
+            $label = 'Ensure datasource: ' . $slug;
+            $reporter->run($label, SpaceSetupOperationStatus::Updated, $continueOnError, function () use ($spaceId, $slug, $name, $dimensions, $dryRun, $label): SpaceSetupOperationResult {
+                if ($dryRun) {
+                    $details = ['name: ' . ($name ?? 'unchanged')];
+                    if ($dimensions !== null) {
+                        $details[] = 'dimensions: ' . ($dimensions === [] ? 'none' : implode(', ', array_keys($dimensions)));
+                    }
+
+                    return new SpaceSetupOperationResult(SpaceSetupOperationStatus::Updated, $label, implode('; ', $details));
+                }
+
+                $result = new DatasourceEnsureAction($this->client)->execute($spaceId, $slug, $name, $dimensions);
+
+                return match ($result->status) {
+                    DatasourceEnsureResult::CREATED => new SpaceSetupOperationResult(SpaceSetupOperationStatus::Created, $label, 'Datasource ID ' . $result->datasourceId() . '.'),
+                    DatasourceEnsureResult::UPDATED => new SpaceSetupOperationResult(SpaceSetupOperationStatus::Updated, $label, 'Changed: ' . implode(', ', $result->changedFields) . '.'),
+                    default => new SpaceSetupOperationResult(SpaceSetupOperationStatus::Skipped, $label, 'Datasource already matches.'),
+                };
+            });
+
+            $entriesFile = $this->nullableStringValue($datasource['entries_file'] ?? null);
+            $inlineEntries = $this->listValue($datasource['entries'] ?? []);
+            if ($entriesFile === null && $inlineEntries === []) {
+                continue;
+            }
+
+            $entriesLabel = 'Ensure datasource entries: ' . $slug;
+            $reporter->run($entriesLabel, SpaceSetupOperationStatus::Updated, $continueOnError, function () use ($spaceId, $slug, $entriesFile, $inlineEntries, $configDirectory, $dryRun, $entriesLabel): SpaceSetupOperationResult {
+                $entries = $entriesFile === null ? [] : DatasourceEntriesCsv::load($this->resolveConfigRelativePath($configDirectory, $entriesFile));
+                foreach ($inlineEntries as $entry) {
+                    if (!is_array($entry)) {
+                        continue;
+                    }
+
+                    $dimensionValues = [];
+                    foreach ($this->arrayValue($entry['dimensions'] ?? []) as $code => $value) {
+                        $dimensionValues[(string) $code] = $this->stringValue($value);
+                    }
+
+                    $declared = ['name' => $this->stringValue($entry['name'] ?? ''), 'value' => $this->stringValue($entry['value'] ?? '')];
+                    if ($dimensionValues !== []) {
+                        $declared['dimensions'] = $dimensionValues;
+                    }
+
+                    $entries[] = $declared;
+                }
+
+                if ($dryRun) {
+                    return new SpaceSetupOperationResult(SpaceSetupOperationStatus::Updated, $entriesLabel, count($entries) . ' entry(ies) declared.');
+                }
+
+                $result = new DatasourceEntriesEnsureAction($this->client)->execute($spaceId, $slug, $entries);
+                $failed = $result->entriesWithStatus(DatasourceEntriesEnsureResult::FAILED);
+                if ($failed !== []) {
+                    throw new \RuntimeException(implode(' | ', array_map(
+                        static fn(array $entry): string => $entry['name'] . ': ' . $entry['message'],
+                        $failed,
+                    )));
+                }
+
+                $created = $result->count(DatasourceEntriesEnsureResult::CREATED);
+                $updated = $result->count(DatasourceEntriesEnsureResult::UPDATED);
+                if ($created === 0 && $updated === 0) {
+                    return new SpaceSetupOperationResult(SpaceSetupOperationStatus::Skipped, $entriesLabel, 'All entries already match.');
+                }
+
+                return new SpaceSetupOperationResult(
+                    SpaceSetupOperationStatus::Updated,
+                    $entriesLabel,
+                    sprintf('%d created, %d updated, %d unchanged.', $created, $updated, $result->count(DatasourceEntriesEnsureResult::UNCHANGED)),
+                );
+            });
+        }
     }
 
     /**

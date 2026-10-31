@@ -213,6 +213,7 @@ Except for `version`, all top-level sections are optional. If a section is omitt
 | `demo_mode` | Remove demo/example mode. |
 | `workflow` | Create or update custom workflows and stages (`ensure`), and assign workflow stages to stories. |
 | `folders` | Ensure folders exist by portable full slug. |
+| `datasources` | Create or update datasources, dimensions, and entries (inline or from CSV). |
 | `stories` | Move selected root-level stories/folders, update and insert components, create stories, reconcile translated slugs, and publish or unpublish stories. |
 | `apps` | Install Storyblok apps by slug or ID. |
 | `ai` | Configure Storyblok AI availability and organization configuration inheritance. |
@@ -583,6 +584,48 @@ folders:
 | `ensure[].name` | Yes | Folder display name used when creating it. |
 | `ensure[].slug` | Yes | Expected full folder slug used for reconciliation. |
 | `ensure[].parent_slug` | No | Existing or previously ensured parent folder full slug. Omit for root folders. |
+
+## `datasources`
+
+Creates or updates datasources, their dimensions, and their entries. Runs after `folders` and before story operations.
+
+```yaml
+datasources:
+  - slug: product-categories
+    name: Product categories
+    dimensions:
+      it: Italian
+      de: German
+    entries:
+      - name: shoes
+        value: Shoes
+        dimensions:
+          it: Scarpe
+          de: Schuhe
+
+  - slug: countries
+    name: Countries
+    dimensions:
+      it: Italian
+    entries_file: datasources/countries.csv
+```
+
+| Key | Required | Description |
+|---|---:|---|
+| `slug` | Yes | Datasource slug, unique in the space. The datasource is matched by slug. |
+| `name` | No | Datasource name. Defaults to the slug when the datasource is created. |
+| `dimensions` | No | Dimensions as `code: name`. Missing dimensions are added and renamed ones updated. |
+| `entries` | No | Entries with `name` (the key, unique in the datasource), `value`, and optional `dimensions` values per code. |
+| `entries_file` | No | CSV file relative to the config file, with columns `name`, `value`, and one column per dimension code. Loaded before `entries`. |
+
+Behavior:
+
+- Entries are matched by name. Missing entries are created at the end of the datasource in the declared order; existing entries get their value and dimension values updated when they differ.
+- Nothing is removed: undeclared dimensions and entries are kept, and existing entries are not reordered.
+- Dimension codes used by entries must be declared in `dimensions` or already exist in the datasource.
+- Validation rejects duplicate datasource slugs and duplicate entry names in `entries`.
+
+See [examples/datasources-space.yaml](examples/datasources-space.yaml).
 
 ## `stories.move`
 

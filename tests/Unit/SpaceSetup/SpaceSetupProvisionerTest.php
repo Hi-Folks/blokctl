@@ -1258,6 +1258,57 @@ final class SpaceSetupProvisionerTest extends TestCase
     }
 
     #[Test]
+    public function plans_datasources_after_folders_and_before_stories(): void
+    {
+        $results = $this->provision([
+            'folders' => ['ensure' => [['name' => 'North', 'slug' => 'north']]],
+            'datasources' => [
+                [
+                    'slug' => 'colors',
+                    'name' => 'Colors',
+                    'dimensions' => ['it' => 'Italian'],
+                    'entries' => [['name' => 'red', 'value' => 'Red', 'dimensions' => ['it' => 'Rosso']]],
+                    'entries_file' => 'tests/Fixtures/datasource-csv/colors.csv',
+                ],
+                ['slug' => 'fonts'],
+            ],
+            'stories' => ['publish' => ['slugs' => ['home']]],
+        ])->results();
+
+        $this->assertSame([
+            'Ensure folder: north',
+            'Ensure datasource: colors',
+            'Ensure datasource entries: colors',
+            'Ensure datasource: fonts',
+            'Publish stories',
+        ], array_map(static fn(SpaceSetupOperationResult $result): string => $result->label, $results));
+        $this->assertSame('name: Colors; dimensions: it', $results[1]->detail);
+        $this->assertSame('3 entry(ies) declared.', $results[2]->detail);
+        $this->assertSame('name: unchanged', $results[3]->detail);
+    }
+
+    #[Test]
+    public function skips_datasource_and_entries_that_already_match(): void
+    {
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                $this->mockResponse('list-datasources'),
+                $this->mockResponse('list-datasources'),
+                $this->mockResponse('list-datasource-entries'),
+                $this->mockResponse('list-datasource-entries-it'),
+            ),
+            ['datasources' => [[
+                'slug' => 'colors',
+                'dimensions' => ['it' => 'Italian'],
+                'entries' => [['name' => 'red', 'value' => 'Red', 'dimensions' => ['it' => 'Rosso']]],
+            ]]],
+        );
+
+        $statuses = array_map(static fn(SpaceSetupOperationResult $result): SpaceSetupOperationStatus => $result->status, $reporter->results());
+        $this->assertSame([SpaceSetupOperationStatus::Skipped, SpaceSetupOperationStatus::Skipped], $statuses);
+    }
+
+    #[Test]
     public function plans_each_tag_assignment(): void
     {
         $result = $this->singleResult([

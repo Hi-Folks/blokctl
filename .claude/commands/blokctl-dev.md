@@ -28,7 +28,7 @@ tests/
 └── Fixtures/                # Mock API response JSON files
 ```
 
-Current Action groups: `AppProvision`, `Asset`, `Component`, `Experiment`, `Folder`, `Space`, `SpacePreview`, `Story`, `User`, and `Workflow`.
+Current Action groups: `AppProvision`, `Asset`, `Component`, `Datasource`, `Experiment`, `Folder`, `Space`, `SpacePreview`, `Story`, `User`, and `Workflow`.
 
 ## How to add a new command
 

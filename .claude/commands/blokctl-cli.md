@@ -46,6 +46,7 @@ Exceptions that do not require `-S`: `space:create`, `space:setup-validate`, `sp
 - Merges story tags and preview environments.
 - Skips matching apps, folders, fields, tags, workflows, demo mode, preview URLs, root-content moves, and Dimensions configuration.
 - Supports multi-country setup with `folders.ensure`, `stories.move`, and `dimensions.folders`.
+- Creates or updates datasources, dimensions, and entries with `datasources` (inline or `entries_file` CSV; nothing is removed).
 - Inserts components into story list fields with `stories.insert_component` (index or append; skipped when the same block is already present; runs after `stories.update`).
 - Publishes selected stories with `stories.publish` (after other operations) and unpublishes with `stories.unpublish` (with the removals at the end).
 - Creates or updates custom workflows and their stages with `workflow.ensure` (stage order from the list, roles and stage links by name; runs after `roles`).
@@ -121,6 +122,10 @@ See `space-setup-config.md` for complete syntax. Reports contain stable JSON sta
 
 ### Workflows
 
+- **`datasources:list`** — List datasources with slug, ID, and dimensions.
+- **`datasource:entries-list`** — List entries. Options: `-d`/`--datasource` (slug or ID), `--dimension` (code).
+- **`datasource:ensure`** — Create a datasource or update its name and dimensions. Options: `--slug`, `--name`, `--dimension code=Name` (repeatable).
+- **`datasource:entries-ensure`** — Create or update entries. Options: `-d`/`--datasource`, `-e`/`--entry name=value` (repeatable), `--dimension-value code=value` (repeatable, with exactly one `--entry`; `-e name` alone keeps the current value), `--csv` (columns `name`, `value`, dimension codes). Never deletes entries. Common case: change one entry's values with `-d <datasource> -e red=Crimson --dimension-value it=Cremisi`.
 - **`workflows:list`** — List workflows and their stages with IDs.
 - **`workflow:stage-show`** — Show stage details. Lookup: `--by-name`, `--by-id`. Scope: `--workflow-name`, `--workflow-id`.
 - **`workflow:ensure`** — Create a custom workflow or update its content types. Options: `--name`, `-c`/`--content-type` (repeatable; required to create). A content type can belong to only one workflow.

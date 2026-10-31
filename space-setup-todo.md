@@ -121,7 +121,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 - [x] Update component fields when requested configuration differs.
 - [x] Reconcile preview environments without unintentionally replacing existing entries.
 - [x] Skip tags already assigned to stories.
-- [ ] Reuse datasources that already exist.
+- [x] Reuse datasources that already exist (matched by slug).
 - [x] Rely on retry handling provided by the PHP Management Client.
 - [x] Add readiness polling after duplication before applying setup.
 - [x] Detect and report pending duplication/background tasks.
@@ -223,7 +223,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 
 ## Priority 7: Datasources and Integrations
 
-- [ ] Create and reconcile datasources and entries.
+- [x] Create and reconcile datasources and entries (`datasources`, with dimensions and CSV entries).
 - [ ] Create and reconcile webhooks.
 - [ ] Configure deployment/build hooks.
 - [ ] Configure releases when supported.
@@ -307,6 +307,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 - [x] Custom workflows and workflow stages with `workflow.ensure`
 - [x] Story publishing and unpublishing by slug, ID, or folder
 - [x] Component insertion into story list fields with `stories.insert_component`
+- [x] Datasources, dimensions, and entries with `datasources`
 - [x] Existing-space setup with `-S`
 - [x] Configuration-driven blank-space creation with `space.create_new: true`
 - [x] Configuration-driven duplicate-first setup with `space.duplicate_from`

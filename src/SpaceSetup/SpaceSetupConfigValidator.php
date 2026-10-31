@@ -104,6 +104,27 @@ final readonly class SpaceSetupConfigValidator
             }
         }
 
+        $datasourceSlugs = [];
+        foreach (is_array($config['datasources'] ?? null) ? $config['datasources'] : [] as $index => $datasource) {
+            $slug = is_array($datasource) && is_string($datasource['slug'] ?? null) ? $datasource['slug'] : null;
+            if ($slug === null) {
+                continue;
+            }
+
+            if (in_array($slug, $datasourceSlugs, true)) {
+                $errors[] = '$.datasources[' . $index . '].slug: Duplicate datasource slug "' . $slug . '".';
+            }
+
+            $datasourceSlugs[] = $slug;
+            $entryNames = array_values(array_filter(array_map(
+                static fn(mixed $entry): mixed => is_array($entry) ? ($entry['name'] ?? null) : null,
+                is_array($datasource['entries'] ?? null) ? $datasource['entries'] : [],
+            ), is_string(...)));
+            foreach (array_unique(array_diff_assoc($entryNames, array_unique($entryNames))) as $duplicate) {
+                $errors[] = '$.datasources[' . $index . '].entries: Duplicate entry name "' . $duplicate . '".';
+            }
+        }
+
         return [...$errors, ...$this->workflowErrors($config)];
     }
 

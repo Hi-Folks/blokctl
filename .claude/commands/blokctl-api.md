@@ -64,6 +64,9 @@ Most resource-oriented commands are backed by reusable Action classes with no CL
 | `Story\StoriesWorkflowAssignAction` | Assign stage to unstaged stories (preflight+execute) | `->countWithoutStage`, `->workflowStages` |
 | `Asset\AssetsListAction` | List/search assets (MAPI only) | `->assets`, `->count()` |
 | `Asset\AssetsUnreferencedAction` | Find unreferenced assets (optional `previewToken`) | `->unreferencedAssets`, `->totalAssets`, `->referencedCount`, `->storiesAnalyzed` |
+| `Datasource\DatasourceLookup` | Read datasources (by slug or ID), dimensions, and entries (optionally with dimension values) | `datasources()`, `find()`, `entries()`, `dimensions()` |
+| `Datasource\DatasourceEnsureAction` | Create a datasource or update its name and dimensions | `->status`, `->datasourceId()`, `->changedFields` |
+| `Datasource\DatasourceEntriesEnsureAction` | Create or update entries and dimension values (use `DatasourceEntriesCsv::load()` for CSV) | `->count()`, `->entries`, `->hasFailures()` |
 | `Workflow\WorkflowsListAction` | List workflows+stages | `->workflows`, `->count()` |
 | `Workflow\WorkflowEnsureAction` | Create a custom workflow or update its content types (one workflow per content type) | `->status`, `->workflowId()`, `->workflow`, `->changedFields` |
 | `Workflow\WorkflowStageEnsureAction` | Create a stage or update declared properties; roles and next stages by name, `[ALL]` for all | `->status`, `->stageId()`, `->stage`, `->changedFields` |

@@ -58,6 +58,13 @@
       "description": "Ensures configured folders exist, resolving them by full slug.",
       "$ref": "#/$defs/folders"
     },
+    "datasources": {
+      "description": "Ensures datasources (by slug) with their dimensions and entries. Undeclared dimensions and entries are kept.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/datasource"
+      }
+    },
     "stories": {
       "description": "Applies configured story operations. Currently supports moving selected root-level stories and folders.",
       "$ref": "#/$defs/stories"
@@ -679,6 +686,92 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/folderDefinition"
+          }
+        }
+      }
+    },
+    "datasource": {
+      "description": "A datasource, matched by slug.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slug"
+      ],
+      "properties": {
+        "slug": {
+          "description": "Datasource slug, unique in the space.",
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "description": "Datasource name. Defaults to the slug when the datasource is created.",
+          "type": "string",
+          "minLength": 1
+        },
+        "dimensions": {
+          "description": "Dimensions as code: name, for example it: Italian. Missing dimensions are added and renamed ones updated; undeclared dimensions are kept.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "entries": {
+          "description": "Entries matched by name. New entries are appended in this order.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/datasourceEntry"
+          }
+        },
+        "entries_file": {
+          "description": "CSV file relative to the config file, with columns name, value, and optional dimension codes. Loaded before the inline entries.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "datasourceEntry": {
+      "description": "A datasource entry (key and value).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "value"
+      ],
+      "properties": {
+        "name": {
+          "description": "Entry name (the key), unique in the datasource.",
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "description": "Entry value.",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            }
+          ]
+        },
+        "dimensions": {
+          "description": "Values per dimension code, for example it: Rosso.",
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
           }
         }
       }

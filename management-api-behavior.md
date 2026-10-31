@@ -102,6 +102,25 @@ User emails are in `user.real_email`. The list supports `page` and `per_page` (m
 - **Change a role:** `PUT /v1/spaces/:space_id/collaborators/:collaborator_id` with the body wrapped as `{"collaborator": {"role": ..., "space_role_id": ...}}`. Verified 2026-10-31 for a custom role.
 - **Remove a collaborator:** `DELETE /v1/spaces/:space_id/collaborators/:collaborator_id`. The docs also allow an SSO ID in place of the collaborator ID.
 
+## Datasources and datasource entries
+
+Endpoints: `/v1/spaces/:space_id/datasources` (body wrapped as `{"datasource": {...}}`) and `/v1/spaces/:space_id/datasource_entries` (body wrapped as `{"datasource_entry": {...}}`). The PHP client has no endpoint classes for them; use `makeRequest()`.
+
+| Behavior | Status |
+|---|---|
+| Datasource slugs are unique in the space (`422` `slug: has already been taken`); the slug can be changed | Verified 2026-10-31 |
+| Dimensions are created and changed only through `dimensions_attributes` on the datasource. On update it **adds** dimensions and keeps the existing ones; `{"id": ..., "name": ...}` renames one, `{"id": ..., "_destroy": true}` removes one | Verified 2026-10-31 |
+| Updating a datasource returns `200` with the datasource object. A partial update keeps the fields it does not send | Verified 2026-10-31 |
+| Entry names (the keys) are unique in a datasource (`422` `{"error": ["Name has already been taken"]}`) | Verified 2026-10-31 |
+| Creating an entry returns `201` with the entry; updating it returns `204` with an empty body | Verified 2026-10-31 |
+| A dimension value is set with `PUT` on the entry: `{"datasource_entry": {"dimension_value": "..."}, "dimension_id": <id>}`. A partial update of the entry value keeps the dimension values | Verified 2026-10-31 |
+| Dimension values are read from the entries list with `datasource_id` (or `datasource_slug`) plus `dimension=<dimension id>`; without `dimension`, `dimension_value` is empty | Verified 2026-10-31 |
+| `position: 1` puts a new entry first; without `position` it is appended | Verified 2026-10-31 |
+| Deleting a datasource also deletes its entries | Verified 2026-10-31 |
+| Filtering the entries list by `datasource_slug` disables pagination | Documented |
+| The datasources list has no slug filter (only `search` and `by_ids`), although the docs say it can be filtered by slug | Docs inconsistency |
+| Entries can only be created one per request; there is no bulk endpoint | Documented |
+
 ## Workflows
 
 Endpoint: `/v1/spaces/:space_id/workflows`. Request bodies are wrapped as `{"workflow": {...}}`.
@@ -141,4 +160,5 @@ Who can move a story to the next stages: `user_ids`, `space_role_ids`, `allow_al
 - `space:collaborator-invite` skips current collaborators and reports pending invitations; `space:collaborator-remove --id` can remove a pending invitation.
 - `workflow:stage-ensure` and `workflow.ensure` send `allow_all_users: false` / `allow_all_stages: false` when roles or next stages are declared, unset the current default stage before setting a new one, and read the stage back after an update.
 - `workflow:ensure` rejects a content type that already belongs to another workflow before sending the request.
+- Datasource and entry commands match datasources by slug and entries by name, add dimensions through `dimensions_attributes`, and set dimension values with a separate request per entry and dimension.
 - `space:role-delete` lists the collaborators who still have the role before deleting it.

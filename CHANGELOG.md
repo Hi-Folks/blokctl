@@ -2,6 +2,15 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- Added datasource commands: `datasources:list`, `datasource:entries-list`, `datasource:ensure` (create or update a datasource and its dimensions), and `datasource:entries-ensure` (create or update entries and dimension values, inline with `--entry` and `--dimension-value`, or from CSV).
+- Added reusable PHP classes `DatasourceLookup`, `DatasourceEnsureAction`, `DatasourceEntriesEnsureAction`, and `DatasourceEntriesCsv`.
+- Added `datasources` to `space:setup` YAML/JSON configs (dimensions, inline entries, and `entries_file` CSV), with `examples/datasources-space.yaml`.
+- Added verified datasource and datasource entry behavior to `management-api-behavior.md`.
+
 ## 0.17.0 - 2026-10-31
 
 ### Added
