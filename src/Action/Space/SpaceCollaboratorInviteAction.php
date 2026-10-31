@@ -17,8 +17,6 @@ use Storyblok\ManagementApi\ManagementApiClient;
  */
 final readonly class SpaceCollaboratorInviteAction
 {
-    private const array BUILT_IN_ROLES = ['admin', 'editor'];
-
     public function __construct(
         private ManagementApiClient $client,
     ) {}
@@ -48,7 +46,7 @@ final readonly class SpaceCollaboratorInviteAction
             throw new \RuntimeException('At least one email address is required.');
         }
 
-        [$roleName, $spaceRoleId] = $this->resolveRole($spaceId, $role);
+        [$roleName, $spaceRoleId] = new SpaceRoleResolveAction($this->client)->execute($spaceId, $role);
         $existing = new SpaceCollaboratorListAction($this->client)->execute($spaceId);
 
         $entries = [];
@@ -101,25 +99,5 @@ final readonly class SpaceCollaboratorInviteAction
         }
 
         return new SpaceCollaboratorInviteResult($preflight->roleName, $preflight->spaceRoleId, $entries);
-    }
-
-    /**
-     * @return array{0: string, 1: int|null} Role name and custom space role ID (null for built-in roles)
-     */
-    private function resolveRole(string $spaceId, string $role): array
-    {
-        $role = trim($role);
-        if (in_array(strtolower($role), self::BUILT_IN_ROLES, true)) {
-            return [strtolower($role), null];
-        }
-
-        $spaceRole = new SpaceRoleListAction($this->client)->execute($spaceId)->findByNameOrId($role);
-        $id = $spaceRole['id'] ?? null;
-        $name = $spaceRole['role'] ?? null;
-        if (!is_numeric($id) || !is_string($name)) {
-            throw new \RuntimeException('Space role not found: ' . $role);
-        }
-
-        return [$name, (int) $id];
     }
 }

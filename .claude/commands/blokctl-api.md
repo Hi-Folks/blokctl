@@ -39,6 +39,8 @@ Most resource-oriented commands are backed by reusable Action classes with no CL
 | `Space\SpaceRoleListAction` | List custom space roles (optional name search) | `->roles`, `->count()`, `->findByName()` |
 | `Space\SpaceRoleEnsureAction` | Create or update a custom space role (null = keep existing value) | `->status`, `->changed()`, `->roleId()`, `->role`, `->changedFields` |
 | `Space\SpaceCollaboratorListAction` | List collaborators, all pages (owner and pending invitations not included) | `->collaborators`, `->count()`, `->findByEmail()` |
+| `Space\SpaceCollaboratorRoleSetAction` | Change a collaborator's main role by email or ID (preflight+execute) | `->changed`, `->previousRole`, `->roleName`, `->spaceRoleId` |
+| `Space\SpaceRoleResolveAction` | Resolve `admin`/`editor` or a custom role name or ID | `execute()` returns `[name, id or null]` |
 | `Space\SpaceCollaboratorRemoveAction` | Remove collaborators by email or collaborator ID (preflight+execute; IDs cover pending invitations) | `->entriesWithStatus()`, `->hasFailures()` |
 | `Space\SpaceRoleDeleteAction` | Delete a custom space role by name or ID (preflight+execute) | `->roleId`, `->roleName`, `->assignedEmails`, `->isAssigned()` |
 | `Space\SpaceCollaboratorInviteAction` | Add users by email with a role (preflight+execute, skips current collaborators) | `->emailsWithStatus()`, `->hasFailures()`, `->roleName`, `->spaceRoleId` |

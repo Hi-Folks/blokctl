@@ -2,7 +2,7 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
-## Unreleased
+## 0.16.0 - 2026-10-31
 
 ### Added
 
@@ -15,6 +15,8 @@ All notable changes to `blokctl` will be documented in this file.
 - Added reusable PHP actions `SpaceCollaboratorListAction` and `SpaceCollaboratorInviteAction` (preflight + execute; reports added users, pending invitations, skips, and per-email failures).
 - Added `space:collaborator-remove` (by email or collaborator ID, including pending invitations) and `space:role-delete` (by name or ID, lists collaborators that still have the role) commands, both with `--dry-run` and a confirmation prompt.
 - Added reusable PHP actions `SpaceCollaboratorRemoveAction` and `SpaceRoleDeleteAction` (preflight + execute), and `SpaceRoleListResult::findByNameOrId()`.
+- Added `space:collaborator-role-set` command to change a collaborator's role by email or ID, with `--dry-run` and a confirmation prompt.
+- Added reusable PHP actions `SpaceCollaboratorRoleSetAction` (preflight + execute) and `SpaceRoleResolveAction` (built-in or custom role by name or ID).
 
 ### Changed
 

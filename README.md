@@ -490,6 +490,23 @@ php bin/blokctl space:collaborator-invite -S 290817118944379 \
 
 Current collaborators are skipped (matched by email, case-insensitive). An email that already belongs to a Storyblok user is added to the space directly. An email without a Storyblok account gets a pending invitation that expires after 7 days. Pending invitations don't appear in the collaborators list, so running the command again for the same email cannot skip them. The command exits with a non-zero code when any email fails.
 
+#### `space:collaborator-role-set` — Change a collaborator's role
+
+```bash
+php bin/blokctl space:collaborator-role-set -S 290817118944379 \
+  -e editor.north@example.com --role="Editors - North" --dry-run
+php bin/blokctl space:collaborator-role-set -S 290817118944379 --id=236219956299045 --role=editor
+```
+
+| Option | Short | Description |
+|---|---|---|
+| `--email` | `-e` | Collaborator email (use this or `--id`) |
+| `--id` | | Collaborator ID (use this or `--email`) |
+| `--role` | | **(required)** `admin`, `editor`, or a custom space role name or ID |
+| `--dry-run` | | Show the current and new role without changing them |
+
+Shows the current and the new role, then asks for confirmation (`-n` skips the prompt). Does nothing when the collaborator already has the role. It sets the collaborator's main role (`role` and `space_role_id`); additional roles in `space_role_ids` are not changed. Pending invitations are not in the collaborators list, so their role cannot be changed with this command.
+
 #### `space:collaborator-remove` — Remove collaborators
 
 ```bash
@@ -1675,6 +1692,25 @@ $result->hasFailures();   // bool; per-email errors are in $result->entries[]['m
 ```
 
 `role` accepts `admin`, `editor` (default), or a custom space role name or ID. `preflight()` throws `\RuntimeException` for an invalid email, an unknown role, or an API error. `execute()` does not throw for a single email; it collects failures per email.
+
+#### Change a collaborator's role (preflight + execute)
+
+```php
+use Blokctl\Action\Space\SpaceCollaboratorRoleSetAction;
+
+$action = new SpaceCollaboratorRoleSetAction($client);
+$preflight = $action->preflight($spaceId, 'editor@example.com', role: 'Editors - North'); // email or collaborator ID
+
+$preflight->previousRole;        // "admin", "editor", or a custom role ID as string
+$preflight->previousSpaceRoleId; // int|null
+$preflight->roleName;            // target role name
+$preflight->spaceRoleId;         // int|null, null for built-in roles
+$preflight->changed;             // false when the role already matches
+
+$action->execute($spaceId, $preflight); // no request when unchanged
+```
+
+`preflight()` throws `\RuntimeException` when the collaborator or role is not found. To resolve a role reference on its own, use `SpaceRoleResolveAction`: `(new SpaceRoleResolveAction($client))->execute($spaceId, 'Editors - North')` returns `[name, id]`, with `id` null for `admin` and `editor`.
 
 #### Remove collaborators (preflight + execute)
 
