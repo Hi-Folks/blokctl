@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Blokctl\Action\Datasource;
 
 /**
- * Read datasource entries from a CSV file.
+ * Read and write datasource entries as CSV.
  *
  * The header row needs `name` and `value`. Every other column is a dimension code,
  * for example `it` or `de`; an empty cell leaves that dimension value undeclared.
@@ -69,5 +69,29 @@ final class DatasourceEntriesCsv
         fclose($handle);
 
         return $entries;
+    }
+
+    /**
+     * Format rows as CSV with a header row. Same format that load() reads.
+     *
+     * @param list<string> $header
+     * @param list<list<string>> $rows
+     */
+    public static function format(array $header, array $rows): string
+    {
+        $handle = fopen('php://temp', 'r+');
+        if ($handle === false) {
+            throw new \RuntimeException('Unable to create the CSV output.');
+        }
+
+        foreach ([$header, ...$rows] as $row) {
+            fputcsv($handle, $row, ',', '"', '');
+        }
+
+        rewind($handle);
+        $csv = stream_get_contents($handle);
+        fclose($handle);
+
+        return $csv === false ? '' : $csv;
     }
 }

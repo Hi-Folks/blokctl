@@ -126,6 +126,7 @@ See `space-setup-config.md` for complete syntax. Reports contain stable JSON sta
 - **`datasource:entries-list`** — List entries. Options: `-d`/`--datasource` (slug or ID), `--dimension` (code).
 - **`datasource:ensure`** — Create a datasource or update its name and dimensions. Options: `--slug`, `--name`, `--dimension code=Name` (repeatable).
 - **`datasource:entries-ensure`** — Create or update entries. Options: `-d`/`--datasource`, `-e`/`--entry name=value` (repeatable), `--dimension-value code=value` (repeatable, with exactly one `--entry`; `-e name` alone keeps the current value), `--csv` (columns `name`, `value`, dimension codes). Never deletes entries. Common case: change one entry's values with `-d <datasource> -e red=Crimson --dimension-value it=Cremisi`.
+- **`datasource:entries-export`** — Export entries as CSV (`name`, `value`, dimension codes). Options: `-d`/`--datasource`, `--dimension` (repeatable), `-o`/`--output` (prints when omitted). Round trip: export, edit, import with `datasource:entries-ensure --csv`.
 - **`datasource:entries-remove`** — Delete entries by name. Options: `-d`/`--datasource`, `-e`/`--entry` (repeatable), `--dry-run`. Asks for confirmation (skip with `-n`); names that match no entry are skipped.
 - **`workflows:list`** — List workflows and their stages with IDs.
 - **`workflow:stage-show`** — Show stage details. Lookup: `--by-name`, `--by-id`. Scope: `--workflow-name`, `--workflow-id`.

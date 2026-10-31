@@ -1223,6 +1223,29 @@ Step 3 changes only `light`; `dark` is not touched. The output reports what chan
 
 Running any step again changes nothing, so the same commands can be kept in a setup script.
 
+#### Example: manage entries in a spreadsheet (CSV export and import)
+
+For more than a few entries, or translated values, edit the datasource as a spreadsheet:
+
+```bash
+# 1. Export the entries: name, value, and one column per dimension
+php bin/blokctl datasource:entries-export -S 290817118944379 -d countries -o countries.csv
+
+# 2. Edit countries.csv in a spreadsheet or text editor, then import it back
+php bin/blokctl datasource:entries-ensure -S 290817118944379 -d countries --csv=countries.csv
+```
+
+```csv
+name,value,it,de
+it,Italy,Italia,Italien
+de,Germany,Germania,Deutschland
+fr,France,Francia,Frankreich
+```
+
+The import changes only what differs: new rows are added at the end, changed values and dimension values are updated, and unchanged rows are skipped. Rows removed from the file are **not** deleted in Storyblok; use `datasource:entries-remove` for that. An empty dimension cell leaves the current value as it is, so a dimension value cannot be cleared through CSV.
+
+The same CSV works in `space:setup` with `entries_file`, so a datasource can be versioned next to the setup config. Dimension codes in the header must exist in the datasource; create them first with `datasource:ensure --dimension=it=Italian`.
+
 #### `datasources:list` — List datasources
 
 ```bash
@@ -1242,6 +1265,24 @@ php bin/blokctl datasource:entries-list -S 290817118944379 -d colors --dimension
 |---|---|---|
 | `--datasource` | `-d` | **(required)** Datasource slug or ID |
 | `--dimension` | | Dimension code, e.g. `it`, to also show the value for that dimension |
+
+#### `datasource:entries-export` — Export entries as CSV
+
+```bash
+# Print the CSV
+php bin/blokctl datasource:entries-export -S 290817118944379 -d countries
+
+# Write a file with only the Italian dimension
+php bin/blokctl datasource:entries-export -S 290817118944379 -d countries --dimension=it -o countries-it.csv
+```
+
+| Option | Short | Description |
+|---|---|---|
+| `--datasource` | `-d` | **(required)** Datasource slug or ID |
+| `--dimension` | | Dimension code to include (repeatable). All dimensions when omitted |
+| `--output` | `-o` | File to write. Prints the CSV when omitted |
+
+Writes `name`, `value`, and one column per dimension code, in datasource order. This is the format `datasource:entries-ensure --csv` and `space:setup` `entries_file` read.
 
 #### `datasource:ensure` — Create or update a datasource
 
@@ -2488,6 +2529,19 @@ $result->hasFailures(); // bool
 Throws `\RuntimeException` when the datasource or a dimension code is not found, or an entry name is declared twice. Failures of single entries are collected in the result.
 
 Omit `value` in an entry to change only its dimension values (a value is still required to create the entry).
+
+#### Export datasource entries as CSV
+
+```php
+use Blokctl\Action\Datasource\DatasourceEntriesExportAction;
+
+$result = (new DatasourceEntriesExportAction($client))->execute($spaceId, 'countries');   // all dimensions
+$result = (new DatasourceEntriesExportAction($client))->execute($spaceId, 'countries', ['it']);
+
+$result->header;  // ['name', 'value', 'it']
+$result->rows;    // [['it', 'Italy', 'Italia'], ...]
+file_put_contents('countries.csv', $result->toCsv());
+```
 
 #### Delete datasource entries (preflight + execute)
 

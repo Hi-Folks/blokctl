@@ -8,6 +8,7 @@ All notable changes to `blokctl` will be documented in this file.
 
 - Added datasource commands: `datasources:list`, `datasource:entries-list`, `datasource:ensure` (create or update a datasource and its dimensions), and `datasource:entries-ensure` (create or update entries and dimension values, inline or from CSV).
 - Added `datasource:entries-remove` to delete entries by name (`--dry-run`, confirmation prompt; names that match no entry are skipped), and `datasources[].remove_entries` in `space:setup` (runs with the removals at the end).
+- Added `datasource:entries-export` to export entries as CSV (name, value, one column per dimension), in the format the CSV import reads, so a datasource can be edited in a spreadsheet and imported back. Added `DatasourceEntriesExportAction`.
 - Added `--dimension-value` to `datasource:entries-ensure` to change one entry's dimension values; `-e name` alone keeps the current value.
 - Added reusable PHP classes `DatasourceLookup`, `DatasourceEnsureAction`, `DatasourceEntriesEnsureAction`, `DatasourceEntriesRemoveAction`, and `DatasourceEntriesCsv`.
 - Added `datasources` to `space:setup` YAML/JSON configs (dimensions, inline entries, and `entries_file` CSV), with `examples/datasources-space.yaml`.
