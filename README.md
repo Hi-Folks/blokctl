@@ -232,7 +232,7 @@ space:
 
 Reconcile mode is the default. Repeated setup runs preserve unmanaged resources, skip matching state, merge story tags and preview environments, and update only explicitly configured component field properties. Resources omitted from the config are never removed automatically.
 
-**Removals run last.** Something is removed only when the config asks for it explicitly, for example `space.languages.remove`. All removals run at the end of the setup, after every create and update. This order lets the same run move content away from what is being removed (for example, create a new stage and assign stories to it before an old one is removed), and if a step fails earlier, the run stops before anything is deleted. With `--continue-on-error` (or `execution.continue_on_error: true`) the run continues after a failure and still reaches the removals, so avoid it for configs that remove resources.
+**Removals run last.** Something is removed only when the config asks for it explicitly, for example `space.languages.remove` or `stories.unpublish`. All removals run at the end of the setup, after every create and update. This order lets the same run move content away from what is being removed (for example, create a new stage and assign stories to it before an old one is removed), and if a step fails earlier, the run stops before anything is deleted. With `--continue-on-error` (or `execution.continue_on_error: true`) the run continues after a failure and still reaches the removals, so avoid it for configs that remove resources.
 
 When a removal must happen **first**, for example because a new resource needs a name, color, or content type that the removed resource still uses, split the work into two runs:
 
@@ -1144,6 +1144,28 @@ php bin/blokctl stories:tags-assign -S 290817118944379 \
 | `--tag` | `-t` | Tag name to assign (repeatable) |
 
 At least one `--story-id` or `--story-slug` is required. Both can be combined.
+
+#### `stories:publish` / `stories:unpublish` — Publish or unpublish stories
+
+```bash
+# Preview: every story in a folder plus one story by slug
+php bin/blokctl stories:publish -S 290817118944379 --folder=products --slug=about --dry-run
+
+# Publish (asks for confirmation; -n skips the prompt)
+php bin/blokctl stories:publish -S 290817118944379 --folder=products
+
+# Unpublish by ID
+php bin/blokctl stories:unpublish -S 290817118944379 --id=123456
+```
+
+| Option | Description |
+|---|---|
+| `--slug` | Exact full slug of a story (repeatable), e.g. `about`, or `products/` for a folder's start page |
+| `--id` | Story ID (repeatable) |
+| `--folder` | Folder full slug (repeatable): every story inside, including nested folders and the folder's start page |
+| `--dry-run` | Show the selected stories without changing them |
+
+At least one `--slug`, `--id`, or `--folder` is required. Folders themselves are never published. Stories already in the requested state are skipped: `stories:publish` skips stories that are published without unpublished changes, and `stories:unpublish` skips stories that are not published. A slug or ID that matches no story stops the command before any change. The command exits with a non-zero code when a story fails.
 
 #### `stories:workflow-assign` — Assign workflow stages to stories
 
@@ -2203,6 +2225,26 @@ $result = (new StoriesTagsAssignAction($client))->execute(
 $result->tagged; // array of ['name' => ..., 'tags' => ...]
 $result->errors; // string[] — non-fatal errors
 ```
+
+#### Publish or unpublish stories (preflight + execute)
+
+```php
+use Blokctl\Action\Story\StoriesPublishAction;
+use Blokctl\Action\Story\StoriesPublishResult;
+
+$action = new StoriesPublishAction($client);
+
+// Select by exact full slug, ID, or folder (every story inside); publish: false to unpublish
+$preflight = $action->preflight($spaceId, slugs: ['about'], ids: [123456], folders: ['products'], publish: true);
+$preflight->entriesWithStatus(StoriesPublishResult::PLANNED); // stories that will change
+$preflight->entriesWithStatus(StoriesPublishResult::SKIPPED); // already in the requested state
+
+$result = $action->execute($spaceId, $preflight);
+$result->entriesWithStatus(StoriesPublishResult::PUBLISHED);  // or UNPUBLISHED
+$result->hasFailures();                                       // per-story errors in ['message']
+```
+
+Each entry is `['id' => int, 'fullSlug' => string, 'status' => string, 'message' => string]`. `preflight()` throws `\RuntimeException` when nothing is selected, or when a slug or ID matches no story.
 
 #### Assign workflow stages to unstaged stories
 

@@ -175,7 +175,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
           component: newsletter-form-section
   ```
 
-- [ ] Add story publishing and unpublishing.
+- [x] Add story publishing and unpublishing (`stories.publish`, `stories.unpublish`; unpublish runs with the removals).
 - [x] Support nested object field merge for component fields, including partial asset field updates.
 - [ ] Add standard demo parameters for customer logo, colors, contact details, navigation, and homepage content.
 - [ ] Assert that required stories and components exist in the duplicated template.
@@ -305,6 +305,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 - [x] Story tag assignments by slug or ID
 - [x] Custom space roles with permissions, allowed and blocked paths by full slug or ID, and allowed languages
 - [x] Custom workflows and workflow stages with `workflow.ensure`
+- [x] Story publishing and unpublishing by slug, ID, or folder
 - [x] Existing-space setup with `-S`
 - [x] Configuration-driven blank-space creation with `space.create_new: true`
 - [x] Configuration-driven duplicate-first setup with `space.duplicate_from`

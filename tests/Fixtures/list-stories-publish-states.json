@@ -1,0 +1,8 @@
+{
+    "stories": [
+        {"id": 301, "name": "About", "full_slug": "about", "is_folder": false, "published": true, "unpublished_changes": false},
+        {"id": 302, "name": "Home", "full_slug": "home", "is_folder": false, "published": true, "unpublished_changes": true},
+        {"id": 303, "name": "Draft", "full_slug": "news/draft", "is_folder": false, "published": false, "unpublished_changes": true},
+        {"id": 304, "name": "News", "full_slug": "news", "is_folder": true, "published": false, "unpublished_changes": false}
+    ]
+}

@@ -46,6 +46,7 @@ Exceptions that do not require `-S`: `space:create`, `space:setup-validate`, `sp
 - Merges story tags and preview environments.
 - Skips matching apps, folders, fields, tags, workflows, demo mode, preview URLs, root-content moves, and Dimensions configuration.
 - Supports multi-country setup with `folders.ensure`, `stories.move`, and `dimensions.folders`.
+- Publishes selected stories with `stories.publish` (after other operations) and unpublishes with `stories.unpublish` (with the removals at the end).
 - Creates or updates custom workflows and their stages with `workflow.ensure` (stage order from the list, roles and stage links by name; runs after `roles`).
 - Uploads local asset directories with `assets.upload_directory`, preserving nested folders and skipping matching filenames.
 - Converts space-local assets into the Global Asset Library with `assets.convert_to_global`; requires `target_shared_folder_id` and one source selector (`asset_id`, `asset_ids`, `source_folder_id`, or `source_folder_name`).
@@ -106,6 +107,7 @@ See `space-setup-config.md` for complete syntax. Reports contain stable JSON sta
 - **`story:move`** — Move story to a different folder. Lookup: `--by-slug`, `--by-id`. Target: `--to-folder-slug`, `--to-folder-id` (use `0` for root).
 - **`story:workflow-change`** — Change workflow stage. Lookup: `--by-slug`, `--by-id`. Stage: `--stage` (case-insensitive name) or `--stage-id`; use `--stage-id=0` to remove the current workflow stage. Workflow: `--workflow-name`, `--workflow-id` (default workflow if omitted).
 - **`stories:bulk-create [directory]`** — Create stories from JSON files in a directory. Options: `--recursive` (`-r`), `--pattern` (default `*.json`), `--parent-slug`, `--parent-id`, `--publish`. Each file can be content-only (JSON with `"component"`) or wrapper format (`{ "name", "slug", "content" }`). Name and slug default to the filename.
+- **`stories:publish`** / **`stories:unpublish`** — Publish or unpublish stories. Options: `--slug` (exact full slug), `--id`, `--folder` (every story inside), all repeatable, `--dry-run`. Asks for confirmation (skip with `-n`). Skips stories already in the requested state.
 - **`stories:tags-assign`** — Assign tags. Options: `--story-id` (repeatable), `--story-slug` (repeatable), `--tag` (`-t`, repeatable).
 - **`story:versions`** — List versions of a story. Lookup: `--by-slug`, `--by-id`, `--by-uuid`. Options: `--show-content`, `--page` (`-p`), `--per-page`.
 - **`stories:workflow-assign`** — Assign a workflow stage to all stories without one. Option: `--workflow-stage-id`.

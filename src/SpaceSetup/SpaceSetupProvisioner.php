@@ -19,6 +19,8 @@ use Blokctl\Action\Story\StoryCreateAction;
 use Blokctl\Action\Story\StoryTranslatedSlugInput;
 use Blokctl\Action\Story\StoryTranslatedSlugsEnsureAction;
 use Blokctl\Action\Story\StoryWorkflowChangeAction;
+use Blokctl\Action\Story\StoriesPublishAction;
+use Blokctl\Action\Story\StoriesPublishResult;
 use Blokctl\Action\Story\StoriesTagsAssignAction;
 use Blokctl\Action\Story\StoriesWorkflowAssignAction;
 use Blokctl\Action\Workflow\WorkflowEnsureAction;
@@ -85,6 +87,7 @@ final readonly class SpaceSetupProvisioner
             $this->provisionDimensions($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionComponentFields($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionTags($reporter, $spaceId, $config, $dryRun, $continueOnError);
+            $this->provisionStoryPublishing($reporter, $spaceId, $config, publish: true, dryRun: $dryRun, continueOnError: $continueOnError);
             $this->provisionRemovals($reporter, $spaceId, $config, $dryRun, $continueOnError);
         } catch (\Exception $exception) {
             $reporter->finish();
@@ -133,11 +136,76 @@ final readonly class SpaceSetupProvisioner
         bool $dryRun,
         bool $continueOnError,
     ): void {
+        $this->provisionStoryPublishing($reporter, $spaceId, $config, publish: false, dryRun: $dryRun, continueOnError: $continueOnError);
+
         $space = $this->arrayValue($config['space'] ?? []);
         $removeLanguages = $this->languageRemoveList($space['languages'] ?? []);
         if ($removeLanguages !== []) {
             $this->provisionLanguageRemove($reporter, $spaceId, $removeLanguages, $dryRun, $continueOnError);
         }
+    }
+
+    /**
+     * Publish (after the other operations) or unpublish (with the removals) selected stories.
+     *
+     * @param array<string, mixed> $config
+     */
+    private function provisionStoryPublishing(
+        SpaceSetupReporter $reporter,
+        string $spaceId,
+        array $config,
+        bool $publish,
+        bool $dryRun,
+        bool $continueOnError,
+    ): void {
+        $stories = $this->arrayValue($config['stories'] ?? []);
+        $selection = $this->arrayValue($stories[$publish ? 'publish' : 'unpublish'] ?? []);
+        if ($selection === []) {
+            return;
+        }
+
+        $slugs = $this->stringListValue($selection['slugs'] ?? []);
+        $ids = $this->stringListValue($selection['ids'] ?? []);
+        $folders = $this->stringListValue($selection['folders'] ?? []);
+        $label = $publish ? 'Publish stories' : 'Unpublish stories';
+        $reporter->run($label, SpaceSetupOperationStatus::Updated, $continueOnError, function () use ($spaceId, $slugs, $ids, $folders, $publish, $dryRun, $label): SpaceSetupOperationResult {
+            if ($dryRun) {
+                $details = [];
+                foreach (['slugs' => $slugs, 'ids' => $ids, 'folders' => $folders] as $kind => $values) {
+                    if ($values !== []) {
+                        $details[] = $kind . ': ' . implode(', ', $values);
+                    }
+                }
+
+                return new SpaceSetupOperationResult(SpaceSetupOperationStatus::Updated, $label, implode('; ', $details));
+            }
+
+            $action = new StoriesPublishAction($this->client);
+            $result = $action->execute($spaceId, $action->preflight($spaceId, $slugs, $ids, $folders, $publish));
+            $failed = $result->entriesWithStatus(StoriesPublishResult::FAILED);
+            if ($failed !== []) {
+                throw new \RuntimeException(implode(' | ', array_map(
+                    static fn(array $entry): string => $entry['fullSlug'] . ': ' . $entry['message'],
+                    $failed,
+                )));
+            }
+
+            $changed = count($result->entriesWithStatus($publish ? StoriesPublishResult::PUBLISHED : StoriesPublishResult::UNPUBLISHED));
+            $skipped = count($result->entriesWithStatus(StoriesPublishResult::SKIPPED));
+            if ($changed === 0) {
+                return new SpaceSetupOperationResult(
+                    SpaceSetupOperationStatus::Skipped,
+                    $label,
+                    $publish ? 'All selected stories are already published.' : 'No selected story is published.',
+                );
+            }
+
+            return new SpaceSetupOperationResult(
+                SpaceSetupOperationStatus::Updated,
+                $label,
+                sprintf('%d %s, %d already in that state.', $changed, $publish ? 'published' : 'unpublished', $skipped),
+            );
+        });
     }
 
     /**

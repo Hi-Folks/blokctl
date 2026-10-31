@@ -58,6 +58,7 @@ Most resource-oriented commands are backed by reusable Action classes with no CL
 | `Story\StoryMoveAction` | Move story to folder | `->story`, `->previousFolderId`, `->newFolderId` |
 | `Story\StoryWorkflowChangeAction` | Change or remove workflow stage | `->story`, `->workflowStageName`, `->workflowStageId`, `->previousWorkflowStageId` |
 | `Story\StoriesBulkCreateAction` | Create stories from JSON files in a directory | `->created`, `->errors`, `->count()`, `->errorCount()` |
+| `Story\StoriesPublishAction` | Publish or unpublish stories by full slug, ID, or folder (preflight+execute, skips stories already in that state) | `->entriesWithStatus()`, `->hasFailures()` |
 | `Story\StoriesTagsAssignAction` | Assign tags to stories | `->tagged`, `->errors` |
 | `Story\StoryVersionsAction` | List story versions | `->versions`, `->storyId`, `->count()` |
 | `Story\StoriesWorkflowAssignAction` | Assign stage to unstaged stories (preflight+execute) | `->countWithoutStage`, `->workflowStages` |

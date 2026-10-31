@@ -213,7 +213,7 @@ Except for `version`, all top-level sections are optional. If a section is omitt
 | `demo_mode` | Remove demo/example mode. |
 | `workflow` | Create or update custom workflows and stages (`ensure`), and assign workflow stages to stories. |
 | `folders` | Ensure folders exist by portable full slug. |
-| `stories` | Move selected root-level stories/folders, update components, create stories, and reconcile translated slugs. |
+| `stories` | Move selected root-level stories/folders, update components, create stories, reconcile translated slugs, and publish or unpublish stories. |
 | `apps` | Install Storyblok apps by slug or ID. |
 | `ai` | Configure Storyblok AI availability and organization configuration inheritance. |
 | `ai_translation` | Configure the disclaimer required by AI Translations. |
@@ -718,6 +718,35 @@ stories:
 
 Use exactly one of `story_slug` or `story_id`. Use either `translations` for batch updates or `lang` plus `translated_slug` for the legacy single-language form. Repeated setup runs skip updates when the translated slug already matches.
 
+## `stories.publish` and `stories.unpublish`
+
+Publishes or unpublishes selected stories.
+
+```yaml
+stories:
+  publish:
+    folders: [products]        # every story inside, including nested folders
+    slugs: [home, about]       # exact full slugs
+  unpublish:
+    slugs: [old-campaign]
+    ids: [123456]
+```
+
+| Key | Description |
+|---|---|
+| `slugs` | Exact full slugs. Use `products/` for a folder's start page. |
+| `ids` | Story IDs. |
+| `folders` | Folder full slugs. Every story inside is selected, including nested folders and the folder's start page. |
+
+Behavior:
+
+- `stories.publish` runs after the other setup operations, so it publishes the content created and updated by the same run.
+- `stories.unpublish` counts as a removal and runs at the end of the setup (see [Removals](#removals)).
+- Folders themselves are never published.
+- Stories already in the requested state are skipped: publishing skips stories that are published without unpublished changes; unpublishing skips stories that are not published.
+- A slug or ID that matches no story fails the operation before any story changes.
+- Validation rejects a slug, ID, or folder listed under both `publish` and `unpublish`.
+
 ## `dimensions`
 
 Reconciles folders configured for the Dimensions app. Unmanaged Dimensions folders are preserved. Configured folders are added when missing, and declared AI translation codes are updated.
@@ -905,7 +934,7 @@ Configured tags are merged with existing story tags. Existing tags are preserved
 
 ## Removals
 
-`space:setup` never removes a resource because it is missing from the config. A removal happens only when the config declares it explicitly; today that is `space.languages.remove`.
+`space:setup` never removes a resource because it is missing from the config. A removal happens only when the config declares it explicitly; today that is `stories.unpublish` and `space.languages.remove`.
 
 All removals run **at the end of the setup**, after every create and update:
 

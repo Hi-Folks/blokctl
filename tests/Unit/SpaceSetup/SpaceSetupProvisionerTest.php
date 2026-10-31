@@ -171,6 +171,39 @@ final class SpaceSetupProvisionerTest extends TestCase
     }
 
     #[Test]
+    public function publishes_after_other_operations_and_unpublishes_with_removals(): void
+    {
+        $results = $this->provision([
+            'space' => ['languages' => ['remove' => ['fr']]],
+            'stories' => [
+                'unpublish' => ['slugs' => ['old-campaign']],
+                'publish' => ['folders' => ['news'], 'ids' => [123]],
+            ],
+            'tags' => [
+                ['tags' => ['Landing'], 'stories' => ['slugs' => ['home']]],
+            ],
+        ])->results();
+
+        $this->assertSame(
+            ['Assign tags: Landing', 'Publish stories', 'Unpublish stories', 'Remove space languages'],
+            array_map(static fn(SpaceSetupOperationResult $result): string => $result->label, $results),
+        );
+        $this->assertSame('ids: 123; folders: news', $results[1]->detail);
+        $this->assertSame('slugs: old-campaign', $results[2]->detail);
+    }
+
+    #[Test]
+    public function skips_publishing_when_stories_are_already_published(): void
+    {
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient($this->mockResponse('list-stories-publish-states')),
+            ['stories' => ['publish' => ['slugs' => ['about']]]],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Skipped, 'Publish stories');
+    }
+
+    #[Test]
     public function plans_multi_country_provisioning(): void
     {
         $results = $this->provision([

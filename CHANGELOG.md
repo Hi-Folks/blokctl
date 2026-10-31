@@ -10,6 +10,9 @@ All notable changes to `blokctl` will be documented in this file.
 - Added `workflow:ensure` (create a custom workflow or update its content types) and `workflow:stage-ensure` (create a stage or update its declared properties: color, position, default, publishing, who can move stories on, next stages, after-publish stage; roles and stages by name) commands.
 - Added reusable PHP actions `WorkflowEnsureAction` and `WorkflowStageEnsureAction`.
 - Added `workflow.ensure` to `space:setup` YAML/JSON configs: workflows and their stages in order, with roles and stage links by name, and validation for duplicate names, colors, default stages, and content types used by two workflows. Added `examples/governance-space.yaml`.
+- Added `stories:publish` and `stories:unpublish` commands to publish or unpublish stories by exact full slug, ID, or folder, with `--dry-run`, a confirmation prompt, and skipping of stories already in the requested state.
+- Added reusable PHP action `StoriesPublishAction` (preflight + execute).
+- Added `stories.publish` (runs after the other setup operations) and `stories.unpublish` (runs with the removals at the end) to `space:setup` YAML/JSON configs.
 - Added `Blokctl\ApiError` to build error messages from failed Management API responses, including validation details from the response body.
 
 ### Changed

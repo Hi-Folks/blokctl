@@ -91,6 +91,19 @@ final readonly class SpaceSetupConfigValidator
             $roleNames[] = $name;
         }
 
+        $stories = is_array($config['stories'] ?? null) ? $config['stories'] : [];
+        $publish = is_array($stories['publish'] ?? null) ? $stories['publish'] : [];
+        $unpublish = is_array($stories['unpublish'] ?? null) ? $stories['unpublish'] : [];
+        foreach (['slugs', 'ids', 'folders'] as $kind) {
+            $both = array_intersect(
+                array_map(strval(...), array_filter(is_array($publish[$kind] ?? null) ? $publish[$kind] : [], is_scalar(...))),
+                array_map(strval(...), array_filter(is_array($unpublish[$kind] ?? null) ? $unpublish[$kind] : [], is_scalar(...))),
+            );
+            foreach (array_unique($both) as $value) {
+                $errors[] = '$.stories.unpublish.' . $kind . ': "' . $value . '" is also listed under stories.publish.';
+            }
+        }
+
         return [...$errors, ...$this->workflowErrors($config)];
     }
 

@@ -94,6 +94,22 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     }
 
     #[Test]
+    public function rejects_stories_listed_under_publish_and_unpublish(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'stories' => [
+                'publish' => ['slugs' => ['about', 'home'], 'folders' => ['news']],
+                'unpublish' => ['slugs' => ['home'], 'folders' => ['news']],
+            ],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertErrorsContain($result->errors, '"home" is also listed under stories.publish.');
+        $this->assertErrorsContain($result->errors, '"news" is also listed under stories.publish.');
+    }
+
+    #[Test]
     public function rejects_unknown_workflow_stage_properties(): void
     {
         $result = new SpaceSetupConfigValidator()->validate([

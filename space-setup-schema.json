@@ -739,6 +739,54 @@
           "items": {
             "$ref": "#/$defs/storyTranslatedSlug"
           }
+        },
+        "publish": {
+          "description": "Publish selected stories. Runs after the other setup operations. Stories already published without unpublished changes are skipped.",
+          "$ref": "#/$defs/storyPublishSelection"
+        },
+        "unpublish": {
+          "description": "Unpublish selected stories. Runs at the end of the setup with the other removals. Stories that are not published are skipped.",
+          "$ref": "#/$defs/storyPublishSelection"
+        }
+      }
+    },
+    "storyPublishSelection": {
+      "description": "Stories selected by exact full slug, ID, or folder. Folders themselves are never published.",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "slugs": {
+          "description": "Exact full slugs, e.g. about or products/ (a folder's start page).",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "ids": {
+          "description": "Story IDs.",
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 1
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              }
+            ]
+          }
+        },
+        "folders": {
+          "description": "Folder full slugs. Every story inside is selected, including nested folders and the folder's start page.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },
