@@ -46,6 +46,7 @@ Exceptions that do not require `-S`: `space:create`, `space:setup-validate`, `sp
 - Merges story tags and preview environments.
 - Skips matching apps, folders, fields, tags, workflows, demo mode, preview URLs, root-content moves, and Dimensions configuration.
 - Supports multi-country setup with `folders.ensure`, `stories.move`, and `dimensions.folders`.
+- Inserts components into story list fields with `stories.insert_component` (index or append; skipped when the same block is already present; runs after `stories.update`).
 - Publishes selected stories with `stories.publish` (after other operations) and unpublishes with `stories.unpublish` (with the removals at the end).
 - Creates or updates custom workflows and their stages with `workflow.ensure` (stage order from the list, roles and stage links by name; runs after `roles`).
 - Uploads local asset directories with `assets.upload_directory`, preserving nested folders and skipping matching filenames.

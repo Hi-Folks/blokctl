@@ -726,6 +726,13 @@
             "$ref": "#/$defs/storyUpdate"
           }
         },
+        "insert_component": {
+          "description": "Insert a component into a list field of an existing story, for example content.body. Runs after stories.update. Skipped when the list already contains the same block.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/storyComponentInsert"
+          }
+        },
         "create": {
           "description": "Story creation operations from inline content or config-relative JSON files.",
           "type": "array",
@@ -747,6 +754,77 @@
         "unpublish": {
           "description": "Unpublish selected stories. Runs at the end of the setup with the other removals. Stories that are not published are skipped.",
           "$ref": "#/$defs/storyPublishSelection"
+        }
+      }
+    },
+    "storyComponentInsert": {
+      "description": "Inserts one component into a list field of a story.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target",
+        "component"
+      ],
+      "properties": {
+        "slug": {
+          "description": "Story full slug. Use exactly one of slug or id.",
+          "type": "string",
+          "minLength": 1
+        },
+        "id": {
+          "description": "Story ID. Use exactly one of slug or id.",
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            }
+          ]
+        },
+        "target": {
+          "description": "Where to insert the component.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "description": "Path to a list field, for example content.body or content.body[0].columns.",
+              "type": "string",
+              "pattern": "^content(\\.|$)"
+            },
+            "index": {
+              "description": "Position in the list (0 = first). Omit to append. An index past the end of the list fails.",
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "component": {
+          "description": "The component to insert: technical name in component, plus its fields. Supports asset._find, _asset, and nested components.",
+          "type": "object",
+          "required": [
+            "component"
+          ],
+          "properties": {
+            "component": {
+              "description": "Component technical name.",
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "match": {
+          "description": "Fields that identify the block when checking whether it is already present. Defaults to every declared field except nested components.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },

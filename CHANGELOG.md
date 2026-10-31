@@ -13,6 +13,7 @@ All notable changes to `blokctl` will be documented in this file.
 - Added `stories:publish` and `stories:unpublish` commands to publish or unpublish stories by exact full slug, ID, or folder, with `--dry-run`, a confirmation prompt, and skipping of stories already in the requested state.
 - Added reusable PHP action `StoriesPublishAction` (preflight + execute).
 - Added `stories.publish` (runs after the other setup operations) and `stories.unpublish` (runs with the removals at the end) to `space:setup` YAML/JSON configs.
+- Added `stories.insert_component` to `space:setup` YAML/JSON configs: insert a component into a list field of a story (for example `content.body`) at an index or at the end, with nested `_uid` generation and asset directives. Reruns skip the insert when the same block is already present (`match` selects the identifying fields).
 - Added `Blokctl\ApiError` to build error messages from failed Management API responses, including validation details from the response body.
 
 ### Changed

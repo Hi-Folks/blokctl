@@ -150,7 +150,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
   ```
 
 - [x] Add story creation from inline content or JSON files.
-- [ ] Add deterministic component insertion into array fields.
+- [x] Add deterministic component insertion into array fields (`stories.insert_component`).
 
   ```yaml
   stories:
@@ -306,6 +306,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 - [x] Custom space roles with permissions, allowed and blocked paths by full slug or ID, and allowed languages
 - [x] Custom workflows and workflow stages with `workflow.ensure`
 - [x] Story publishing and unpublishing by slug, ID, or folder
+- [x] Component insertion into story list fields with `stories.insert_component`
 - [x] Existing-space setup with `-S`
 - [x] Configuration-driven blank-space creation with `space.create_new: true`
 - [x] Configuration-driven duplicate-first setup with `space.duplicate_from`

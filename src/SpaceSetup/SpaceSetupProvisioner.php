@@ -15,6 +15,7 @@ use Blokctl\Action\Space\SpaceLanguagesRemoveAction;
 use Blokctl\Action\Space\SpaceRoleEnsureAction;
 use Blokctl\Action\Space\SpaceRoleEnsureResult;
 use Blokctl\Action\SpacePreview\SpacePreviewSetAction;
+use Blokctl\Action\Story\ContentResolver;
 use Blokctl\Action\Story\StoryCreateAction;
 use Blokctl\Action\Story\StoryTranslatedSlugInput;
 use Blokctl\Action\Story\StoryTranslatedSlugsEnsureAction;
@@ -77,6 +78,7 @@ final readonly class SpaceSetupProvisioner
             $this->provisionStoryMoves($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionAssets($reporter, $spaceId, $config, $configDirectory, $dryRun, $continueOnError);
             $this->provisionStoryUpdates($reporter, $spaceId, $config, $dryRun, $continueOnError);
+            $this->provisionStoryInserts($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionStoryCreates($reporter, $spaceId, $config, $configDirectory, $dryRun, $continueOnError);
             $this->provisionRoles($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionWorkflow($reporter, $spaceId, $config, $dryRun, $continueOnError);
@@ -524,6 +526,155 @@ final readonly class SpaceSetupProvisioner
                 );
             });
         }
+    }
+
+    /**
+     * Insert a component into a list field of a story (for example content.body).
+     *
+     * Runs after stories.update, so update paths refer to the original positions. An
+     * insert is skipped when the list already contains a block of the same component
+     * whose matching fields are equal, so a rerun does not insert the block twice.
+     *
+     * @param array<string, mixed> $config
+     */
+    private function provisionStoryInserts(
+        SpaceSetupReporter $reporter,
+        string $spaceId,
+        array $config,
+        bool $dryRun,
+        bool $continueOnError,
+    ): void {
+        $stories = $this->arrayValue($config['stories'] ?? []);
+        foreach ($this->listValue($stories['insert_component'] ?? []) as $insert) {
+            if (!is_array($insert)) {
+                continue;
+            }
+
+            $storySlug = $this->nullableStringValue($insert['slug'] ?? null);
+            $storyId = $this->nullableStringValue($insert['id'] ?? null);
+            $target = $this->arrayValue($insert['target'] ?? []);
+            $path = $this->stringValue($target['path'] ?? '');
+            $index = $this->nullableIntValue($target['index'] ?? null);
+            $block = $this->arrayValue($insert['component'] ?? []);
+            $componentName = $this->stringValue($block['component'] ?? '');
+            $match = array_key_exists('match', $insert) ? $this->stringListValue($insert['match']) : null;
+            $label = 'Insert component: ' . ($storySlug ?? $storyId ?? '') . ' ' . $path . ' (' . $componentName . ')';
+            $reporter->run($label, SpaceSetupOperationStatus::Updated, $continueOnError, function () use ($spaceId, $storySlug, $storyId, $path, $index, $block, $componentName, $match, $dryRun, $label): SpaceSetupOperationResult {
+                if (($storySlug === null && $storyId === null) || ($storySlug !== null && $storyId !== null)) {
+                    throw new \RuntimeException('Component insert entries require exactly one of slug or id.');
+                }
+
+                if ($path === '' || $componentName === '') {
+                    throw new \RuntimeException('Component insert entries require target.path and component.component.');
+                }
+
+                if ($dryRun) {
+                    return new SpaceSetupOperationResult(
+                        SpaceSetupOperationStatus::Updated,
+                        $label,
+                        $index === null ? 'Append to ' . $path . '.' : 'Insert at ' . $path . '[' . $index . '].',
+                    );
+                }
+
+                $storyApi = new StoryApi($this->client, $spaceId);
+                $resolvedStoryId = $storyId ?? $this->requireStoryIdBySlug($storyApi, (string) $storySlug);
+                $story = Story::make($storyApi->get($resolvedStoryId)->data()->toArray());
+                $content = $story->content()->toArray();
+
+                $list = &$this->listAtPath($content, $path);
+
+                $resolvedBlock = $this->resolveStorySetupDirectives($spaceId, $block);
+                foreach ($list as $position => $existing) {
+                    if (is_array($existing) && $this->blockMatches($existing, $resolvedBlock, $match)) {
+                        return new SpaceSetupOperationResult(
+                            SpaceSetupOperationStatus::Skipped,
+                            $label,
+                            sprintf('Component already present at %s[%d].', $path, $position),
+                        );
+                    }
+                }
+
+                $count = count($list);
+                if ($index !== null && ($index < 0 || $index > $count)) {
+                    throw new \RuntimeException(sprintf('Index %d is out of range for %s, which has %d item(s).', $index, $path, $count));
+                }
+
+                $resolvedBlocks = new ContentResolver($this->client, $spaceId)->resolve(['blocks' => [$resolvedBlock]])['blocks'] ?? [];
+                $newBlock = is_array($resolvedBlocks) ? ($resolvedBlocks[0] ?? null) : null;
+                if (!is_array($newBlock)) {
+                    throw new \RuntimeException('Failed to prepare component ' . $componentName . '.');
+                }
+
+                $position = $index ?? $count;
+                array_splice($list, $position, 0, [$newBlock]);
+                unset($list);
+
+                $story->setContent(StoryComponent::make($content));
+                $response = $storyApi->update($resolvedStoryId, $story);
+                if (!$response->isOk()) {
+                    throw new \RuntimeException('Failed to insert component: ' . ApiError::message($response));
+                }
+
+                return new SpaceSetupOperationResult(
+                    SpaceSetupOperationStatus::Updated,
+                    $label,
+                    sprintf('Inserted at %s[%d].', $path, $position),
+                );
+            });
+        }
+    }
+
+    /**
+     * Whether an existing block is the declared block: same component, and the matching
+     * fields contain the declared values. Without $match, every declared field except
+     * nested component lists is compared.
+     *
+     * @param array<mixed> $existing
+     * @param array<string, mixed> $declared
+     * @param list<string>|null $match
+     */
+    private function blockMatches(array $existing, array $declared, ?array $match): bool
+    {
+        if (($existing['component'] ?? null) !== ($declared['component'] ?? null)) {
+            return false;
+        }
+
+        foreach ($declared as $field => $value) {
+            if ($field === 'component' || $field === '_uid') {
+                continue;
+            }
+
+            if ($match === null && is_array($value) && array_is_list($value) && $value !== [] && is_array($value[0]) && array_key_exists('component', $value[0])) {
+                continue;
+            }
+
+            if ($match !== null && !in_array($field, $match, true)) {
+                continue;
+            }
+
+            if (!$this->containsDeclared($existing[$field] ?? null, $value)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether a stored value contains the declared value: objects are compared by their
+     * declared keys only (so stored extras such as asset metadata are ignored).
+     */
+    private function containsDeclared(mixed $existing, mixed $declared): bool
+    {
+        if (is_array($declared) && $declared !== [] && !array_is_list($declared)) {
+            if (!is_array($existing)) {
+                return false;
+            }
+
+            return array_all($declared, fn($value, $key): bool => $this->containsDeclared($existing[$key] ?? null, $value));
+        }
+
+        return $existing === $declared;
     }
 
     /**
@@ -1855,6 +2006,35 @@ final readonly class SpaceSetupProvisioner
         }
 
         /** @var array<string, mixed> $current */
+        return $current;
+    }
+
+    /**
+     * Reference to a list field inside story content, for example content.body.
+     *
+     * @param array<mixed> $content
+     * @return list<mixed>
+     */
+    private function &listAtPath(array &$content, string $path): array
+    {
+        $segments = $this->pathSegments($path);
+        if ($segments === [] || $segments[0] !== 'content') {
+            throw new \RuntimeException('Story component paths must start with content.');
+        }
+
+        $current = &$content;
+        foreach (array_slice($segments, 1) as $segment) {
+            if (!is_array($current) || !array_key_exists($segment, $current)) {
+                throw new \RuntimeException('Path not found: ' . $path);
+            }
+
+            $current = &$current[$segment];
+        }
+
+        if (!is_array($current) || !array_is_list($current)) {
+            throw new \RuntimeException('Path does not resolve to a list of components: ' . $path);
+        }
+
         return $current;
     }
 

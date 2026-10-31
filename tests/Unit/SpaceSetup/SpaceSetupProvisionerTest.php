@@ -1153,6 +1153,111 @@ final class SpaceSetupProvisionerTest extends TestCase
     }
 
     #[Test]
+    public function plans_component_insert(): void
+    {
+        $result = $this->singleResult([
+            'stories' => [
+                'insert_component' => [
+                    ['slug' => 'home', 'target' => ['path' => 'content.body', 'index' => 1], 'component' => ['component' => 'banner', 'title' => 'Hi']],
+                ],
+            ],
+        ]);
+
+        $this->assertPlanned($result, 'Insert component: home content.body (banner)');
+        $this->assertSame('Insert at content.body[1].', $result->detail);
+    }
+
+    #[Test]
+    public function inserts_component_at_index_with_generated_uid(): void
+    {
+        $update = new MockResponse($this->storyJson(['body' => []]));
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                new MockResponse($this->storyJson(['body' => [
+                    ['_uid' => 'hero', 'component' => 'hero-section'],
+                    ['_uid' => 'grid', 'component' => 'grid-section'],
+                ]])),
+                $update,
+            ),
+            ['stories' => ['insert_component' => [
+                ['id' => '440448565', 'target' => ['path' => 'content.body', 'index' => 1], 'component' => [
+                    'component' => 'banner',
+                    'title' => 'Special offer',
+                    'buttons' => [['component' => 'button', 'label' => 'Buy']],
+                ]],
+            ]]],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Updated, 'Insert component: 440448565 content.body (banner)');
+        $this->assertSame('Inserted at content.body[1].', $reporter->results()[0]->detail);
+        $payload = $this->requestJsonPayload($update);
+        $body = $this->valueAtPath($payload, ['story', 'content', 'body']);
+        $this->assertIsArray($body);
+        $this->assertSame(['hero-section', 'banner', 'grid-section'], array_column($body, 'component'));
+        $this->assertIsString($this->valueAtPath($payload, ['story', 'content', 'body', 1, '_uid']));
+        $this->assertIsString($this->valueAtPath($payload, ['story', 'content', 'body', 1, 'buttons', 0, '_uid']));
+    }
+
+    #[Test]
+    public function appends_component_when_index_is_omitted(): void
+    {
+        $update = new MockResponse($this->storyJson(['body' => []]));
+        $this->provisionWithClient(
+            $this->createMockClient(
+                new MockResponse($this->storyJson(['body' => [['_uid' => 'hero', 'component' => 'hero-section']]])),
+                $update,
+            ),
+            ['stories' => ['insert_component' => [
+                ['id' => '440448565', 'target' => ['path' => 'content.body'], 'component' => ['component' => 'banner']],
+            ]]],
+        );
+
+        $body = $this->valueAtPath($this->requestJsonPayload($update), ['story', 'content', 'body']);
+        $this->assertIsArray($body);
+        $this->assertSame(['hero-section', 'banner'], array_column($body, 'component'));
+    }
+
+    #[Test]
+    public function skips_component_insert_when_the_block_is_already_present(): void
+    {
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                new MockResponse($this->storyJson(['body' => [
+                    ['_uid' => 'hero', 'component' => 'hero-section'],
+                    ['_uid' => 'b1', 'component' => 'banner', 'title' => 'Special offer', 'text' => 'Changed in the UI'],
+                ]])),
+            ),
+            ['stories' => ['insert_component' => [
+                ['id' => '440448565', 'target' => ['path' => 'content.body', 'index' => 0], 'match' => ['title'], 'component' => [
+                    'component' => 'banner',
+                    'title' => 'Special offer',
+                    'text' => 'Original text',
+                ]],
+            ]]],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Skipped, 'Insert component: 440448565 content.body (banner)');
+        $this->assertSame('Component already present at content.body[1].', $reporter->results()[0]->detail);
+    }
+
+    #[Test]
+    public function fails_component_insert_when_index_is_out_of_range(): void
+    {
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                new MockResponse($this->storyJson(['body' => [['_uid' => 'hero', 'component' => 'hero-section']]])),
+            ),
+            ['stories' => ['insert_component' => [
+                ['id' => '440448565', 'target' => ['path' => 'content.body', 'index' => 3], 'component' => ['component' => 'banner']],
+            ]]],
+            continueOnError: true,
+        );
+
+        $this->assertTrue($reporter->hasFailures());
+        $this->assertSame('Index 3 is out of range for content.body, which has 1 item(s).', $reporter->results()[0]->detail);
+    }
+
+    #[Test]
     public function plans_each_tag_assignment(): void
     {
         $result = $this->singleResult([

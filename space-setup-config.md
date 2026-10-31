@@ -213,7 +213,7 @@ Except for `version`, all top-level sections are optional. If a section is omitt
 | `demo_mode` | Remove demo/example mode. |
 | `workflow` | Create or update custom workflows and stages (`ensure`), and assign workflow stages to stories. |
 | `folders` | Ensure folders exist by portable full slug. |
-| `stories` | Move selected root-level stories/folders, update components, create stories, reconcile translated slugs, and publish or unpublish stories. |
+| `stories` | Move selected root-level stories/folders, update and insert components, create stories, reconcile translated slugs, and publish or unpublish stories. |
 | `apps` | Install Storyblok apps by slug or ID. |
 | `ai` | Configure Storyblok AI availability and organization configuration inheritance. |
 | `ai_translation` | Configure the disclaimer required by AI Translations. |
@@ -646,6 +646,42 @@ stories:
 Only declared fields are changed. Object values are merged recursively with existing object fields, which allows partial asset updates such as changing `image.alt` while preserving `image.id`, `image.filename`, and `image.fieldtype`.
 
 Asset fields can be resolved from existing space assets with `asset._find`. The resolver uses the Management API asset list filters, converts the matching asset into a Storyblok asset field, removes `_find`, and applies the remaining asset keys such as `alt`, `title`, `source`, `copyright`, or `focus`. By default `require_unique` is `true`, so setup fails when no asset or multiple assets match. `in_folder` accepts an asset folder ID or a configured folder path such as `Brand` or `Brand/products`.
+
+## `stories.insert_component`
+
+Inserts a component into a list field of an existing story, for example a campaign banner on the home page of a demo space.
+
+```yaml
+stories:
+  insert_component:
+    - slug: home
+      target:
+        path: content.body
+        index: 1                  # omit to append
+      match: [title]              # optional
+      component:
+        component: banner-section
+        title: "Special offer for ${{ inputs.customer_name }}"
+        buttons:
+          - component: button
+            label: Contact us
+```
+
+| Key | Required | Description |
+|---|---:|---|
+| `insert_component[].slug` | No | Story full slug. Use exactly one of `slug` or `id`. |
+| `insert_component[].id` | No | Story ID. Use exactly one of `slug` or `id`. |
+| `insert_component[].target.path` | Yes | Path to a list field, for example `content.body` or `content.body[0].columns`. |
+| `insert_component[].target.index` | No | Position in the list, `0` = first. Omit to append. |
+| `insert_component[].component` | Yes | The component to insert: `component` (technical name) and its fields. Nested components get a `_uid`; `asset._find` and `_asset` are supported. |
+| `insert_component[].match` | No | Fields that identify the block when checking whether it is already present. Defaults to every declared field except nested components. |
+
+Behavior:
+
+- **Reruns don't duplicate.** The insert is skipped when the list already contains a block of the same component whose matching fields have the declared values. Without `match`, changing a declared value in the config makes the next run insert a second block; set `match` to the fields that identify the block (for example `[title]`) if editors may change the others.
+- **Runs after `stories.update`**, so `stories.update` paths still refer to the positions in the template.
+- **An index past the end of the list fails** instead of appending, so a changed template does not put the block in the wrong place.
+- The story is saved as a draft. Use `stories.publish` to publish it in the same run.
 
 ## `stories.create`
 

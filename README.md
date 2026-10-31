@@ -248,6 +248,8 @@ Running the removal on its own also makes it easier to review with `--dry-run` b
 
 Languages declared under `space.languages` are ensured before story operations run. This is useful for translated slugs and field-level translations that require the language to exist in Storyblok Settings -> Internationalization. The shorthand list adds missing language codes and preserves existing unmanaged languages; use `space.languages.add`, `space.languages.ensure`, and `space.languages.remove` in the full setup syntax when removals are required. Additions run before story operations; removals run at the end of the setup.
 
+Story content can be personalized per demo: `stories.update` changes fields of existing components by path, `stories.insert_component` adds a component to a list field such as `content.body` (a rerun does not insert it twice), and `stories.publish` publishes the result in the same run.
+
 Local asset directories can also be reconciled into Storyblok asset folders. Paths are relative to the setup config file, nested directories can be preserved, and assets with the same filename in the same target folder are skipped.
 
 Space-local assets can also be converted into the organization Global Asset Library through `assets.convert_to_global`. Each entry requires `target_shared_folder_id` and exactly one source selector: `asset_id`, `asset_ids`, `source_folder_id`, or `source_folder_name`.
