@@ -45,6 +45,9 @@ class SpaceSetupCommand extends Command
 
     private string $reportTargetMode = 'unresolved';
 
+    /** @var array<string, mixed>|null */
+    private array|null $reportTemplate = null;
+
     #[\Override]
     protected function configure(): void
     {
@@ -78,6 +81,7 @@ class SpaceSetupCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->duplicationReport = null;
+        $this->reportTemplate = null;
         /** @var string|null $reportPath */
         $reportPath = $input->getOption('report');
         /** @var string|null $spaceId */
@@ -112,6 +116,10 @@ class SpaceSetupCommand extends Command
 
                 return self::FAILURE;
             }
+
+            $this->reportTemplate = is_array($config['template'] ?? null)
+                ? $this->arrayValue($config['template'])
+                : null;
 
             $inputs = new SpaceSetupInputsResolver()->resolve($config, $inputOverrides);
             $environment = getenv();
@@ -202,6 +210,10 @@ class SpaceSetupCommand extends Command
             ]);
             $config = $resolver->resolveConfig($config);
 
+            $this->reportTemplate = is_array($config['template'] ?? null)
+                ? $this->arrayValue($config['template'])
+                : null;
+
             $resolvedValidation = new SpaceSetupConfigValidator()->validate($config);
             if (!$resolvedValidation->isValid()) {
                 Render::error('Resolved space setup configuration is invalid:');
@@ -280,6 +292,7 @@ class SpaceSetupCommand extends Command
                 'mode' => $this->reportTargetMode,
             ],
             duplication: $this->duplicationReport,
+            template: $this->reportTemplate,
         );
         Render::labelValue('JSON report', $path);
     }

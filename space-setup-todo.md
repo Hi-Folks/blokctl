@@ -55,7 +55,7 @@ Recommended implementation order:
   ```
 
 - [x] Add editor autocomplete and inline validation through the JSON Schema.
-- [ ] Add optional template metadata: name, description, category, owner, and tags.
+- [x] Add optional template metadata: name, description, category, owner, and tags.
 - [ ] Complete secret/masked runtime parameter handling.
 - [x] Add repeatable CLI overrides: `--set customer_name=Acme`.
 - [x] Support namespaced parameter placeholders such as `${{ inputs.customer_name }}`.
@@ -289,6 +289,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 
 ## Current Supported Sections
 
+- [x] Optional template metadata with name, description, category, owner, and tags
 - [x] Preview default URL and frontend environments
 - [x] Recursive namespaced expressions for `inputs`, `env`, and `space` contexts
 - [x] Native type preservation for full-value expressions

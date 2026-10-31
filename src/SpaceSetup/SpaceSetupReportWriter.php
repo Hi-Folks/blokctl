@@ -9,6 +9,7 @@ final readonly class SpaceSetupReportWriter
     /**
      * @param array<string, mixed> $target
      * @param array<string, mixed>|null $duplication
+     * @param array<string, mixed>|null $template
      */
     public function write(
         string $path,
@@ -16,6 +17,7 @@ final readonly class SpaceSetupReportWriter
         bool $dryRun,
         array $target,
         array|null $duplication = null,
+        array|null $template = null,
     ): void {
         $masker = new SpaceSetupValueMasker();
         $operations = array_map(
@@ -38,6 +40,10 @@ final readonly class SpaceSetupReportWriter
 
         if ($duplication !== null) {
             $report['duplication'] = $duplication;
+        }
+
+        if ($template !== null) {
+            $report['template'] = $template;
         }
 
         $directory = dirname($path);

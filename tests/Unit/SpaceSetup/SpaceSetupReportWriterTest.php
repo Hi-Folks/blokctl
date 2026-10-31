@@ -53,22 +53,30 @@ final class SpaceSetupReportWriterTest extends TestCase
                     'space_id' => '123456',
                     'mode' => 'Existing space',
                 ],
+                template: [
+                    'name' => 'Retail Demo',
+                    'category' => 'commerce',
+                    'tags' => ['retail'],
+                ],
             );
 
             $report = $this->readReport($path);
             $target = $report['target'];
             $operations = $report['operations'];
             $summary = $report['summary'];
+            $template = $report['template'];
             $this->assertIsArray($target);
             $this->assertIsArray($operations);
             $this->assertIsArray($operations[0]);
             $this->assertIsArray($summary);
+            $this->assertIsArray($template);
             $this->assertSame('completed', $report['status']);
             $this->assertSame('123456', $target['space_id']);
             $this->assertSame('updated', $operations[0]['status']);
             $this->assertSame('https://demo.test/?token=********&path=home', $operations[0]['detail']);
             $this->assertSame(1, $summary['updated']);
             $this->assertSame(0, $summary['failed']);
+            $this->assertSame('Retail Demo', $template['name']);
         } finally {
             @unlink($path);
         }

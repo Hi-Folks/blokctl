@@ -12,6 +12,41 @@ use Tests\TestCase;
 final class SpaceSetupConfigValidatorTest extends TestCase
 {
     #[Test]
+    public function validates_optional_template_metadata(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'template' => [
+                'name' => 'Retail Demo',
+                'description' => 'Reusable commerce demo setup.',
+                'category' => 'commerce',
+                'owner' => 'solutions-engineering',
+                'tags' => ['retail', 'multilingual'],
+            ],
+        ]);
+
+        $this->assertTrue($result->isValid(), implode(' | ', $result->errors));
+    }
+
+    #[Test]
+    public function rejects_invalid_template_metadata(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'template' => [
+                'name' => '',
+                'tags' => ['retail', 'retail'],
+                'unsupported' => true,
+            ],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertErrorsContain($result->errors, '$.template.name');
+        $this->assertErrorsContain($result->errors, '$.template.tags');
+        $this->assertErrorsContain($result->errors, '$.template');
+    }
+
+    #[Test]
     public function validates_example_yaml_configuration(): void
     {
         $config = new SpaceSetupConfigLoader()->load('examples/demo-space.yaml');

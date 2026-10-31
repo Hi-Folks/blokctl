@@ -25,7 +25,9 @@ reviewable YAML file; `blokctl` validates and executes it deterministically.
    reusable baseline is useful. Do not mutate the space during discovery.
 3. Write YAML with `version: 1` and the schema comment. Prefer small reusable files
    through `extends`; use `examples/composition/` as a pattern. Add `assert` entries
-   for stories, components, plans, or apps on which the setup depends.
+   for stories, components, plans, or apps on which the setup depends. Add optional
+   `template` metadata so people and future assistants can identify the setup's purpose,
+   category, owner, and capabilities without confusing it with `space.name`.
 4. Validate and repair in a loop using machine-readable output:
 
    ```bash

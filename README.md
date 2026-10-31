@@ -227,9 +227,20 @@ php bin/blokctl space:setup-validate --config examples/demo-space.yaml
 
 The setup config supports JSON and YAML and is validated against [space-setup-schema.json](space-setup-schema.json) before any space is created or modified. See [examples/demo-space.yaml](examples/demo-space.yaml) for general provisioning, [examples/multi-country-space.yaml](examples/multi-country-space.yaml) for folder, root-content move, and Dimensions reconciliation, [examples/assets-space.yaml](examples/assets-space.yaml) for local-directory asset upload, [examples/roles-space.yaml](examples/roles-space.yaml) for custom space roles, [examples/datasources-space.yaml](examples/datasources-space.yaml) for datasources with dimensions and CSV entries, [examples/components-space.yaml](examples/components-space.yaml) for a new component that uses a datasource and is added to the home page, and [examples/governance-space.yaml](examples/governance-space.yaml) for roles plus a custom review workflow. See [space-setup-config.md](space-setup-config.md) for the full configuration syntax, and [space-setup-reusable-configs.md](space-setup-reusable-configs.md) for building reusable setups from small files.
 
+Reusable configs can declare optional `template` metadata (`name`, `description`,
+`category`, `owner`, and `tags`). It identifies and describes the config without
+changing the Storyblok space, survives `extends` merging, and is included in JSON setup
+reports. See [Template Metadata](space-setup-config.md#template-metadata).
+
 When the config creates, inserts, or updates story content, `space:setup` also performs a content-schema preflight before creating, duplicating, or modifying a space. For an existing target it reads that space's components; for duplication it reads the source space; for a new blank space it uses the components declared in the config. A content error stops the run before any mutation.
 
 ```yaml
+template:
+  name: Customer Demo
+  category: general
+  owner: solutions-engineering
+  tags: [customer-demo, multilingual]
+
 execution:
   mode: reconcile
 

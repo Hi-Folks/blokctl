@@ -13,6 +13,10 @@
       "description": "Configuration schema version.",
       "const": 1
     },
+    "template": {
+      "description": "Optional descriptive metadata for the reusable setup file. It is preserved in merged configs and reports but does not change the Storyblok space.",
+      "$ref": "#/$defs/templateMetadata"
+    },
     "extends": {
       "description": "Configuration files to merge before this one, in order (paths relative to this file). An entry can be {path, when} to use the file only when a condition is true. Named items (components, fields, datasources, entries, roles, workflows, stages, folders) merge by name or slug; operation lists are concatenated; plain value lists are replaced.",
       "oneOf": [
@@ -143,6 +147,34 @@
     }
   },
   "$defs": {
+    "templateMetadata": {
+      "description": "Describes the purpose and ownership of a reusable setup template.",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "name": {
+          "description": "Human-readable template name. This is not the Storyblok space name.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "description": {
+          "description": "Human-readable explanation of the template's purpose.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "category": {
+          "description": "Free-form category used to group templates, for example commerce or governance.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "owner": {
+          "description": "Person, team, or contact responsible for maintaining the template.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "tags": {
+          "description": "Searchable labels describing the template's capabilities or use cases.",
+          "$ref": "#/$defs/stringList"
+        }
+      }
+    },
     "nonEmptyString": {
       "type": "string",
       "minLength": 1

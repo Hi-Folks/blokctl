@@ -2,6 +2,13 @@
 
 version: 1
 
+template:
+  name: Customer Demo
+  description: General-purpose customer demo created from the showcase space.
+  category: general
+  owner: solutions-engineering
+  tags: [customer-demo, multilingual, ai]
+
 execution:
   mode: reconcile
 

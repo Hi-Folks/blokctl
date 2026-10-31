@@ -6,6 +6,8 @@ All notable changes to `blokctl` will be documented in this file.
 
 ### Added
 
+- Added optional top-level `template` metadata (`name`, `description`, `category`,
+  `owner`, and `tags`), preserved through config composition and JSON setup reports.
 - Added preflight story-content validation against configured components and, with
   `space:setup-validate -S`, read-only component definitions from an existing space.
 - Added machine-readable `space:setup-validate --json` output and AI authoring guidance.

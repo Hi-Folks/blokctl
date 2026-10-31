@@ -13,6 +13,31 @@ use Tests\TestCase;
 final class SpaceSetupConfigMergerTest extends TestCase
 {
     #[Test]
+    public function merges_template_metadata_and_replaces_tags(): void
+    {
+        $merged = new SpaceSetupConfigMerger()->merge(
+            ['template' => [
+                'name' => 'Base Demo',
+                'category' => 'general',
+                'owner' => 'solutions-engineering',
+                'tags' => ['base', 'multilingual'],
+            ]],
+            ['template' => [
+                'name' => 'Retail Demo',
+                'category' => 'commerce',
+                'tags' => ['retail'],
+            ]],
+        );
+
+        $this->assertSame([
+            'name' => 'Retail Demo',
+            'category' => 'commerce',
+            'owner' => 'solutions-engineering',
+            'tags' => ['retail'],
+        ], $merged['template'] ?? null);
+    }
+
+    #[Test]
     public function merges_named_items_by_name_and_appends_new_ones(): void
     {
         $merged = new SpaceSetupConfigMerger()->merge(

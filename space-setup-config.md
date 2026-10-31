@@ -179,6 +179,37 @@ YAML files can enable editor autocomplete and inline validation with:
 # yaml-language-server: $schema=../space-setup-schema.json
 ```
 
+## Template Metadata
+
+The optional top-level `template` object describes the reusable setup file. It is
+informational: it does not create or modify anything in Storyblok, and `template.name`
+is independent from the target `space.name`.
+
+```yaml
+template:
+  name: Retail Demo
+  description: Demo space for retail and e-commerce customers.
+  category: commerce
+  owner: solutions-engineering
+  tags:
+    - retail
+    - multilingual
+    - shopify
+```
+
+| Key | Required | Description |
+|---|---:|---|
+| `name` | No | Human-readable name of the reusable template. |
+| `description` | No | Explanation of its purpose and intended use. |
+| `category` | No | Free-form grouping such as `commerce`, `governance`, or `localization`. |
+| `owner` | No | Person, team, or contact responsible for maintaining it. |
+| `tags` | No | Unique searchable labels describing capabilities or use cases. |
+
+At least one metadata field is required when `template` is present. With `extends`,
+metadata maps merge normally: the child file overrides individual values, inherited
+values remain, and the child's `tags` list replaces the base list. Metadata is preserved
+by `space:setup-validate --print-merged` and included in `space:setup --report` JSON.
+
 ## Variables
 
 The complete setup configuration supports namespaced expressions:
@@ -291,6 +322,7 @@ Except for `version`, all top-level sections are optional. If a section is omitt
 | Key | Description |
 |---|---|
 | `version` | Required configuration schema version. Currently `1`. |
+| `template` | Optional descriptive metadata for the setup file; it does not modify the space. |
 | `inputs` | Reusable runtime input definitions with defaults and required values. |
 | `execution` | Execution behavior. Reconcile mode is the default. |
 | `space` | Optional target-creation settings. Omit `create_new` and `duplicate_from` when using `-S`. |
@@ -315,6 +347,12 @@ Except for `version`, all top-level sections are optional. If a section is omitt
 
 ```yaml
 version: 1
+
+template:
+  name: Customer Demo
+  category: general
+  owner: solutions-engineering
+  tags: [customer-demo, multilingual]
 
 execution:
   mode: reconcile
