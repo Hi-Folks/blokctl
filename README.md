@@ -1501,6 +1501,8 @@ php bin/blokctl space:info -S 290817118944379 -n
 
 Every CLI command is backed by a reusable **Action** class that contains the business logic with no CLI dependencies. You can use Actions directly from controllers, queue jobs, scripts, or tests.
 
+If you call the Management API directly, read [Management API: verified behavior](management-api-behavior.md) first. It covers empty `204` responses, `422` validation details hidden by the PHP client, partial updates, and what the collaborators list does not return.
+
 ### Setup
 
 ```php
@@ -2513,6 +2515,10 @@ Each Action follows these conventions:
 - **Mutating Actions** expose `execute()` for the change. They use `preflight()` only when the command needs a separate confirmation/safety step before mutation
 - **Result DTOs** are `final readonly` classes with public properties and optional convenience methods (e.g. `canDelete()`, `hasEnvironments()`)
 - **Errors** are either thrown as `\RuntimeException` (for fatal issues) or collected in an `errors` array on the result (for non-fatal batch operations)
+
+## Storyblok Management API notes
+
+[management-api-behavior.md](management-api-behavior.md) lists Management API behavior verified with live requests while building blokctl: response codes and empty bodies, partial updates, defaults, and side effects for space roles, collaborators, workflows, and workflow stages. It also lists gaps and inconsistencies in the official API reference. Read it if you build your own automation on the Management API.
 
 ## Example scripts
 

@@ -187,6 +187,7 @@ Testing helpers from `TestCase`:
 
 - Update `README.md`: add CLI docs (Commands section) + Action API docs (Using Actions from code section)
 - Update `CHANGELOG.md`
+- When you verify Management API behavior live (response codes, empty bodies, defaults, partial updates, side effects) or find gaps in the official API reference, record it in `management-api-behavior.md` with the verification date
 
 ## Running checks
 

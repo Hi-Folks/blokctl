@@ -204,7 +204,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 
 ## Priority 5: Localization, Folders, and Dimensions
 
-- [ ] Add space language configuration.
+- [x] Add space language configuration (`space.languages` with add/remove).
 - [ ] Add optional AI translation setup and execution.
 
 ## Priority 6: Workflows and Governance
@@ -264,7 +264,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 - [ ] Add concise progress output and a final summary table.
 - [ ] Add verbose/debug output for API troubleshooting.
 - [ ] Add setup duration and per-step timing.
-- [ ] Add documentation for known Storyblok API limitations.
+- [x] Add documentation for known Storyblok API limitations: [management-api-behavior.md](management-api-behavior.md) (keep it updated as new endpoints are added).
 
 ## Decisions to Make
 

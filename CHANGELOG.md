@@ -2,6 +2,12 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- Added `management-api-behavior.md`: Management API behavior verified with live requests (empty `204` responses, `422` validation details hidden by the PHP client, partial updates, defaults, and side effects for space roles, collaborators, workflows, and workflow stages), plus gaps in the official API reference.
+
 ## 0.16.0 - 2026-10-31
 
 ### Added
