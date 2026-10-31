@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Blokctl\Action\Space;
 
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Data\Space;
 use Storyblok\ManagementApi\Endpoints\SpaceApi;
 use Storyblok\ManagementApi\ManagementApiClient;
@@ -51,7 +52,7 @@ final readonly class SpaceLanguagesRemoveAction
             'options' => $options,
         ]));
         if (!$response->isOk()) {
-            throw new \RuntimeException('Failed to configure space languages: ' . $response->getErrorMessage());
+            throw new \RuntimeException('Failed to configure space languages: ' . ApiError::message($response));
         }
 
         $confirmedLanguages = $this->languageCodesFromOptions($this->languageOptionsFromSpace($spaceApi->get($spaceId)->data()->toArray()));

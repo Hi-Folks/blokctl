@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Blokctl\Action\Component;
 
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Endpoints\ComponentApi;
 use Storyblok\ManagementApi\Endpoints\ManagementApi;
 use Storyblok\ManagementApi\ManagementApiClient;
@@ -124,7 +125,7 @@ final readonly class ComponentsDiffAction
         $response = new ComponentApi($client, $spaceId)->all();
         if (!$response->isOk()) {
             throw new \RuntimeException(
-                'Failed to fetch components of space ' . $spaceId . ': ' . $response->getErrorMessage(),
+                'Failed to fetch components of space ' . $spaceId . ': ' . ApiError::message($response),
             );
         }
 
@@ -172,7 +173,7 @@ final readonly class ComponentsDiffAction
         $response = new ManagementApi($client)->get(sprintf('spaces/%s/presets', $spaceId));
         if (!$response->isOk()) {
             throw new \RuntimeException(
-                'Failed to fetch presets of space ' . $spaceId . ': ' . $response->getErrorMessage(),
+                'Failed to fetch presets of space ' . $spaceId . ': ' . ApiError::message($response),
             );
         }
 

@@ -235,7 +235,7 @@ $folderId = (new StoryMoveAction($client))->resolveFolderBySlug($spaceId, 'archi
 
 ## Error handling
 
-- Fatal issues throw `\RuntimeException`
+- Fatal issues throw `\RuntimeException`; API failures include Storyblok's validation details (built with `Blokctl\ApiError::message($response)`, which you can also use with your own SDK calls)
 - Non-fatal batch errors are collected in typed Result properties such as `$result->errors`
 - Always wrap API calls in try/catch with rate-limit awareness (`shouldRetry: true` handles 429s)
 

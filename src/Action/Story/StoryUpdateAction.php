@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Blokctl\Action\Story;
 
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Data\Story;
 use Storyblok\ManagementApi\Data\StoryComponent;
 use Storyblok\ManagementApi\Endpoints\StoryApi;
@@ -58,7 +59,7 @@ final readonly class StoryUpdateAction
 
         if (!$updateResponse->isOk()) {
             throw new \RuntimeException(
-                'Failed to update story: ' . $updateResponse->getErrorMessage(),
+                'Failed to update story: ' . ApiError::message($updateResponse),
             );
         }
 

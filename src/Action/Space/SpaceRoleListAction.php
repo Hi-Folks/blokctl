@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Blokctl\Action\Space;
 
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Endpoints\ManagementApi;
 use Storyblok\ManagementApi\ManagementApiClient;
 
@@ -27,7 +28,7 @@ final readonly class SpaceRoleListAction
         );
 
         if (!$response->isOk()) {
-            throw new \RuntimeException('Failed to fetch space roles: ' . $response->getErrorMessage());
+            throw new \RuntimeException('Failed to fetch space roles: ' . ApiError::message($response));
         }
 
         $data = $response->toArray();

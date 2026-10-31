@@ -6,6 +6,7 @@ namespace Blokctl\Action\Story;
 
 use Blokctl\Action\AppProvision\AppProvisionInstalledCheckAction;
 use Blokctl\Action\Space\SpaceLanguageCheckAction;
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Data\Story;
 use Storyblok\ManagementApi\Data\TranslatedSlug;
 use Storyblok\ManagementApi\Data\TranslatedSlugData;
@@ -99,7 +100,7 @@ final readonly class StoryTranslatedSlugsEnsureAction
         $story->setTranslatedSlugsAttributes($attributes);
         $response = $storyApi->update($resolvedStoryId, $story);
         if (!$response->isOk()) {
-            throw new \RuntimeException('Failed to update translated slug: ' . $response->getErrorMessage());
+            throw new \RuntimeException('Failed to update translated slug: ' . ApiError::message($response));
         }
 
         return new StoryTranslatedSlugsEnsureResult(

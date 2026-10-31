@@ -7,6 +7,11 @@ All notable changes to `blokctl` will be documented in this file.
 ### Added
 
 - Added `management-api-behavior.md`: Management API behavior verified with live requests (empty `204` responses, `422` validation details hidden by the PHP client, partial updates, defaults, and side effects for space roles, collaborators, workflows, and workflow stages), plus gaps in the official API reference.
+- Added `Blokctl\ApiError` to build error messages from failed Management API responses, including validation details from the response body.
+
+### Changed
+
+- Error messages from failed API requests now include the validation details returned by Storyblok (for example `name: has already been taken; color: has already been taken`) instead of the generic "Unprocessable Entity" text.
 
 ## 0.16.0 - 2026-10-31
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Blokctl\Action\Space;
 
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Endpoints\ManagementApi;
 use Storyblok\ManagementApi\ManagementApiClient;
 
@@ -85,7 +86,7 @@ final readonly class SpaceCollaboratorInviteAction
             ]);
 
             if (!$response->isOk()) {
-                $entries[] = [...$entry, 'status' => SpaceCollaboratorInviteResult::FAILED, 'message' => $response->getErrorMessage()];
+                $entries[] = [...$entry, 'status' => SpaceCollaboratorInviteResult::FAILED, 'message' => ApiError::message($response)];
                 continue;
             }
 

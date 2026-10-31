@@ -136,6 +136,7 @@ Who can move a story to the next stages: `user_ids`, `space_role_ids`, `allow_al
 ## How blokctl handles this
 
 - Space roles and workflow changes send JSON bodies with `makeRequest()`.
+- Error messages use `Blokctl\ApiError::message($response)`, which includes the 422 field details.
 - Updates send only changed fields and treat a `204` as success without parsing the body.
 - `space:collaborator-invite` skips current collaborators and reports pending invitations; `space:collaborator-remove --id` can remove a pending invitation.
 - `space:role-delete` lists the collaborators who still have the role before deleting it.

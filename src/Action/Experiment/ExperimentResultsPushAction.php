@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Blokctl\Action\Experiment;
 
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Data\ExperimentResult;
 use Storyblok\ManagementApi\Endpoints\ExperimentApi;
 use Storyblok\ManagementApi\ManagementApiClient;
@@ -28,7 +29,7 @@ final readonly class ExperimentResultsPushAction
             ->pushResults($experimentId, ExperimentResult::forCharts($charts));
 
         if (!$response->isOk()) {
-            $message = 'Failed to push experiment results: ' . $response->getErrorMessage();
+            $message = 'Failed to push experiment results: ' . ApiError::message($response);
             $responseBody = trim($response->getResponseBody());
             if ($responseBody !== '') {
                 $message .= ' | Response body: ' . $responseBody;

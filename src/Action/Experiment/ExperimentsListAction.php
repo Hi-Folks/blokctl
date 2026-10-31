@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Blokctl\Action\Experiment;
 
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Endpoints\ExperimentApi;
 use Storyblok\ManagementApi\ManagementApiClient;
 
@@ -23,7 +24,7 @@ final readonly class ExperimentsListAction
 
         if (!$response->isOk()) {
             throw new \RuntimeException(
-                'Failed to list experiments: ' . $response->getErrorMessage(),
+                'Failed to list experiments: ' . ApiError::message($response),
             );
         }
 

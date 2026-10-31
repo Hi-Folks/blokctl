@@ -204,6 +204,11 @@ The project uses PHPUnit 13 and requires PHP 8.4.1 or higher.
 ## PHPStan notes
 
 - Narrow mixed values with real runtime checks before offset access.
+
+## API error messages
+
+- Build error messages with `ApiError::message($response)`, not `$response->getErrorMessage()`: the client hides the 422 validation details from the body.
+- Update and delete endpoints may return `204` with an empty body; check `isOk()` and don't call `toArray()` or `data()` on it.
 - Prefer fixing underlying types instead of suppressing PHPStan errors.
 
 ## Key files to understand

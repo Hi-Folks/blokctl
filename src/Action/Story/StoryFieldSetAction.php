@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Blokctl\Action\Story;
 
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Data\Asset;
 use Storyblok\ManagementApi\Data\Fields\AssetField;
 use Storyblok\ManagementApi\Data\Story;
@@ -62,7 +63,7 @@ final readonly class StoryFieldSetAction
 
         if (!$updateResponse->isOk()) {
             throw new \RuntimeException(
-                'Failed to update story: ' . $updateResponse->getErrorMessage(),
+                'Failed to update story: ' . ApiError::message($updateResponse),
             );
         }
 

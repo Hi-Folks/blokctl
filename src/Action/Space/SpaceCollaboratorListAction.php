@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Blokctl\Action\Space;
 
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Endpoints\ManagementApi;
 use Storyblok\ManagementApi\ManagementApiClient;
 
@@ -35,7 +36,7 @@ final readonly class SpaceCollaboratorListAction
             );
 
             if (!$response->isOk()) {
-                throw new \RuntimeException('Failed to fetch collaborators: ' . $response->getErrorMessage());
+                throw new \RuntimeException('Failed to fetch collaborators: ' . ApiError::message($response));
             }
 
             $data = $response->toArray();

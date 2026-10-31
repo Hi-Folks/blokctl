@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Blokctl\Action\Story;
 
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Endpoints\ManagementApi;
 use Storyblok\ManagementApi\Endpoints\StoryApi;
 use Storyblok\ManagementApi\ManagementApiClient;
@@ -50,7 +51,7 @@ final readonly class StoryVersionsAction
 
         if (!$response->isOk()) {
             throw new \RuntimeException(
-                'Failed to fetch story versions: ' . $response->getErrorMessage(),
+                'Failed to fetch story versions: ' . ApiError::message($response),
             );
         }
 

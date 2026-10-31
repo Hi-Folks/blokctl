@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Blokctl\Action\Asset;
 
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Data\Asset;
 use Storyblok\ManagementApi\Data\AssetFolder;
 use Storyblok\ManagementApi\Endpoints\AssetApi;
@@ -67,7 +68,7 @@ final readonly class AssetsConvertToGlobalAction
             try {
                 $response = $assetApi->convert($assetId, $targetSharedFolderId);
                 if (!$response->isOk()) {
-                    throw new \RuntimeException($response->getErrorMessage());
+                    throw new \RuntimeException(ApiError::message($response));
                 }
 
                 $converted[] = $assetId;

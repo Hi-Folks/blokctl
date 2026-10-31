@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Blokctl\Action\Folder;
 
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Data\Space;
 use Storyblok\ManagementApi\Endpoints\SpaceApi;
 use Storyblok\ManagementApi\ManagementApiClient;
@@ -50,7 +51,7 @@ final readonly class FolderDimensionAddAction
 
         if (!$response->isOk()) {
             throw new \RuntimeException(
-                'Failed to update dimensions app configuration: ' . $response->getErrorMessage(),
+                'Failed to update dimensions app configuration: ' . ApiError::message($response),
             );
         }
 

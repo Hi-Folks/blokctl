@@ -21,6 +21,7 @@ use Blokctl\Action\Story\StoryTranslatedSlugsEnsureAction;
 use Blokctl\Action\Story\StoryWorkflowChangeAction;
 use Blokctl\Action\Story\StoriesTagsAssignAction;
 use Blokctl\Action\Story\StoriesWorkflowAssignAction;
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Data\AppProvision;
 use Storyblok\ManagementApi\Data\Asset;
 use Storyblok\ManagementApi\Data\AssetFolder;
@@ -331,7 +332,7 @@ final readonly class SpaceSetupProvisioner
                         'story' => ['parent_id' => $targetId],
                     ]);
                     if (!$response->isOk()) {
-                        throw new \RuntimeException('Failed to move "' . $item['slug'] . '": ' . $response->getErrorMessage());
+                        throw new \RuntimeException('Failed to move "' . $item['slug'] . '": ' . ApiError::message($response));
                     }
                 }
 
@@ -429,7 +430,7 @@ final readonly class SpaceSetupProvisioner
                 $story->setContent(StoryComponent::make($content));
                 $response = $storyApi->update($resolvedStoryId, $story);
                 if (!$response->isOk()) {
-                    throw new \RuntimeException('Failed to update story components: ' . $response->getErrorMessage());
+                    throw new \RuntimeException('Failed to update story components: ' . ApiError::message($response));
                 }
 
                 return new SpaceSetupOperationResult(
@@ -1015,7 +1016,7 @@ final readonly class SpaceSetupProvisioner
                 ? $spaceApi->activateAi($spaceId)
                 : $spaceApi->update($spaceId, Space::forUpdate($changes));
             if (!$response->isOk()) {
-                throw new \RuntimeException('Failed to configure Storyblok AI: ' . $response->getErrorMessage());
+                throw new \RuntimeException('Failed to configure Storyblok AI: ' . ApiError::message($response));
             }
 
             return null;
@@ -1061,7 +1062,7 @@ final readonly class SpaceSetupProvisioner
                 'disclaimer_id' => $disclaimerId,
             ]));
             if (!$response->isOk()) {
-                throw new \RuntimeException('Failed to configure AI Translation disclaimer: ' . $response->getErrorMessage());
+                throw new \RuntimeException('Failed to configure AI Translation disclaimer: ' . ApiError::message($response));
             }
 
             return null;
@@ -1144,7 +1145,7 @@ final readonly class SpaceSetupProvisioner
                 'dimensions_app_folders' => $mergedFolders,
             ]));
             if (!$response->isOk()) {
-                throw new \RuntimeException('Failed to configure Dimensions folders: ' . $response->getErrorMessage());
+                throw new \RuntimeException('Failed to configure Dimensions folders: ' . ApiError::message($response));
             }
 
             return new SpaceSetupOperationResult(
@@ -2259,7 +2260,7 @@ final readonly class SpaceSetupProvisioner
 
             $response = new AssetFolderApi($this->client, $spaceId)->create($folder);
             if (!$response->isOk()) {
-                throw new \RuntimeException('Failed to create asset folder "' . $currentPath . '": ' . $response->getErrorMessage());
+                throw new \RuntimeException('Failed to create asset folder "' . $currentPath . '": ' . ApiError::message($response));
             }
 
             $createdFolder = $response->data();

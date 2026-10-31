@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Blokctl\Action\Space;
 
 use Blokctl\Action\Story\StoryResolveIdAction;
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Endpoints\ManagementApi;
 use Storyblok\ManagementApi\ManagementApiClient;
 
@@ -96,7 +97,7 @@ final readonly class SpaceRoleEnsureAction
 
         if (!$response->isOk()) {
             throw new \RuntimeException(
-                sprintf('Failed to save space role "%s": %s', $this->stringValue($spaceRole['role'] ?? ''), $response->getErrorMessage()),
+                sprintf('Failed to save space role "%s": %s', $this->stringValue($spaceRole['role'] ?? ''), ApiError::message($response)),
             );
         }
 

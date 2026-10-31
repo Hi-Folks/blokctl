@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Blokctl\Action\Space;
 
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Endpoints\ManagementApi;
 use Storyblok\ManagementApi\ManagementApiClient;
 
@@ -84,7 +85,7 @@ final readonly class SpaceCollaboratorRoleSetAction
 
         if (!$response->isOk()) {
             throw new \RuntimeException(
-                sprintf('Failed to set the role of %s: %s', $preflight->email, $response->getErrorMessage()),
+                sprintf('Failed to set the role of %s: %s', $preflight->email, ApiError::message($response)),
             );
         }
     }

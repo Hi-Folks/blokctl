@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Blokctl\Action\Space;
 
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Endpoints\ManagementApi;
 use Storyblok\ManagementApi\ManagementApiClient;
 
@@ -58,7 +59,7 @@ final readonly class SpaceRoleDeleteAction
 
         if (!$response->isOk()) {
             throw new \RuntimeException(
-                sprintf('Failed to delete space role "%s": %s', $preflight->roleName, $response->getErrorMessage()),
+                sprintf('Failed to delete space role "%s": %s', $preflight->roleName, ApiError::message($response)),
             );
         }
     }

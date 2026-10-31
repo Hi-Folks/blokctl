@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Blokctl\Action\Space;
 
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Endpoints\ManagementApi;
 use Storyblok\ManagementApi\ManagementApiClient;
 
@@ -84,7 +85,7 @@ final readonly class SpaceCollaboratorRemoveAction
             $response = $api->delete(sprintf('spaces/%s/collaborators/%d', $spaceId, $entry['collaboratorId']));
             $entries[] = $response->isOk()
                 ? [...$entry, 'status' => SpaceCollaboratorRemoveResult::REMOVED]
-                : [...$entry, 'status' => SpaceCollaboratorRemoveResult::FAILED, 'message' => $response->getErrorMessage()];
+                : [...$entry, 'status' => SpaceCollaboratorRemoveResult::FAILED, 'message' => ApiError::message($response)];
         }
 
         return new SpaceCollaboratorRemoveResult($entries);

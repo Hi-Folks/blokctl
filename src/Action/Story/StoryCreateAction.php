@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Blokctl\Action\Story;
 
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Data\Story;
 use Storyblok\ManagementApi\Data\StoryComponent;
 use Storyblok\ManagementApi\Endpoints\StoryApi;
@@ -79,7 +80,7 @@ final readonly class StoryCreateAction
 
         if (!$response->isOk()) {
             throw new \RuntimeException(
-                'Failed to create story: ' . $response->getErrorMessage(),
+                'Failed to create story: ' . ApiError::message($response),
             );
         }
 

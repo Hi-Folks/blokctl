@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Blokctl\Action\Story;
 
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Data\Story;
 use Storyblok\ManagementApi\Endpoints\ManagementApi;
 use Storyblok\ManagementApi\Endpoints\StoryApi;
@@ -95,7 +96,7 @@ final readonly class StoryMoveAction
 
         if (!$putResponse->isOk()) {
             throw new \RuntimeException(
-                "Failed to move: " . $putResponse->getErrorMessage(),
+                "Failed to move: " . ApiError::message($putResponse),
             );
         }
 

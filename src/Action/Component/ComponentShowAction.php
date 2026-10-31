@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Blokctl\Action\Component;
 
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Data\Component;
 use Storyblok\ManagementApi\Endpoints\ComponentApi;
 use Storyblok\ManagementApi\ManagementApiClient;
@@ -51,7 +52,7 @@ final readonly class ComponentShowAction
 
         $response = $componentApi->get($found->id());
         if (!$response->isOk()) {
-            throw new \RuntimeException('Failed to fetch component "' . $name . '": ' . $response->getErrorMessage());
+            throw new \RuntimeException('Failed to fetch component "' . $name . '": ' . ApiError::message($response));
         }
 
         return new ComponentShowResult(component: $response->data());

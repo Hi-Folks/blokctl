@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Blokctl\Action\Experiment;
 
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Data\Experiment;
 use Storyblok\ManagementApi\Endpoints\ExperimentApi;
 use Storyblok\ManagementApi\ManagementApiClient;
@@ -51,7 +52,7 @@ final readonly class ExperimentCreateAction
             ->create($experiment);
 
         if (!$response->isOk()) {
-            $message = 'Failed to create experiment: ' . $response->getErrorMessage();
+            $message = 'Failed to create experiment: ' . ApiError::message($response);
             $responseBody = trim($response->getResponseBody());
             if ($responseBody !== '') {
                 $message .= ' | Response body: ' . $responseBody;

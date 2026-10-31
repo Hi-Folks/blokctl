@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Blokctl\Action\Folder;
 
+use Blokctl\ApiError;
 use Storyblok\ManagementApi\Data\Story;
 use Storyblok\ManagementApi\Data\StoryComponent;
 use Storyblok\ManagementApi\Endpoints\StoryApi;
@@ -64,7 +65,7 @@ final readonly class FolderCreateAction
 
         if (!$response->isOk()) {
             throw new \RuntimeException(
-                'Failed to create folder: ' . $response->getErrorMessage(),
+                'Failed to create folder: ' . ApiError::message($response),
             );
         }
 
