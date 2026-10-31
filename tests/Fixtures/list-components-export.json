@@ -1,0 +1,22 @@
+{
+  "components": [
+    {
+      "id": 800, "name": "promo-banner", "display_name": "Promo banner", "is_root": false, "is_nestable": true,
+      "component_group_uuid": "uuid-banners", "color": "#ff6600", "icon": null, "preview_field": "title", "description": null,
+      "schema": {
+        "tab-1": {"type": "tab", "display_name": "Content", "keys": ["title"], "pos": 0},
+        "theme": {"type": "option", "pos": 3, "id": "x2", "source": "internal", "datasource_slug": "colors", "use_uuid": true},
+        "title": {"type": "text", "pos": 1, "id": "x1", "required": true, "translatable": false, "maximum": 80},
+        "size": {"type": "option", "pos": 2, "id": "x3", "default_value": "s", "options": [{"_uid": "u1", "name": "Small", "value": "s"}, {"_uid": "u2", "name": "Large", "value": "l"}]}
+      }
+    },
+    {
+      "id": 801, "name": "page", "display_name": null, "is_root": true, "is_nestable": false,
+      "component_group_uuid": null, "color": null, "icon": null, "preview_field": null, "description": null, "schema": {}
+    }
+  ],
+  "component_groups": [
+    {"name": "Marketing", "id": 700, "uuid": "uuid-marketing", "parent_id": null, "parent_uuid": null},
+    {"name": "Banners", "id": 701, "uuid": "uuid-banners", "parent_id": 700, "parent_uuid": "uuid-marketing"}
+  ]
+}

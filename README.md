@@ -355,6 +355,43 @@ Reports are also written for dry runs and partial setup failures. Preview tokens
 
 When duplicate-first provisioning fails after the new space is created, blokctl preserves the duplicated space for inspection or recovery. It does not automatically delete or roll back the space. Use `--report` to retain its space ID and the completed, skipped, and failed operation details.
 
+#### `space:setup-export` — Export a space as a setup config
+
+`space:setup-export` is the reverse of `space:setup`: it reads an existing space and writes its configuration in the `space:setup` format. Use it to capture a demo space you built in the UI as a versioned config, then apply it to another space.
+
+```bash
+# Export everything to a file, with datasource entries as CSV files next to it
+php bin/blokctl space:setup-export -S 290817118944379 -o space.yaml --entries-dir=datasources
+
+# Export only some components and datasources, and print the YAML
+php bin/blokctl space:setup-export -S 290817118944379 --section=components --section=datasources \
+  -c promo-banner -c hero-section -d banner-themes
+
+# Apply the export to another space
+php bin/blokctl space:setup -S 288868932106293 --config space.yaml --dry-run
+```
+
+| Option | Short | Description |
+|---|---|---|
+| `--section` | | `components`, `datasources`, `roles`, or `workflows` (repeatable). All sections when omitted |
+| `--component` | `-c` | Component name to export (repeatable). All components when omitted |
+| `--datasource` | `-d` | Datasource slug to export (repeatable). All datasources when omitted |
+| `--output` | `-o` | YAML file to write. Prints the YAML when omitted |
+| `--entries-dir` | | Write datasource entries as CSV files in this directory, relative to `--output`, and reference them with `entries_file` |
+
+What is exported:
+
+- **Components** (`components.ensure`): type, folder path, display name, color, icon, preview field, and every field in schema order with its tab. Field properties without a dedicated setup key (for example `maximum`, `use_uuid`, `conditional_settings`) are exported under `properties` and applied as-is.
+- **Datasources** (`datasources`): name, dimensions, and entries with their dimension values.
+- **Roles** (`roles`): permissions, allowed languages, and allowed and blocked paths as story full slugs.
+- **Workflows** (`workflow.ensure`): content types and stages, with roles, next stages, and the after-publish stage by name.
+
+IDs are replaced with names, slugs, and folder paths, so the config works in another space. Settings the setup format cannot express, such as role field permissions or workflow users, are listed as `# WARNING` comments at the top of the file and in the command output. The command validates its output and exits with a non-zero code if the export does not validate.
+
+The command shows its progress (one line per section, datasource, and workflow) on stderr, so printed YAML can be redirected to a file without progress lines in it. Use `-q` to hide progress and the summary.
+
+Applying an export to the space it came from changes nothing: every operation is skipped.
+
 #### `space:info` — Display space information
 
 ```bash

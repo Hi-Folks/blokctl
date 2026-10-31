@@ -1,0 +1,8 @@
+{"component": {
+  "id": 800, "name": "promo-banner", "display_name": "Promo banner", "is_root": false, "is_nestable": true,
+  "schema": {
+    "tab-1": {"type": "tab", "display_name": "Content", "keys": ["title"], "pos": 0},
+    "title": {"type": "text", "pos": 1, "id": "x1", "required": true},
+    "size": {"type": "option", "pos": 2, "id": "x3", "default_value": 0, "options": [{"_uid": "u1", "name": "Small", "value": "s"}, {"_uid": "u2", "name": "Large", "value": "l"}]}
+  }
+}}

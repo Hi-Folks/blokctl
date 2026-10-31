@@ -1586,6 +1586,10 @@
             "type": "string",
             "minLength": 1
           }
+        },
+        "properties": {
+          "description": "Other field schema properties, set as-is (for example maximum, use_uuid, conditional_settings). type, pos, and id are ignored.",
+          "type": "object"
         }
       }
     },
@@ -1783,6 +1787,10 @@
             "type": "string",
             "minLength": 1
           }
+        },
+        "properties": {
+          "description": "Other field schema properties, set as-is (for example maximum, use_uuid, conditional_settings). type, pos, and id are ignored.",
+          "type": "object"
         }
       }
     },

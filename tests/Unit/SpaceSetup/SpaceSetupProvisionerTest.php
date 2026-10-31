@@ -1351,6 +1351,26 @@ final class SpaceSetupProvisionerTest extends TestCase
     }
 
     #[Test]
+    public function skips_field_when_stored_options_only_add_uids_and_default_keeps_its_type(): void
+    {
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                $this->mockResponse('list-components-export'),
+                $this->mockResponse('one-component-export'),
+            ),
+            ['components' => ['fields' => [[
+                'component' => 'promo-banner',
+                'field' => 'size',
+                'type' => 'option',
+                'default_value' => 0,
+                'options' => [['name' => 'Small', 'value' => 's'], ['name' => 'Large', 'value' => 'l']],
+            ]]]],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Skipped, 'Ensure component field: promo-banner.size');
+    }
+
+    #[Test]
     public function plans_each_tag_assignment(): void
     {
         $result = $this->singleResult([

@@ -722,6 +722,31 @@ final readonly class SpaceSetupProvisioner
     }
 
     /**
+     * Like containsDeclared(), but lists are compared item by item, so a list of objects
+     * matches when each stored item contains the declared item at the same position.
+     */
+    private function containsDeclaredList(mixed $existing, mixed $declared): bool
+    {
+        if (is_array($declared) && array_is_list($declared) && $declared !== []) {
+            if (!is_array($existing) || !array_is_list($existing) || count($existing) !== count($declared)) {
+                return false;
+            }
+
+            return array_all($declared, fn($item, $index): bool => $this->containsDeclaredList($existing[$index], $item));
+        }
+
+        if (is_array($declared) && $declared !== [] && !array_is_list($declared)) {
+            if (!is_array($existing)) {
+                return false;
+            }
+
+            return array_all($declared, fn($value, $key): bool => $this->containsDeclaredList($existing[$key] ?? null, $value));
+        }
+
+        return $existing === $declared;
+    }
+
+    /**
      * Whether a stored value contains the declared value: objects are compared by their
      * declared keys only (so stored extras such as asset metadata are ignored).
      */
@@ -2671,7 +2696,13 @@ final readonly class SpaceSetupProvisioner
         }
 
         foreach ($this->extraFieldProperties($declared) as $key => $value) {
-            $changed = $this->setWhenDifferent($existing, $key, $value) || $changed;
+            // Stored values can carry keys that were not declared, such as an option's _uid.
+            if (array_key_exists($key, $existing) && $this->containsDeclaredList($existing[$key], $value)) {
+                continue;
+            }
+
+            $existing[$key] = $value;
+            $changed = true;
         }
 
         return $changed;
@@ -2680,7 +2711,8 @@ final readonly class SpaceSetupProvisioner
     /**
      * Declared field properties beyond the core ones, normalized to the schema format:
      * description, default_value, options (list of name/value), source, datasource_slug,
-     * component_whitelist, restrict_components, and filetypes.
+     * component_whitelist, restrict_components, filetypes, and any other schema property
+     * declared under `properties` (set as-is).
      *
      * @param array<mixed> $field
      * @return array<string, mixed>
@@ -2688,10 +2720,15 @@ final readonly class SpaceSetupProvisioner
     private function extraFieldProperties(array $field): array
     {
         $extra = [];
-        foreach (['description', 'default_value', 'source', 'datasource_slug'] as $key) {
+        foreach (['description', 'source', 'datasource_slug'] as $key) {
             if (array_key_exists($key, $field)) {
                 $extra[$key] = $this->stringValue($field[$key]);
             }
+        }
+
+        // Keep the declared type: Storyblok stores default values as strings, numbers, or booleans.
+        if (array_key_exists('default_value', $field) && is_scalar($field['default_value'])) {
+            $extra['default_value'] = $field['default_value'];
         }
 
         if (array_key_exists('options', $field)) {
@@ -2712,6 +2749,12 @@ final readonly class SpaceSetupProvisioner
 
         if (array_key_exists('restrict_components', $field)) {
             $extra['restrict_components'] = $this->boolValue($field['restrict_components']);
+        }
+
+        foreach ($this->arrayValue($field['properties'] ?? []) as $key => $value) {
+            if (is_string($key) && $key !== '' && !in_array($key, ['type', 'pos', 'id'], true)) {
+                $extra[$key] = $value;
+            }
         }
 
         return $extra;

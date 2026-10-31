@@ -15,3 +15,6 @@
 test-push-results.sh
 .DS_Store
 examples/demos/
+
+# Local space:setup-export output (may contain tokens)
+/export/

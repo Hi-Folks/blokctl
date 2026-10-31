@@ -2,12 +2,13 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
-## Unreleased
+## 0.18.0 - 2026-10-31
 
 ### Added
 
 - Added datasource commands: `datasources:list`, `datasource:entries-list`, `datasource:ensure` (create or update a datasource and its dimensions), and `datasource:entries-ensure` (create or update entries and dimension values, inline or from CSV).
 - Added `datasource:entries-remove` to delete entries by name (`--dry-run`, confirmation prompt; names that match no entry are skipped), and `datasources[].remove_entries` in `space:setup` (runs with the removals at the end).
+- Added `DatasourceEntriesExportAction::fromDatasource()` to export entries of a datasource already fetched, saving the lookup request (used by `space:setup-export`).
 - Added `datasource:entries-export` to export entries as CSV (name, value, one column per dimension), in the format the CSV import reads, so a datasource can be edited in a spreadsheet and imported back. Added `DatasourceEntriesExportAction`.
 - Added `--dimension-value` to `datasource:entries-ensure` to change one entry's dimension values; `-e name` alone keeps the current value.
 - Added reusable PHP classes `DatasourceLookup`, `DatasourceEnsureAction`, `DatasourceEntriesEnsureAction`, `DatasourceEntriesRemoveAction`, and `DatasourceEntriesCsv`.
@@ -17,6 +18,12 @@ All notable changes to `blokctl` will be documented in this file.
 - Added `components.ensure` to `space:setup` YAML/JSON configs: create components with their folder and fields. Runs after datasources and before story operations. Added `examples/components-space.yaml`.
 - Added field properties to `components.fields` and `components.ensure`: `description`, `default_value`, `options`, `source`, `datasource_slug`, `component_whitelist`, `restrict_components`, and `filetypes`. `ComponentFieldAddAction::execute()` accepts them through `extra`.
 - Added verified component and component folder behavior to `management-api-behavior.md` (a schema in an update replaces all fields; folder names are unique in the space).
+- Added `space:setup-export` to export the components, datasources, roles, and workflows of a space as a `space:setup` config (IDs replaced with names, slugs, and folder paths; datasource entries inline or as CSV with `--entries-dir`; unsupported settings listed as warnings). Applying an export to the same space skips every operation. Shows progress on stderr (`-q` hides it). Added `SpaceSetupExporter` with an optional progress callback.
+- Added `properties` to component field definitions in `space:setup`: other schema properties, applied as-is.
+
+### Changed
+
+- Component field reconciliation now ignores keys Storyblok adds to stored values (such as an option's `_uid`) and keeps the declared type of `default_value`, so re-applying a config does not rewrite unchanged fields.
 
 ## 0.17.0 - 2026-10-31
 

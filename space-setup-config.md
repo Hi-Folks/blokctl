@@ -77,6 +77,10 @@ Validate a config without accessing Storyblok:
 php bin/blokctl space:setup-validate --config examples/demo-space.yaml
 ```
 
+## Exporting an existing space
+
+`space:setup-export -S <space-id> -o space.yaml` writes the components, datasources, roles, and workflows of an existing space in this format, so a space built in the UI can be versioned and applied to other spaces. See the README for the options.
+
 ## File Format
 
 The config file can be YAML or JSON. YAML is recommended for templates because it is easier to read and edit.
@@ -989,6 +993,7 @@ components:
 | `fields[].component_whitelist` | No | Components allowed in a `bloks` field. Use with `restrict_components: true`. |
 | `fields[].restrict_components` | No | Boolean. Restrict a `bloks` field to `component_whitelist`. |
 | `fields[].filetypes` | No | Allowed file types for asset fields, for example `images`, `videos`. |
+| `fields[].properties` | No | Other field schema properties, set as-is, for example `maximum`, `use_uuid`, or `conditional_settings`. `space:setup-export` writes field properties without a dedicated key here. |
 
 Missing fields are created. Existing fields are compared using only properties declared in the setup config: matching fields are skipped and differing declared properties are updated. Unmanaged field properties are preserved.
 
