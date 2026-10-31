@@ -85,6 +85,7 @@ final readonly class SpaceSetupProvisioner
             $this->provisionDimensions($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionComponentFields($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionTags($reporter, $spaceId, $config, $dryRun, $continueOnError);
+            $this->provisionRemovals($reporter, $spaceId, $config, $dryRun, $continueOnError);
         } catch (\Exception $exception) {
             $reporter->finish();
             throw new SpaceSetupProvisioningException($reporter, $exception);
@@ -114,14 +115,26 @@ final readonly class SpaceSetupProvisioner
             throw new \RuntimeException('Space languages cannot be both added and removed: ' . implode(', ', $conflictingLanguages));
         }
 
-        if ($addLanguages === [] && $removeLanguages === []) {
-            return;
-        }
-
         if ($addLanguages !== []) {
             $this->provisionLanguageAdd($reporter, $spaceId, $addLanguages, $dryRun, $continueOnError);
         }
+    }
 
+    /**
+     * Destructive operations run last, after every create and update, so content can be
+     * moved away from what is removed and a failed run never loses data before the end.
+     *
+     * @param array<string, mixed> $config
+     */
+    private function provisionRemovals(
+        SpaceSetupReporter $reporter,
+        string $spaceId,
+        array $config,
+        bool $dryRun,
+        bool $continueOnError,
+    ): void {
+        $space = $this->arrayValue($config['space'] ?? []);
+        $removeLanguages = $this->languageRemoveList($space['languages'] ?? []);
         if ($removeLanguages !== []) {
             $this->provisionLanguageRemove($reporter, $spaceId, $removeLanguages, $dryRun, $continueOnError);
         }

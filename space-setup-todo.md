@@ -272,6 +272,11 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 - [x] Support explicit blank-space creation with `space.create_new: true`.
 - [x] Make reconcile the default execution mode.
 - [ ] Define how destructive operations are represented and confirmed.
+  - [x] Removals run at the end of `space:setup`, after every create and update (`space.languages.remove` moved there). A removal that must run first goes in a separate run with its own config.
+  - [ ] Declare removals explicitly per section (`remove` lists, exact references only, no prune mode).
+  - [ ] Require a CLI confirmation flag for real runs with removals (name to decide, e.g. `--allow-destructive`); dry runs list them as destructive with their impact.
+  - [ ] Record removed objects in the JSON report.
+  - [ ] Decide whether single delete commands need `--force` together with `-n`.
 - [x] Keep collaborator invitations out of `space:setup` configs: invitations send real emails, and pending invitations are not returned by the collaborators list, so reruns could not skip them.
 - [x] Define whether unresolved variables fail setup or resolve to empty strings: unresolved variables fail setup.
 - [ ] Define whether IDs are permitted in portable templates or names/slugs are required.

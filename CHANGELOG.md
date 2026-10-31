@@ -14,6 +14,7 @@ All notable changes to `blokctl` will be documented in this file.
 
 ### Changed
 
+- `space:setup` now runs removals at the end of the setup, after every create and update. `space.languages.remove` used to run at the start; additions still run before story operations. If a removal must run first, split it into a separate run.
 - Error messages from failed API requests now include the validation details returned by Storyblok (for example `name: has already been taken; color: has already been taken`) instead of the generic "Unprocessable Entity" text.
 
 ## 0.16.0 - 2026-10-31

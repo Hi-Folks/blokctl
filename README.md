@@ -232,7 +232,21 @@ space:
 
 Reconcile mode is the default. Repeated setup runs preserve unmanaged resources, skip matching state, merge story tags and preview environments, and update only explicitly configured component field properties. Resources omitted from the config are never removed automatically.
 
-Languages declared under `space.languages` are ensured before story operations run. This is useful for translated slugs and field-level translations that require the language to exist in Storyblok Settings -> Internationalization. The shorthand list adds missing language codes and preserves existing unmanaged languages; use `space.languages.add`, `space.languages.ensure`, and `space.languages.remove` in the full setup syntax when removals are required.
+**Removals run last.** Something is removed only when the config asks for it explicitly, for example `space.languages.remove`. All removals run at the end of the setup, after every create and update. This order lets the same run move content away from what is being removed (for example, create a new stage and assign stories to it before an old one is removed), and if a step fails earlier, the run stops before anything is deleted. With `--continue-on-error` (or `execution.continue_on_error: true`) the run continues after a failure and still reaches the removals, so avoid it for configs that remove resources.
+
+When a removal must happen **first**, for example because a new resource needs a name, color, or content type that the removed resource still uses, split the work into two runs:
+
+```bash
+# 1. A config that contains only the removal
+php bin/blokctl space:setup -S 290817118944379 --config cleanup.yaml
+
+# 2. The main config, which can now create the replacement
+php bin/blokctl space:setup -S 290817118944379 --config space.yaml
+```
+
+Running the removal on its own also makes it easier to review with `--dry-run` before applying it.
+
+Languages declared under `space.languages` are ensured before story operations run. This is useful for translated slugs and field-level translations that require the language to exist in Storyblok Settings -> Internationalization. The shorthand list adds missing language codes and preserves existing unmanaged languages; use `space.languages.add`, `space.languages.ensure`, and `space.languages.remove` in the full setup syntax when removals are required. Additions run before story operations; removals run at the end of the setup.
 
 Local asset directories can also be reconciled into Storyblok asset folders. Paths are relative to the setup config file, nested directories can be preserved, and assets with the same filename in the same target folder are skipped.
 

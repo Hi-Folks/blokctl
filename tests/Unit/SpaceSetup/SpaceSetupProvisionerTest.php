@@ -146,6 +146,31 @@ final class SpaceSetupProvisionerTest extends TestCase
     }
 
     #[Test]
+    public function runs_removals_after_every_other_operation(): void
+    {
+        $results = $this->provision([
+            'space' => [
+                'languages' => [
+                    'remove' => ['fr'],
+                ],
+            ],
+            'folders' => [
+                'ensure' => [
+                    ['name' => 'North', 'slug' => 'north'],
+                ],
+            ],
+            'tags' => [
+                ['tags' => ['Landing'], 'stories' => ['slugs' => ['home']]],
+            ],
+        ])->results();
+
+        $this->assertSame(
+            ['Ensure folder: north', 'Assign tags: Landing', 'Remove space languages'],
+            array_map(static fn(SpaceSetupOperationResult $result): string => $result->label, $results),
+        );
+    }
+
+    #[Test]
     public function plans_multi_country_provisioning(): void
     {
         $results = $this->provision([

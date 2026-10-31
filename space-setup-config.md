@@ -171,7 +171,7 @@ space:
 | `duplicate_from` | No | Source template space ID. Omit when targeting an existing space with `-S`. |
 | `in_org` | No | Create the duplicated space inside the current organization. Defaults to `false`. |
 | `demo` | No | Mark the created or duplicated space as a demo/example space. Defaults to `false`. |
-| `languages` | No | Language codes to add/remove before story operations run. Array form is shorthand for `add`. Existing unmanaged languages are preserved unless listed under `remove`. |
+| `languages` | No | Language codes to add before story operations run, or to remove at the end of the setup. Array form is shorthand for `add`. Existing unmanaged languages are preserved unless listed under `remove`. |
 | `readiness` | No | Readiness polling settings used after duplication. |
 
 `space.demo: true` cannot be combined with `demo_mode.remove: true`.
@@ -185,7 +185,7 @@ space:
     - de
 ```
 
-Language add/remove operations preserve unmanaged languages. Added shorthand codes are sent as language objects with a derived display name and AI translation code, then `space:setup` reads the space back and fails the language operation if Storyblok does not expose the requested change. Do not declare the same language under both `add`/`ensure` and `remove`.
+Language add/remove operations preserve unmanaged languages. Added shorthand codes are sent as language objects with a derived display name and AI translation code, then `space:setup` reads the space back and fails the language operation if Storyblok does not expose the requested change. Do not declare the same language under both `add`/`ensure` and `remove`. Removals run at the end of the setup (see [Removals](#removals)).
 
 `space.create_new: true`, `space.duplicate_from`, and `--space-id (-S)` are mutually exclusive target modes. Creating a blank space is always explicit; a `space.name` alone never creates a space.
 
@@ -902,6 +902,18 @@ tags:
 Each tag group needs at least one story slug or story ID.
 
 Configured tags are merged with existing story tags. Existing tags are preserved, and stories that already contain every requested tag are reported as `SKIPPED`.
+
+## Removals
+
+`space:setup` never removes a resource because it is missing from the config. A removal happens only when the config declares it explicitly; today that is `space.languages.remove`.
+
+All removals run **at the end of the setup**, after every create and update:
+
+- The same run can first move content away from what is being removed.
+- If an earlier step fails, the run stops before anything is deleted, so a failed run leaves extra resources at worst, never missing ones. Fix the config and run again.
+- This protection does not apply with `continue_on_error`: the run continues after a failure and still reaches the removals. Avoid `continue_on_error` in configs that remove resources.
+
+When a removal must run **first**, because a new resource needs a name, color, or content type that the removed resource still uses, split it into two runs: a config with only the removal, then the main config. This also lets you review the removal on its own with `--dry-run`.
 
 ## Duplication and Setup
 
