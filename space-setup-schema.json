@@ -29,6 +29,10 @@
         }
       ]
     },
+    "assert": {
+      "description": "Checks run before any change. The run stops with a list of everything missing. Items created by this config (components.ensure, datasources, space.languages, apps.install, folders.ensure) count as present.",
+      "$ref": "#/$defs/assert"
+    },
     "continue_on_error": {
       "description": "Continue running setup steps after a failed step.",
       "$ref": "#/$defs/booleanOrExpression",
@@ -1915,6 +1919,64 @@
         "allowed_languages": {
           "description": "Language codes the role can edit, e.g. default, de. Empty means all languages.",
           "$ref": "#/$defs/stringList"
+        }
+      }
+    },
+    "assert": {
+      "description": "Template checks.",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "stories": {
+          "description": "Stories or folders that must exist, by full slug.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "components": {
+          "description": "Components that must exist, by technical name.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "datasources": {
+          "description": "Datasources that must exist, by slug.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "languages": {
+          "description": "Language codes that must be enabled.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "apps": {
+          "description": "Apps that must be installed, by slug.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "plan_at_least": {
+          "description": "Minimum plan of the space.",
+          "enum": [
+            "starter",
+            "growth",
+            "growth_plus",
+            "premium",
+            "elite"
+          ]
         }
       }
     }

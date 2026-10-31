@@ -178,7 +178,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 - [x] Add story publishing and unpublishing (`stories.publish`, `stories.unpublish`; unpublish runs with the removals).
 - [x] Support nested object field merge for component fields, including partial asset field updates.
 - [ ] Add standard demo parameters for customer logo, colors, contact details, navigation, and homepage content.
-- [ ] Assert that required stories and components exist in the duplicated template.
+- [x] Assert that required stories and components exist in the duplicated template (`assert`).
 
 ## Priority 4: Assets
 
@@ -254,7 +254,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 - [x] Define predictable merge rules for maps, lists, and keyed resources (documented in `space-setup-config.md`).
 - [ ] Allow reusable named profiles such as localization, commerce, governance, and AI.
 - [ ] Add conditional sections based on parameters.
-- [ ] Add plan-aware or capability-aware conditional steps.
+- [ ] Add plan-aware or capability-aware conditional steps (`assert.plan_at_least` checks the plan; conditional steps are still open).
 - [ ] Add reusable setup hooks only when a declarative operation is not practical.
 
 ## Priority 10: Developer Experience
@@ -311,6 +311,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 - [x] Components with folder and fields with `components.ensure`
 - [x] Export of an existing space as a setup config with `space:setup-export`
 - [x] Config composition with `extends`
+- [x] Template checks with `assert`
 - [x] Existing-space setup with `-S`
 - [x] Configuration-driven blank-space creation with `space.create_new: true`
 - [x] Configuration-driven duplicate-first setup with `space.duplicate_from`

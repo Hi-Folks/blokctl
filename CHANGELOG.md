@@ -8,6 +8,7 @@ All notable changes to `blokctl` will be documented in this file.
 
 - Added `extends` to `space:setup` configs: merge reusable config files in order (paths relative to each file, nested extends, loop detection). Named items (components, fields, options, datasources, entries, roles, workflows, stages, folders, created stories) merge by name or slug; operation lists are concatenated; plain value lists are replaced. File paths in base files stay relative to the base file. Added `SpaceSetupConfigMerger` and `examples/composition/`.
 - Added `--print-merged` to `space:setup-validate` to print the configuration after merging `extends`.
+- Added `assert` to `space:setup` configs: check before any change that the target space has the expected stories or folders, components, datasources, languages, apps, and minimum plan (`plan_at_least`). The run stops with every missing item listed, also with `continue_on_error`; items created by the same config count as present.
 
 ### Changed
 

@@ -262,6 +262,7 @@ Except for `version`, all top-level sections are optional. If a section is omitt
 | `demo_mode` | Remove demo/example mode. |
 | `workflow` | Create or update custom workflows and stages (`ensure`), and assign workflow stages to stories. |
 | `folders` | Ensure folders exist by portable full slug. |
+| `assert` | Check that the target space has the stories, components, datasources, languages, apps, and plan the config needs, before any change. |
 | `datasources` | Create or update datasources, dimensions, and entries (inline or from CSV). |
 | `stories` | Move selected root-level stories/folders, update and insert components, create stories, reconcile translated slugs, and publish or unpublish stories. |
 | `apps` | Install Storyblok apps by slug or ID. |
@@ -437,6 +438,36 @@ inputs:
 | `required` | No | Require a default or `--set` override. Defaults to `false`. |
 | `default` | No | Default input value. Supports strings, numbers, booleans, arrays, and objects. |
 | `secret` | No | Marks a value as sensitive for future masked output support. |
+
+## `assert`
+
+Checks the target space before any change. Use it when a config depends on content or setup it does not create itself, for example stories in a duplicated template.
+
+```yaml
+assert:
+  stories: [home, regions/north]    # stories or folders, by full slug
+  components: [hero-section]
+  datasources: [colors]
+  languages: [de]
+  apps: [storyblok-gmbh@ai-seo]
+  plan_at_least: elite              # starter, growth, growth_plus, premium, elite
+```
+
+| Key | Description |
+|---|---|
+| `stories` | Stories or folders that must exist, by full slug. `products` matches the folder and `products/` its start page. |
+| `components` | Components that must exist, by technical name. |
+| `datasources` | Datasources that must exist, by slug. |
+| `languages` | Language codes that must be enabled in the space. |
+| `apps` | Apps that must be installed, by slug. |
+| `plan_at_least` | Minimum plan: `starter`, `growth`, `growth_plus`, `premium`, or `elite`. Older plans (for example Enterprise) cannot be compared and fail the check; remove `plan_at_least` for those spaces. |
+
+Behavior:
+
+- The checks run first. If anything is missing, the setup stops before any change and lists every missing item in one message, for example `missing stories: home; missing components: ghost-block`.
+- A failed check always stops the run, also with `continue_on_error`.
+- Items that the same config creates count as present: components in `components.ensure`, datasources in `datasources`, languages in `space.languages`, apps in `apps.install`, and folders in `folders.ensure`.
+- `--dry-run` lists the checks without calling the API.
 
 ## `preview`
 

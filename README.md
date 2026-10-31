@@ -245,6 +245,8 @@ components:
       color: "#003366"
 ```
 
+**Template checks.** An `assert` section checks the target space before any change, for example that a duplicated template has the `home` story and the `hero-section` component, or that the plan is at least Elite. If something is missing, the setup stops and lists everything missing in one message. Items the config creates itself count as present. See [`assert`](space-setup-config.md#assert).
+
 **Removals run last.** Something is removed only when the config asks for it explicitly, for example `space.languages.remove`, `stories.unpublish`, or `datasources[].remove_entries`. All removals run at the end of the setup, after every create and update. This order lets the same run move content away from what is being removed (for example, create a new stage and assign stories to it before an old one is removed), and if a step fails earlier, the run stops before anything is deleted. With `--continue-on-error` (or `execution.continue_on_error: true`) the run continues after a failure and still reaches the removals, so avoid it for configs that remove resources.
 
 When a removal must happen **first**, for example because a new resource needs a name, color, or content type that the removed resource still uses, split the work into two runs:

@@ -1371,6 +1371,73 @@ final class SpaceSetupProvisionerTest extends TestCase
     }
 
     #[Test]
+    public function plans_template_checks_first_without_api_calls(): void
+    {
+        $results = $this->provision([
+            'assert' => ['stories' => ['home'], 'components' => ['hero'], 'plan_at_least' => 'elite'],
+            'tags' => [['tags' => ['Landing'], 'stories' => ['slugs' => ['home']]]],
+        ])->results();
+
+        $this->assertSame('Check template', $results[0]->label);
+        $this->assertSame('stories: home; components: hero; plan at least: elite', $results[0]->detail);
+    }
+
+    #[Test]
+    public function passes_template_checks_when_everything_exists(): void
+    {
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                $this->mockResponse('list-stories-publish-states'),
+                $this->mockResponse('list-components-export'),
+                $this->mockResponse('list-datasources'),
+                $this->mockResponse('one-space-premium'),
+            ),
+            ['assert' => [
+                'stories' => ['about', 'news', 'news/'],
+                'components' => ['page'],
+                'datasources' => ['colors'],
+                'plan_at_least' => 'growth',
+            ]],
+        );
+
+        $this->assertSuccessful($reporter, SpaceSetupOperationStatus::Skipped, 'Check template');
+    }
+
+    #[Test]
+    public function fails_template_checks_with_every_missing_item_and_stops(): void
+    {
+        $this->expectException(SpaceSetupProvisioningException::class);
+
+        try {
+            $this->provisionWithClient(
+                $this->createMockClient(
+                    $this->mockResponse('list-stories-publish-states'),
+                    $this->mockResponse('list-components-export'),
+                    $this->mockResponse('one-space-premium'),
+                ),
+                [
+                    'assert' => [
+                        'stories' => ['about', 'missing'],
+                        'components' => ['page', 'promo', 'ghost'],
+                        'plan_at_least' => 'elite',
+                    ],
+                    'components' => ['ensure' => [['name' => 'promo']]],
+                ],
+                continueOnError: true,
+            );
+        } catch (SpaceSetupProvisioningException $spaceSetupProvisioningException) {
+            $results = $spaceSetupProvisioningException->reporter->results();
+            $this->assertCount(1, $results, 'Nothing runs after a failed check, even with continue on error.');
+            $this->assertSame(
+                'The target space does not match the config: missing stories: missing; missing components: ghost; plan is Premium (Plan 3), at least elite is required.',
+                $results[0]->detail,
+            );
+
+            throw $spaceSetupProvisioningException;
+        }
+    }
+
+    #[Test]
     public function plans_each_tag_assignment(): void
     {
         $result = $this->singleResult([

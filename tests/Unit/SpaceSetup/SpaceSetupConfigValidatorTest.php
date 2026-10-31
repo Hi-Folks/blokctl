@@ -198,6 +198,20 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     }
 
     #[Test]
+    public function validates_template_checks_and_rejects_unknown_plans(): void
+    {
+        $valid = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'assert' => ['stories' => ['home'], 'components' => ['hero'], 'languages' => ['de'], 'apps' => ['backups'], 'plan_at_least' => 'growth_plus'],
+        ]);
+        $this->assertTrue($valid->isValid(), implode(' | ', $valid->errors));
+
+        $invalid = new SpaceSetupConfigValidator()->validate(['version' => 1, 'assert' => ['plan_at_least' => 'enterprise']]);
+        $this->assertFalse($invalid->isValid());
+        $this->assertErrorsContain($invalid->errors, 'plan_at_least');
+    }
+
+    #[Test]
     public function rejects_unknown_workflow_stage_properties(): void
     {
         $result = new SpaceSetupConfigValidator()->validate([

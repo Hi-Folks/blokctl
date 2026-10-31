@@ -17,8 +17,10 @@ use Blokctl\Action\Datasource\DatasourceEntriesEnsureAction;
 use Blokctl\Action\Datasource\DatasourceEntriesEnsureResult;
 use Blokctl\Action\Datasource\DatasourceEntriesRemoveAction;
 use Blokctl\Action\Datasource\DatasourceEntriesRemoveResult;
+use Blokctl\Action\Datasource\DatasourceLookup;
 use Blokctl\Action\Folder\FolderCreateAction;
 use Blokctl\Action\Space\SpaceDemoRemoveAction;
+use Blokctl\Action\Space\SpaceLanguageCheckAction;
 use Blokctl\Action\Space\SpaceLanguagesEnsureAction;
 use Blokctl\Action\Space\SpaceLanguagesRemoveAction;
 use Blokctl\Action\Space\SpaceRoleEnsureAction;
@@ -80,6 +82,7 @@ final readonly class SpaceSetupProvisioner
         $reporter->start($spaceId, $mode);
 
         try {
+            $this->provisionAssertions($reporter, $spaceId, $config, $dryRun);
             $this->provisionPreview($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionDemoMode($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionLanguages($reporter, $spaceId, $config, $dryRun, $continueOnError);
@@ -110,6 +113,205 @@ final readonly class SpaceSetupProvisioner
         $reporter->finish();
 
         return $reporter;
+    }
+
+    /** Current plan levels in order; `plan_at_least` compares against these. */
+    private const array PLAN_LEVELS = [
+        'starter' => [1100],
+        'growth' => [1200],
+        'growth_plus' => [1300],
+        'premium' => [1400, 1401],
+        'elite' => [1500, 1501],
+    ];
+
+    /**
+     * Check that the target space has what the config expects, before any change.
+     * Items the config itself creates (components, datasources, languages, apps,
+     * folders) count as present. Every missing item is reported in one error, and a
+     * failed check always stops the run, even with continue_on_error.
+     *
+     * @param array<string, mixed> $config
+     */
+    private function provisionAssertions(SpaceSetupReporter $reporter, string $spaceId, array $config, bool $dryRun): void
+    {
+        $assert = $this->arrayValue($config['assert'] ?? []);
+        if ($assert === []) {
+            return;
+        }
+
+        $expected = [
+            'stories' => $this->stringListValue($assert['stories'] ?? []),
+            'components' => $this->stringListValue($assert['components'] ?? []),
+            'datasources' => $this->stringListValue($assert['datasources'] ?? []),
+            'languages' => $this->stringListValue($assert['languages'] ?? []),
+            'apps' => $this->stringListValue($assert['apps'] ?? []),
+        ];
+        $planAtLeast = $this->nullableStringValue($assert['plan_at_least'] ?? null);
+        $label = 'Check template';
+
+        $reporter->run($label, SpaceSetupOperationStatus::Skipped, false, function () use ($spaceId, $config, $expected, $planAtLeast, $dryRun, $label): SpaceSetupOperationResult {
+            $details = [];
+            foreach ($expected as $kind => $items) {
+                if ($items !== []) {
+                    $details[] = $kind . ': ' . implode(', ', $items);
+                }
+            }
+
+            if ($planAtLeast !== null) {
+                $details[] = 'plan at least: ' . $planAtLeast;
+            }
+
+            if ($dryRun) {
+                return new SpaceSetupOperationResult(SpaceSetupOperationStatus::Updated, $label, implode('; ', $details));
+            }
+
+            $provided = $this->providedByConfig($config);
+            $missing = [];
+            foreach ($expected as $kind => $items) {
+                $toCheck = array_values(array_diff($items, $provided[$kind]));
+                if ($toCheck === []) {
+                    continue;
+                }
+
+                $absent = array_values(array_diff($toCheck, $this->existing($spaceId, $kind, $toCheck)));
+                if ($absent !== []) {
+                    $missing[] = 'missing ' . $kind . ': ' . implode(', ', $absent);
+                }
+            }
+
+            if ($planAtLeast !== null) {
+                $planProblem = $this->planProblem($spaceId, $planAtLeast);
+                if ($planProblem !== null) {
+                    $missing[] = $planProblem;
+                }
+            }
+
+            if ($missing !== []) {
+                throw new \RuntimeException('The target space does not match the config: ' . implode('; ', $missing) . '.');
+            }
+
+            return new SpaceSetupOperationResult(SpaceSetupOperationStatus::Skipped, $label, 'All checks passed (' . implode('; ', $details) . ').');
+        });
+    }
+
+    /**
+     * Items the config creates itself, so they do not need to exist yet.
+     *
+     * @param array<string, mixed> $config
+     * @return array<string, list<string>>
+     */
+    private function providedByConfig(array $config): array
+    {
+        $names = fn(mixed $items, string $key): array => array_values(array_filter(array_map(
+            fn(mixed $item): string => is_array($item) ? $this->stringValue($item[$key] ?? '') : '',
+            $this->listValue($items),
+        ), static fn(string $value): bool => $value !== ''));
+
+        $components = $this->arrayValue($config['components'] ?? []);
+        $space = $this->arrayValue($config['space'] ?? []);
+        $folders = $this->arrayValue($config['folders'] ?? []);
+        $apps = [];
+        foreach ($this->listValue($this->arrayValue($config['apps'] ?? [])['install'] ?? []) as $app) {
+            $slug = is_array($app) ? $this->stringValue($app['slug'] ?? '') : $this->stringValue($app);
+            if ($slug !== '') {
+                $apps[] = $slug;
+            }
+        }
+
+        return [
+            'stories' => $names($folders['ensure'] ?? [], 'slug'),
+            'components' => $names($components['ensure'] ?? [], 'name'),
+            'datasources' => $names($config['datasources'] ?? [], 'slug'),
+            'languages' => array_values($this->languageAddList($space['languages'] ?? [])),
+            'apps' => $apps,
+        ];
+    }
+
+    /**
+     * The items of a kind that exist in the space.
+     *
+     * @param list<string> $items
+     * @return list<string>
+     */
+    private function existing(string $spaceId, string $kind, array $items): array
+    {
+        $api = new ManagementApi($this->client);
+        $found = [];
+        switch ($kind) {
+            case 'stories':
+                foreach (array_chunk($items, 50) as $chunk) {
+                    $response = $api->get(sprintf('spaces/%s/stories', $spaceId), ['by_slugs' => implode(',', $chunk), 'per_page' => 100]);
+                    if (!$response->isOk()) {
+                        throw new \RuntimeException('Failed to fetch stories: ' . ApiError::message($response));
+                    }
+
+                    foreach ($this->listValue($this->arrayValue($response->toArray())['stories'] ?? []) as $story) {
+                        $found[] = is_array($story) ? rtrim($this->stringValue($story['full_slug'] ?? ''), '/') : '';
+                    }
+                }
+
+                // A folder's start page has a trailing slash (`products/`); accept the folder slug too.
+                return array_values(array_filter($items, static fn(string $slug): bool => in_array(rtrim($slug, '/'), $found, true)));
+            case 'components':
+                $response = $api->get(sprintf('spaces/%s/components', $spaceId));
+                if (!$response->isOk()) {
+                    throw new \RuntimeException('Failed to fetch components: ' . ApiError::message($response));
+                }
+
+                foreach ($this->listValue($this->arrayValue($response->toArray())['components'] ?? []) as $component) {
+                    $found[] = is_array($component) ? $this->stringValue($component['name'] ?? '') : '';
+                }
+
+                break;
+            case 'datasources':
+                foreach (new DatasourceLookup($this->client)->datasources($spaceId) as $datasource) {
+                    $found[] = $this->stringValue($datasource['slug'] ?? '');
+                }
+
+                break;
+            case 'languages':
+                $found = new SpaceLanguageCheckAction($this->client)->installedLanguages($spaceId);
+                break;
+            case 'apps':
+                foreach (new AppProvisionApi($this->client, $spaceId)->page()->data() as $provision) {
+                    if ($provision instanceof AppProvision) {
+                        $found[] = $provision->slug();
+                    }
+                }
+
+                break;
+        }
+
+        return array_values(array_intersect($items, $found));
+    }
+
+    /**
+     * Why the space plan is below the required plan, or null when it is enough.
+     */
+    private function planProblem(string $spaceId, string $required): ?string
+    {
+        $required = strtolower(str_replace([' ', '-'], '_', $required));
+        if (!isset(self::PLAN_LEVELS[$required])) {
+            return sprintf('unknown plan "%s" in plan_at_least (use %s)', $required, implode(', ', array_keys(self::PLAN_LEVELS)));
+        }
+
+        $space = new SpaceApi($this->client)->get($spaceId)->data();
+        $level = (int) $space->planLevel();
+        $rank = null;
+        foreach (array_keys(self::PLAN_LEVELS) as $index => $plan) {
+            if (in_array($level, self::PLAN_LEVELS[$plan], true)) {
+                $rank = $index;
+            }
+        }
+
+        $description = $space->planDescription() ?? (string) $level;
+        if ($rank === null) {
+            return sprintf('plan "%s" cannot be compared with plan_at_least; remove plan_at_least for this space', $description);
+        }
+
+        $requiredRank = array_search($required, array_keys(self::PLAN_LEVELS), true);
+
+        return $rank < $requiredRank ? sprintf('plan is %s, at least %s is required', $description, $required) : null;
     }
 
     /**

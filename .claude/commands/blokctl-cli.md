@@ -47,6 +47,7 @@ Exceptions that do not require `-S`: `space:create`, `space:setup-validate`, `sp
 - Merges story tags and preview environments.
 - Skips matching apps, folders, fields, tags, workflows, demo mode, preview URLs, root-content moves, and Dimensions configuration.
 - Supports multi-country setup with `folders.ensure`, `stories.move`, and `dimensions.folders`.
+- Checks the target space first with `assert` (stories, components, datasources, languages, apps, `plan_at_least`); a failed check stops the run before any change.
 - Combines reusable config files with `extends` (named items merge by name or slug, operations concatenate, value lists are replaced).
 - Creates components with their folder and fields with `components.ensure` (after datasources, before stories).
 - Creates or updates datasources, dimensions, and entries with `datasources` (inline or `entries_file` CSV); `remove_entries` deletes entries at the end with the other removals.
