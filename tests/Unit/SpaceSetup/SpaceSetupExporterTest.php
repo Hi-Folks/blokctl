@@ -142,6 +142,68 @@ final class SpaceSetupExporterTest extends TestCase
     }
 
     #[Test]
+    public function masks_secret_options_and_properties_with_the_placeholder(): void
+    {
+        $result = new SpaceSetupExporter($this->createMockClient(
+            $this->mockResponse('list-components-secrets'),
+        ))->export('680', [SpaceSetupExporter::COMPONENTS]);
+
+        $field = (array) $this->at($result->config, ['components', 'ensure', 0, 'fields', 0]);
+        $this->assertSame([
+            ['name' => 'storyblokToken', 'value' => '####YOURSECRET####'],
+            ['name' => 'limit', 'value' => '5'],
+        ], $this->at($field, ['options']));
+        $this->assertSame(
+            ['api_key' => '####YOURSECRET####', 'endpoint' => 'https://example.com', 'enabled' => true],
+            $this->at($field, ['properties', 'plugin_config']),
+        );
+        $this->assertSame('product', $this->at($field, ['properties', 'key']), 'A plain "key" is not a secret.');
+        $this->assertSame([
+            'Component product-picker, field product: storyblokToken replaced with ####YOURSECRET####.',
+            'Component product-picker, field product: api_key replaced with ####YOURSECRET####.',
+        ], $result->warnings);
+        $this->assertStringNotContainsString('SECRET123', $result->toYaml());
+        $this->assertStringNotContainsString('PLUGINKEY', $result->toYaml());
+    }
+
+    #[Test]
+    public function uses_custom_secret_names_and_placeholder(): void
+    {
+        $result = new SpaceSetupExporter(
+            $this->createMockClient($this->mockResponse('list-components-secrets')),
+            secretNames: ['api-key'],
+            secretPlaceholder: '<set me>',
+        )->export('680', [SpaceSetupExporter::COMPONENTS]);
+
+        $field = (array) $this->at($result->config, ['components', 'ensure', 0, 'fields', 0]);
+        $this->assertSame('SECRET123', $this->at($field, ['options', 0, 'value']), 'storyblokToken is not in the custom list.');
+        $this->assertSame('<set me>', $this->at($field, ['properties', 'plugin_config', 'api_key']), 'api-key matches api_key, ignoring _ and -.');
+    }
+
+    #[Test]
+    public function include_secrets_keeps_the_values(): void
+    {
+        $result = new SpaceSetupExporter($this->createMockClient(
+            $this->mockResponse('list-components-secrets'),
+        ))->export('680', [SpaceSetupExporter::COMPONENTS], includeSecrets: true);
+
+        $this->assertStringContainsString('SECRET123', $result->toYaml());
+        $this->assertSame([], $result->warnings);
+    }
+
+    #[Test]
+    public function masks_secret_datasource_entries_in_csv_files(): void
+    {
+        $result = new SpaceSetupExporter($this->createMockClient(
+            $this->mockResponse('list-datasources'),
+            $this->mockResponse('list-datasource-entries-secret'),
+        ))->export('680', [SpaceSetupExporter::DATASOURCES], datasources: ['fonts'], entriesDirectory: 'datasources');
+
+        $this->assertSame(['datasources/fonts.csv' => "name,value\naccessToken,####YOURSECRET####\nversion,draft\n"], $result->files);
+        $this->assertSame(['Datasource fonts, entry accessToken: value replaced with ####YOURSECRET####.'], $result->warnings);
+    }
+
+    #[Test]
     public function rejects_unknown_sections(): void
     {
         $this->expectException(\RuntimeException::class);

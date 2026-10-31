@@ -28,7 +28,10 @@ class SpaceSetupExportCommand extends AbstractCommand
             ->addOption('component', 'c', InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Component name to export (repeatable; all when omitted)')
             ->addOption('datasource', 'd', InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Datasource slug to export (repeatable; all when omitted)')
             ->addOption('output', 'o', InputOption::VALUE_REQUIRED, 'YAML file to write; prints the YAML when omitted')
-            ->addOption('entries-dir', null, InputOption::VALUE_REQUIRED, 'Write datasource entries as CSV files in this directory (relative to --output) instead of inline');
+            ->addOption('entries-dir', null, InputOption::VALUE_REQUIRED, 'Write datasource entries as CSV files in this directory (relative to --output) instead of inline')
+            ->addOption('include-secrets', null, InputOption::VALUE_NONE, 'Keep secret values instead of replacing them with the placeholder')
+            ->addOption('secret-name', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Name treated as secret (repeatable; replaces the list from BLOKCTL_SECRET_NAMES or the defaults)')
+            ->addOption('secret-placeholder', null, InputOption::VALUE_REQUIRED, 'Text that replaces secret values (default from BLOKCTL_SECRET_PLACEHOLDER or ' . SpaceSetupExporter::DEFAULT_SECRET_PLACEHOLDER . ')');
     }
 
     protected function execute(
@@ -58,12 +61,13 @@ class SpaceSetupExportCommand extends AbstractCommand
         };
 
         try {
-            $result = new SpaceSetupExporter($this->client, $progress)->export(
+            $result = new SpaceSetupExporter($this->client, $progress, $this->secretNames($input), $this->secretPlaceholder($input))->export(
                 spaceId: $this->spaceId,
                 sections: $sections === [] ? SpaceSetupExporter::SECTIONS : $sections,
                 components: $components,
                 datasources: $datasources,
                 entriesDirectory: $entriesDirectory,
+                includeSecrets: (bool) $input->getOption('include-secrets'),
             );
         } catch (\RuntimeException $runtimeException) {
             Render::error($runtimeException->getMessage());
@@ -74,7 +78,7 @@ class SpaceSetupExportCommand extends AbstractCommand
         $validation = new SpaceSetupConfigValidator()->validate($result->config);
 
         if ($file === null) {
-            $output->write($yaml, false, OutputInterface::OUTPUT_RAW);
+            $output->write($yaml, false, OutputInterface::OUTPUT_RAW | OutputInterface::VERBOSITY_QUIET);
         } else {
             $directory = dirname($file);
             if (file_put_contents($file, $yaml) === false) {
@@ -126,5 +130,37 @@ class SpaceSetupExportCommand extends AbstractCommand
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Secret names from --secret-name, else BLOKCTL_SECRET_NAMES (comma separated, e.g. in .env), else the defaults.
+     *
+     * @return list<string>
+     */
+    private function secretNames(InputInterface $input): array
+    {
+        /** @var list<string> $names */
+        $names = $input->getOption('secret-name');
+        if ($names === []) {
+            $configured = $_ENV['BLOKCTL_SECRET_NAMES'] ?? getenv('BLOKCTL_SECRET_NAMES');
+            $names = is_string($configured) ? explode(',', $configured) : [];
+        }
+
+        $names = array_values(array_filter(array_map(trim(...), $names), static fn(string $name): bool => $name !== ''));
+
+        return $names === [] ? SpaceSetupExporter::DEFAULT_SECRET_NAMES : $names;
+    }
+
+    /**
+     * Placeholder from --secret-placeholder, else BLOKCTL_SECRET_PLACEHOLDER (e.g. in .env), else the default.
+     */
+    private function secretPlaceholder(InputInterface $input): string
+    {
+        $placeholder = $input->getOption('secret-placeholder');
+        if (!is_string($placeholder) || $placeholder === '') {
+            $placeholder = $_ENV['BLOKCTL_SECRET_PLACEHOLDER'] ?? getenv('BLOKCTL_SECRET_PLACEHOLDER');
+        }
+
+        return is_string($placeholder) && $placeholder !== '' ? $placeholder : SpaceSetupExporter::DEFAULT_SECRET_PLACEHOLDER;
     }
 }

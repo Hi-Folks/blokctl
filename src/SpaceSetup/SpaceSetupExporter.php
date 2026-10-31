@@ -47,12 +47,23 @@ final readonly class SpaceSetupExporter
         'blocked_manage_component_group_uuids', 'component_group_uuids', 'blocked_component_group_uuids',
     ];
 
+    /** Field, option, and entry names treated as secrets (matched as substrings, ignoring case, `_`, and `-`). */
+    public const array DEFAULT_SECRET_NAMES = [
+        'token', 'access_token', 'secret', 'client_secret', 'password', 'passwd', 'api_key', 'private_key', 'access_key', 'credential',
+    ];
+
+    public const string DEFAULT_SECRET_PLACEHOLDER = '####YOURSECRET####';
+
     /**
      * @param (\Closure(string): void)|null $progress Receives a short message for each step, e.g. to show progress on large spaces
+     * @param list<string> $secretNames Names treated as secrets (substring match, ignoring case, `_`, and `-`)
+     * @param string $secretPlaceholder Text that replaces secret values in the export
      */
     public function __construct(
         private ManagementApiClient $client,
         private ?\Closure $progress = null,
+        private array $secretNames = self::DEFAULT_SECRET_NAMES,
+        private string $secretPlaceholder = self::DEFAULT_SECRET_PLACEHOLDER,
     ) {}
 
     /**
@@ -61,6 +72,8 @@ final readonly class SpaceSetupExporter
      * @param list<string> $datasources Datasource slugs to export; empty exports all
      * @param string|null $entriesDirectory Write datasource entries as CSV files in this directory
      *                                      (relative to the config file) instead of inline
+     * @param bool $includeSecrets Keep values that look like secrets; by default they are replaced
+     *                             with the secret placeholder and listed as warnings
      *
      * @throws \RuntimeException if a section is unknown or the API requests fail
      */
@@ -70,6 +83,7 @@ final readonly class SpaceSetupExporter
         array $components = [],
         array $datasources = [],
         ?string $entriesDirectory = null,
+        bool $includeSecrets = false,
     ): SpaceSetupExportResult {
         $unknown = array_diff($sections, self::SECTIONS);
         if ($unknown !== []) {
@@ -82,13 +96,17 @@ final readonly class SpaceSetupExporter
 
         if (in_array(self::DATASOURCES, $sections, true)) {
             $this->report('Reading datasources...');
-            [$config['datasources'], $files] = $this->datasources($spaceId, $datasources, $entriesDirectory);
+            [$config['datasources'], $files] = $this->datasources($spaceId, $datasources, $entriesDirectory, $includeSecrets, $warnings);
             $this->report(sprintf('Datasources: %d exported.', count($config['datasources'])));
         }
 
         if (in_array(self::COMPONENTS, $sections, true)) {
             $this->report('Reading components...');
             $config['components'] = ['ensure' => $this->components($spaceId, $components)];
+            if (!$includeSecrets) {
+                $config['components']['ensure'] = $this->maskComponentSecrets($config['components']['ensure'], $warnings);
+            }
+
             $this->report(sprintf('Components: %d exported.', count($config['components']['ensure'])));
         }
 
@@ -270,9 +288,10 @@ final readonly class SpaceSetupExporter
 
     /**
      * @param list<string> $only
+     * @param list<string> $warnings
      * @return array{0: list<array<string, mixed>>, 1: array<string, string>}
      */
-    private function datasources(string $spaceId, array $only, ?string $entriesDirectory): array
+    private function datasources(string $spaceId, array $only, ?string $entriesDirectory, bool $includeSecrets, array &$warnings): array
     {
         $exportAction = new DatasourceEntriesExportAction($this->client);
         $exported = [];
@@ -295,14 +314,29 @@ final readonly class SpaceSetupExporter
             }
 
             $entries = $exportAction->fromDatasource($spaceId, $datasource);
-            if ($entries->rows !== []) {
-                if ($entriesDirectory !== null) {
-                    $path = rtrim($entriesDirectory, '/') . '/' . $slug . '.csv';
-                    $files[$path] = $entries->toCsv();
-                    $definition['entries_file'] = $path;
-                } else {
-                    $definition['entries'] = $this->inlineEntries($entries->header, $entries->rows);
+            $rows = $entries->rows;
+            if (!$includeSecrets) {
+                foreach ($rows as $index => $row) {
+                    $name = $row[0] ?? '';
+                    if (!$this->isSecretName($name)) {
+                        continue;
+                    }
+
+                    foreach (array_keys($row) as $column) {
+                        if ($column > 0 && $row[$column] !== '') {
+                            $rows[$index][$column] = $this->secretPlaceholder;
+                            $warnings[] = sprintf('Datasource %s, entry %s: %s replaced with %s.', $slug, $name, $entries->header[$column] ?? 'value', $this->secretPlaceholder);
+                        }
+                    }
                 }
+            }
+
+            if ($rows !== [] && $entriesDirectory !== null) {
+                $path = rtrim($entriesDirectory, '/') . '/' . $slug . '.csv';
+                $files[$path] = DatasourceEntriesCsv::format($entries->header, $rows);
+                $definition['entries_file'] = $path;
+            } elseif ($rows !== []) {
+                $definition['entries'] = $this->inlineEntries($entries->header, $rows);
             }
 
             $exported[] = $definition;
@@ -530,6 +564,95 @@ final readonly class SpaceSetupExporter
         }
 
         return $resolved;
+    }
+
+    /**
+     * Replace the values of secret options and properties of component fields with the
+     * secret placeholder.
+     *
+     * @param list<array<string, mixed>> $components
+     * @param list<string> $warnings
+     * @return list<array<string, mixed>>
+     */
+    private function maskComponentSecrets(array $components, array &$warnings): array
+    {
+        foreach ($components as $componentIndex => $component) {
+            $componentName = $this->string($component['name'] ?? '');
+            $fields = is_array($component['fields'] ?? null) ? $component['fields'] : [];
+            foreach ($fields as $fieldIndex => $field) {
+                if (!is_array($field)) {
+                    continue;
+                }
+
+                $fieldName = $this->string($field['field'] ?? '');
+                $prefix = sprintf('Component %s, field %s', $componentName, $fieldName);
+                foreach (['options', 'properties'] as $key) {
+                    if (is_array($field[$key] ?? null)) {
+                        $field[$key] = $this->maskSecrets($field[$key], $prefix, $warnings);
+                    }
+                }
+
+                $fields[$fieldIndex] = $field;
+            }
+
+            if ($fields !== []) {
+                $components[$componentIndex]['fields'] = $fields;
+            }
+        }
+
+        return $components;
+    }
+
+    /**
+     * Mask values whose key, or whose sibling `name` in a name/value pair, is a secret name.
+     *
+     * @param array<mixed> $values
+     * @param list<string> $warnings
+     * @return array<mixed>
+     */
+    private function maskSecrets(array $values, string $context, array &$warnings): array
+    {
+        if (is_string($values['name'] ?? null) && array_key_exists('value', $values) && $this->isSecretName($values['name'])) {
+            if (is_scalar($values['value']) && (string) $values['value'] !== '') {
+                $values['value'] = $this->secretPlaceholder;
+                $warnings[] = sprintf('%s: %s replaced with %s.', $context, $values['name'], $this->secretPlaceholder);
+            }
+
+            return $values;
+        }
+
+        foreach ($values as $key => $value) {
+            if (is_array($value)) {
+                $values[$key] = $this->maskSecrets($value, $context, $warnings);
+            } elseif (is_string($key) && is_scalar($value) && (string) $value !== '' && !is_bool($value) && $this->isSecretName($key)) {
+                $values[$key] = $this->secretPlaceholder;
+                $warnings[] = sprintf('%s: %s replaced with %s.', $context, $key, $this->secretPlaceholder);
+            }
+        }
+
+        return $values;
+    }
+
+    /**
+     * Whether a name contains one of the secret names, ignoring case, `_`, and `-`
+     * (so `access_token` also matches `accessToken` and `storyblokAccessToken`).
+     */
+    private function isSecretName(string $name): bool
+    {
+        $normalized = $this->normalizeName($name);
+        foreach ($this->secretNames as $secretName) {
+            $needle = $this->normalizeName($secretName);
+            if ($needle !== '' && str_contains($normalized, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalizeName(string $name): string
+    {
+        return strtolower((string) preg_replace('/[^A-Za-z0-9]/', '', $name));
     }
 
     private function report(string $message): void

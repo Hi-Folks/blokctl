@@ -378,6 +378,9 @@ php bin/blokctl space:setup -S 288868932106293 --config space.yaml --dry-run
 | `--datasource` | `-d` | Datasource slug to export (repeatable). All datasources when omitted |
 | `--output` | `-o` | YAML file to write. Prints the YAML when omitted |
 | `--entries-dir` | | Write datasource entries as CSV files in this directory, relative to `--output`, and reference them with `entries_file` |
+| `--secret-name` | | Name treated as a secret (repeatable). Replaces the default list |
+| `--secret-placeholder` | | Text written instead of a secret value. Default `####YOURSECRET####` |
+| `--include-secrets` | | Export secret values as they are (only for files that stay private) |
 
 What is exported:
 
@@ -387,6 +390,29 @@ What is exported:
 - **Workflows** (`workflow.ensure`): content types and stages, with roles, next stages, and the after-publish stage by name.
 
 IDs are replaced with names, slugs, and folder paths, so the config works in another space. Settings the setup format cannot express, such as role field permissions or workflow users, are listed as `# WARNING` comments at the top of the file and in the command output. The command validates its output and exits with a non-zero code if the export does not validate.
+
+**Secrets are hidden by default.** Field plugins often keep a token in their options (for example `storyblokToken`), and a datasource can hold an `accessToken` entry. The export never writes these values. It writes a placeholder instead:
+
+```yaml
+options:
+  - name: storyblokToken
+    value: '####YOURSECRET####'
+```
+
+Each replaced value is listed as a warning, so you know what to fill in before applying the config to another space. Applying the file as it is writes the placeholder text into the field.
+
+A value is treated as a secret when its name (option name, property name, or datasource entry name) **contains** one of these names, ignoring case, `_`, and `-`:
+
+`token`, `access_token`, `secret`, `client_secret`, `password`, `passwd`, `api_key`, `private_key`, `access_key`, `credential`
+
+So `access_token` also matches `accessToken` and `storyblokAccessToken`. Change the list or the placeholder for one run with `--secret-name` (repeatable) and `--secret-placeholder`, or for every run in `.env`:
+
+```bash
+BLOKCTL_SECRET_NAMES=token,secret,password,api_key
+BLOKCTL_SECRET_PLACEHOLDER=####YOURSECRET####
+```
+
+Command-line options take priority over `.env`, and `.env` over the defaults. Use `--include-secrets` only for files that stay private.
 
 The command shows its progress (one line per section, datasource, and workflow) on stderr, so printed YAML can be redirected to a file without progress lines in it. Use `-q` to hide progress and the summary.
 

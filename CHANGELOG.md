@@ -2,6 +2,16 @@
 
 All notable changes to `blokctl` will be documented in this file.
 
+## Unreleased
+
+### Changed
+
+- `space:setup-export` hides secret values in field options, field properties, and datasource entries (including CSV files): they are replaced with a placeholder (default `####YOURSECRET####`) and listed as warnings. A value is secret when its name contains one of the configured names (default `token`, `access_token`, `secret`, `client_secret`, `password`, `passwd`, `api_key`, `private_key`, `access_key`, `credential`; matched ignoring case, `_`, and `-`). Configure with `--secret-name`/`--secret-placeholder` or `BLOKCTL_SECRET_NAMES`/`BLOKCTL_SECRET_PLACEHOLDER` in `.env`; `--include-secrets` keeps the values.
+
+### Fixed
+
+- `space:setup-export -q` without `--output` no longer suppresses the printed YAML; `-q` only hides progress and the summary.
+
 ## 0.18.0 - 2026-10-31
 
 ### Added
