@@ -6,6 +6,8 @@ All notable changes to `blokctl` will be documented in this file.
 
 ### Added
 
+- Added read-only `template:list`, `template:show`, and `template:find` commands for
+  discovering, validating, and filtering local setup templates, with JSON output.
 - Added optional top-level `template` metadata (`name`, `description`, `category`,
   `owner`, and `tags`), preserved through config composition and JSON setup reports.
 - Added preflight story-content validation against configured components and, with

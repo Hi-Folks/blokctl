@@ -1,0 +1,13 @@
+version: 1
+extends: base.yaml
+template:
+  name: Retail Demo
+  description: Commerce demo for retail customers.
+  category: commerce
+  tags: [retail, multilingual]
+inputs:
+  customer_name:
+    required: true
+space:
+  name: "${{ inputs.customer_name }} Demo"
+  duplicate_from: "123456"

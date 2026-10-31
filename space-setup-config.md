@@ -210,6 +210,18 @@ metadata maps merge normally: the child file overrides individual values, inheri
 values remain, and the child's `tags` list replaces the base list. Metadata is preserved
 by `space:setup-validate --print-merged` and included in `space:setup --report` JSON.
 
+Local catalog commands can discover and inspect these files without accessing
+Storyblok:
+
+```bash
+php bin/blokctl template:list templates/ --recursive
+php bin/blokctl template:show templates/retail-demo.yaml
+php bin/blokctl template:find templates/ --tag=multilingual --category=commerce
+```
+
+All commands support `--json`; list and find return valid templates alongside any
+per-file loading errors. Files without a `template` object are ignored by discovery.
+
 ## Variables
 
 The complete setup configuration supports namespaced expressions:

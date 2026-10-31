@@ -1,0 +1,3 @@
+version: 1
+execution:
+  mode: reconcile

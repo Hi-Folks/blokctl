@@ -1,0 +1,7 @@
+version: 1
+template:
+  name: Base Demo
+  description: Shared demo foundation.
+  category: general
+  owner: solutions-engineering
+  tags: [base, multilingual]

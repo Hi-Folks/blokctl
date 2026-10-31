@@ -139,6 +139,74 @@ Available regions: `EU` (default), `US`, `AP`, `CA`, `CN`.
 
 ## Commands
 
+### Setup templates
+
+Template catalog commands discover ordinary `space:setup` YAML or JSON files that
+declare top-level [`template` metadata](space-setup-config.md#template-metadata). They
+are local and read-only: no Storyblok token or space ID is required. The directory
+defaults to the current directory and is scanned only at its top level unless `-r` is
+provided. Supported extensions are `.yaml`, `.yml`, and `.json`.
+
+#### `template:list` — List setup templates
+
+```bash
+# Current directory
+php bin/blokctl template:list
+
+# A template library and all its subdirectories
+php bin/blokctl template:list templates/ --recursive
+
+# Machine-readable catalog
+php bin/blokctl template:list templates/ -r --json
+```
+
+Each template is shown as a bullet with its category, owner, tags, and file on indented
+lines. Config files
+without `template` metadata are ignored. Invalid candidates are listed separately and
+do not prevent valid templates from being returned.
+
+| Option | Short | Description |
+|---|---|---|
+| `--recursive` | `-r` | Scan subdirectories, excluding dependency, cache, and VCS directories |
+| `--json` | | Emit `{templates, errors}` for scripts and AI assistants |
+
+#### `template:show` — Show one setup template
+
+```bash
+php bin/blokctl template:show templates/retail-demo.yaml
+php bin/blokctl template:show templates/retail-demo.yaml --json
+```
+
+The file is loaded through the same `extends` merger and JSON Schema validator as
+`space:setup`. Output includes merged metadata, declared input names, target mode
+(`existing`, `create`, or `duplicate`), direct `extends` files, path, and validation
+status. An invalid config or a config without `template` metadata exits with status 1.
+
+#### `template:find` — Find templates by metadata
+
+```bash
+php bin/blokctl template:find templates/ --tag=multilingual
+php bin/blokctl template:find templates/ -r \
+  --tag=retail --tag=multilingual \
+  --category=commerce
+php bin/blokctl template:find templates/ --search=shopify --json
+```
+
+`--tag` is repeatable and every requested tag must be present. Category and owner use
+case-insensitive exact matching. `--search` performs case-insensitive text matching
+across name, description, category, owner, tags, and path. Different filters are
+combined with AND. With no filters, `template:find` returns the same templates as
+`template:list`.
+
+| Option | Description |
+|---|---|
+| `--tag` | Required tag; repeat to require multiple tags |
+| `--category` | Exact metadata category |
+| `--owner` | Exact metadata owner |
+| `--search` | Text search across template metadata and path |
+| `--recursive`, `-r` | Scan subdirectories |
+| `--json` | Emit matching templates and skipped-file errors as JSON |
+
 ### Spaces
 
 #### `spaces:list` — List all spaces

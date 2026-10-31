@@ -264,6 +264,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 ## Priority 10: Developer Experience
 
 - [x] Generate a config from an existing space: `space:setup-export -o space.yaml` (components, datasources, roles, workflows).
+- [x] Discover, inspect, and filter local setup templates with `template:list`, `template:show`, and `template:find`.
 - [ ] Add examples for basic branded, multilanguage, multimarket, workflow, governance, and AI demos (governance: `examples/governance-space.yaml`).
 - [ ] Add concise progress output and a final summary table.
 - [ ] Add verbose/debug output for API troubleshooting.

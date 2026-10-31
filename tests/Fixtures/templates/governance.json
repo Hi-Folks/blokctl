@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "template": {
+    "name": "Governance Demo",
+    "category": "governance",
+    "owner": "platform-team",
+    "tags": ["workflow", "approval"]
+  }
+}

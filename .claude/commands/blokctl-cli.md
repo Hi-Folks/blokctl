@@ -18,6 +18,12 @@ Exceptions that do not require `-S`: `space:create`, `space:setup-validate`, `sp
 
 ## Commands by domain
 
+### Setup templates
+
+- **`template:list [directory]`** — List local YAML/JSON setup configs with `template` metadata. Defaults to the current directory. Options: `-r`/`--recursive`, `--json`. Read-only; no token or space ID.
+- **`template:show <file>`** — Validate one setup template and show merged metadata, inputs, target mode, and direct `extends`. Option: `--json`. Read-only.
+- **`template:find [directory]`** — Find local templates. Options: repeatable `--tag` (all must match), exact `--category`, exact `--owner`, text `--search`, `-r`/`--recursive`, `--json`. Filters combine with AND. Read-only.
+
 ### Spaces
 
 - **`spaces:list`** — List all spaces. Options: `--search`, `--owned-only`, `--updated-before=N` (days), `--solo-only`. No `--space-id` needed.
