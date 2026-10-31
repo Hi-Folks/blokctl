@@ -139,4 +139,6 @@ Who can move a story to the next stages: `user_ids`, `space_role_ids`, `allow_al
 - Error messages use `Blokctl\ApiError::message($response)`, which includes the 422 field details.
 - Updates send only changed fields and treat a `204` as success without parsing the body.
 - `space:collaborator-invite` skips current collaborators and reports pending invitations; `space:collaborator-remove --id` can remove a pending invitation.
+- `workflow:stage-ensure` and `workflow.ensure` send `allow_all_users: false` / `allow_all_stages: false` when roles or next stages are declared, unset the current default stage before setting a new one, and read the stage back after an update.
+- `workflow:ensure` rejects a content type that already belongs to another workflow before sending the request.
 - `space:role-delete` lists the collaborators who still have the role before deleting it.

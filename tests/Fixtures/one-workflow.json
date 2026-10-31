@@ -1,0 +1,3 @@
+{
+    "workflow": {"id": 200, "content_types": ["article-page", "news"], "is_default": false, "name": "Article review", "per_language_stages": false}
+}

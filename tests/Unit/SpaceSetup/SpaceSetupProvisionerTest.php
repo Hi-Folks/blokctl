@@ -1036,6 +1036,65 @@ final class SpaceSetupProvisionerTest extends TestCase
     }
 
     #[Test]
+    public function plans_workflows_stages_and_stage_links_in_order(): void
+    {
+        $results = $this->provision([
+            'workflow' => [
+                'ensure' => [
+                    [
+                        'name' => 'Article review',
+                        'content_types' => ['article-page'],
+                        'stages' => [
+                            ['name' => 'Writing', 'color' => '#babcb6', 'default' => true, 'roles' => ['Editors - North'], 'next' => ['Approved']],
+                            ['name' => 'Approved', 'color' => '#1bb300', 'allow_publish' => true, 'roles' => 'all', 'after_publish' => 'Writing'],
+                        ],
+                    ],
+                ],
+            ],
+        ])->results();
+
+        $this->assertSame([
+            'Ensure workflow: Article review',
+            'Ensure workflow stage: Article review / Writing',
+            'Ensure workflow stage: Article review / Approved',
+            'Link workflow stage: Article review / Writing',
+            'Link workflow stage: Article review / Approved',
+        ], array_map(static fn(SpaceSetupOperationResult $result): string => $result->label, $results));
+        $this->assertSame('content types: article-page', $results[0]->detail);
+        $this->assertSame('color: #babcb6; position: 1; default: yes; roles: Editors - North', $results[1]->detail);
+        $this->assertSame('color: #1bb300; position: 2; allow publish: yes; roles: all', $results[2]->detail);
+        $this->assertSame('next stages: Approved', $results[3]->detail);
+        $this->assertSame('after publish: Writing', $results[4]->detail);
+    }
+
+    #[Test]
+    public function skips_workflow_and_stages_that_already_match(): void
+    {
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                $this->mockResponse('list-workflows-custom'),
+                $this->mockResponse('list-workflows-custom'),
+                $this->mockResponse('list-workflow-stages-article'),
+            ),
+            [
+                'workflow' => [
+                    'ensure' => [
+                        [
+                            'name' => 'Article review',
+                            'content_types' => ['article-page'],
+                            'stages' => [['name' => 'Writing', 'color' => '#babcb6', 'default' => true]],
+                        ],
+                    ],
+                ],
+            ],
+        );
+
+        $statuses = array_map(static fn(SpaceSetupOperationResult $result): SpaceSetupOperationStatus => $result->status, $reporter->results());
+        $this->assertSame([SpaceSetupOperationStatus::Skipped, SpaceSetupOperationStatus::Skipped], $statuses);
+        $this->assertFalse($reporter->hasFailures());
+    }
+
+    #[Test]
     public function plans_each_tag_assignment(): void
     {
         $result = $this->singleResult([

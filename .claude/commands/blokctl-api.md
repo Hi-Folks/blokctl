@@ -64,6 +64,8 @@ Most resource-oriented commands are backed by reusable Action classes with no CL
 | `Asset\AssetsListAction` | List/search assets (MAPI only) | `->assets`, `->count()` |
 | `Asset\AssetsUnreferencedAction` | Find unreferenced assets (optional `previewToken`) | `->unreferencedAssets`, `->totalAssets`, `->referencedCount`, `->storiesAnalyzed` |
 | `Workflow\WorkflowsListAction` | List workflows+stages | `->workflows`, `->count()` |
+| `Workflow\WorkflowEnsureAction` | Create a custom workflow or update its content types (one workflow per content type) | `->status`, `->workflowId()`, `->workflow`, `->changedFields` |
+| `Workflow\WorkflowStageEnsureAction` | Create a stage or update declared properties; roles and next stages by name, `[ALL]` for all | `->status`, `->stageId()`, `->stage`, `->changedFields` |
 | `Workflow\WorkflowStageShowAction` | Show stage details | `->stage`, `->workflowName` |
 | `Component\ComponentsListAction` | List/filter components | `->components`, `->count()` |
 | `Component\ComponentsUsageAction` | Analyze component usage | `->usage`, `->storiesAnalyzed` |

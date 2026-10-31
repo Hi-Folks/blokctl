@@ -1,0 +1,18 @@
+{
+    "workflow_stages": [
+        {
+            "id": 201, "name": "Writing", "color": "#babcb6", "position": 1, "is_default": true,
+            "allow_publish": false, "allow_admin_publish": false, "allow_admin_change": false, "allow_editor_change": false,
+            "allow_all_users": false, "space_role_ids": [236218588949901],
+            "allow_all_stages": false, "workflow_stage_ids": [202],
+            "after_publish_id": null, "user_ids": [], "workflow_id": 200
+        },
+        {
+            "id": 202, "name": "Approved", "color": "#1bb300", "position": 2, "is_default": false,
+            "allow_publish": true, "allow_admin_publish": false, "allow_admin_change": false, "allow_editor_change": false,
+            "allow_all_users": true, "space_role_ids": [],
+            "allow_all_stages": true, "workflow_stage_ids": [],
+            "after_publish_id": 201, "user_ids": [], "workflow_id": 200
+        }
+    ]
+}

@@ -91,6 +91,80 @@ final readonly class SpaceSetupConfigValidator
             $roleNames[] = $name;
         }
 
+        return [...$errors, ...$this->workflowErrors($config)];
+    }
+
+    /**
+     * Rules the schema cannot express for workflow.ensure: unique workflow names, a content
+     * type in one workflow only, unique stage names and colors, one default stage, and
+     * stage links that point to stages declared in the same workflow.
+     *
+     * @param array<mixed> $config
+     * @return list<string>
+     */
+    private function workflowErrors(array $config): array
+    {
+        $workflow = is_array($config['workflow'] ?? null) ? $config['workflow'] : [];
+        $errors = [];
+        $workflowNames = [];
+        $contentTypeOwners = [];
+
+        foreach (is_array($workflow['ensure'] ?? null) ? $workflow['ensure'] : [] as $index => $definition) {
+            if (!is_array($definition) || !is_string($definition['name'] ?? null)) {
+                continue;
+            }
+
+            $name = $definition['name'];
+            $path = '$.workflow.ensure[' . $index . ']';
+            if (in_array($name, $workflowNames, true)) {
+                $errors[] = $path . '.name: Duplicate workflow name "' . $name . '".';
+            }
+
+            $workflowNames[] = $name;
+
+            foreach (is_array($definition['content_types'] ?? null) ? $definition['content_types'] : [] as $contentType) {
+                if (!is_string($contentType)) {
+                    continue;
+                }
+
+                if (isset($contentTypeOwners[$contentType]) && $contentTypeOwners[$contentType] !== $name) {
+                    $errors[] = $path . '.content_types: Content type "' . $contentType . '" is already used by workflow "' . $contentTypeOwners[$contentType] . '". A content type can belong to only one workflow.';
+                }
+
+                $contentTypeOwners[$contentType] ??= $name;
+            }
+
+            $stages = array_values(array_filter(is_array($definition['stages'] ?? null) ? $definition['stages'] : [], is_array(...)));
+            $stageNames = array_values(array_filter(array_map(static fn(array $stage): mixed => $stage['name'] ?? null, $stages), is_string(...)));
+            $colors = array_values(array_filter(array_map(static fn(array $stage): mixed => $stage['color'] ?? null, $stages), is_string(...)));
+
+            foreach (array_unique(array_diff_assoc($stageNames, array_unique($stageNames))) as $duplicate) {
+                $errors[] = $path . '.stages: Duplicate stage name "' . $duplicate . '".';
+            }
+
+            foreach (array_unique(array_diff_assoc(array_map(strtolower(...), $colors), array_unique(array_map(strtolower(...), $colors)))) as $duplicate) {
+                $errors[] = $path . '.stages: Duplicate stage color "' . $duplicate . '". Two stages in the same workflow cannot have the same color.';
+            }
+
+            if (count(array_filter($stages, static fn(array $stage): bool => ($stage['default'] ?? false) === true)) > 1) {
+                $errors[] = $path . '.stages: Only one stage per workflow can be the default.';
+            }
+
+            foreach ($stages as $stageIndex => $stage) {
+                $references = $stage['next'] ?? [];
+                $references = is_array($references) ? $references : [];
+                if (is_string($stage['after_publish'] ?? null)) {
+                    $references[] = $stage['after_publish'];
+                }
+
+                foreach ($references as $reference) {
+                    if (is_string($reference) && !in_array($reference, $stageNames, true)) {
+                        $errors[] = $path . '.stages[' . $stageIndex . ']: Stage "' . $reference . '" is not declared in workflow "' . $name . '".';
+                    }
+                }
+            }
+        }
+
         return $errors;
     }
 

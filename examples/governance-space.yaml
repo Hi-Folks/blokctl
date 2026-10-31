@@ -1,0 +1,64 @@
+# yaml-language-server: $schema=../space-setup-schema.json
+
+version: 1
+
+execution:
+  mode: reconcile
+
+# Governance demo: regional editors write, reviewers approve, then publish.
+# Requires a plan with custom space roles and custom workflows.
+# allowed_paths (folder restrictions) requires the Elite plan.
+
+folders:
+  ensure:
+    - name: Regions
+      slug: regions
+    - name: North
+      slug: regions/north
+      parent_slug: regions
+
+roles:
+  - name: Editors - North
+    subtitle: Writes North region content.
+    permissions:
+      - read_stories
+      - save_stories
+      - view_content
+      - view_folders
+      - view_composer
+    allowed_paths:
+      - regions/north
+
+  - name: Reviewers
+    subtitle: Reviews and approves content before publishing.
+    permissions:
+      - read_stories
+      - save_stories
+      - publish_stories
+      - view_content
+      - view_folders
+
+# Runs after roles, so stages can reference the roles above by name.
+workflow:
+  ensure:
+    - name: Article review
+      content_types:
+        - article-page
+      stages:
+        - name: Writing
+          color: "#babcb6"
+          default: true
+          roles: [Editors - North, Reviewers]
+          next: [In review]
+
+        - name: In review
+          color: "#ffcc12"
+          roles: [Reviewers]
+          next: [Writing, Approved]
+
+        - name: Approved
+          color: "#1bb300"
+          allow_publish: true
+          roles: [Reviewers]
+          next: [Writing]
+          after_publish: Writing

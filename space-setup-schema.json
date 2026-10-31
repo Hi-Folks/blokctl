@@ -39,7 +39,7 @@
       "$ref": "#/$defs/demoMode"
     },
     "workflow": {
-      "description": "Assigns a workflow stage to stories that currently have no workflow stage.",
+      "description": "Creates or updates custom workflows and their stages, and assigns workflow stages to stories.",
       "$ref": "#/$defs/workflow"
     },
     "apps": {
@@ -348,11 +348,18 @@
       }
     },
     "workflow": {
-      "description": "Workflow assignment configuration.",
+      "description": "Workflow definitions and workflow stage assignments.",
       "type": "object",
       "additionalProperties": false,
       "minProperties": 1,
       "properties": {
+        "ensure": {
+          "description": "Workflows to create or update, with their stages. Runs before stage assignments, so assignments can use these workflows.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/workflowDefinition"
+          }
+        },
         "assign_unstaged": {
           "description": "Assign a workflow stage to every story that currently has no stage.",
           "$ref": "#/$defs/booleanOrExpression"
@@ -378,6 +385,128 @@
           "items": {
             "$ref": "#/$defs/workflowAssignment"
           }
+        }
+      }
+    },
+    "workflowDefinition": {
+      "description": "A custom workflow, matched by exact name. Only declared properties are reconciled; workflows and stages are never removed.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "description": "Workflow name.",
+          "type": "string",
+          "minLength": 1
+        },
+        "content_types": {
+          "description": "Content types (component names) that use this workflow. Required to create the workflow. A content type can belong to only one workflow.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "stages": {
+          "description": "Workflow stages in order. The list order sets each stage's position.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/workflowStage"
+          }
+        }
+      }
+    },
+    "workflowStage": {
+      "description": "A workflow stage, matched by exact name inside its workflow.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "description": "Stage name, unique inside the workflow.",
+          "type": "string",
+          "minLength": 1
+        },
+        "color": {
+          "description": "Stage color, e.g. #ffcc12. Unique inside the workflow.",
+          "type": "string",
+          "minLength": 1
+        },
+        "default": {
+          "description": "Make this the default stage of the workflow. Only one stage per workflow can be the default.",
+          "$ref": "#/$defs/booleanOrExpression"
+        },
+        "allow_publish": {
+          "description": "Allow publishing stories in this stage.",
+          "$ref": "#/$defs/booleanOrExpression"
+        },
+        "allow_admin_publish": {
+          "description": "Allow admins to publish stories in this stage.",
+          "$ref": "#/$defs/booleanOrExpression"
+        },
+        "allow_admin_change": {
+          "description": "Allow admins to move stories to the next stages.",
+          "$ref": "#/$defs/booleanOrExpression"
+        },
+        "allow_editor_change": {
+          "description": "Allow editors to move stories to the next stages.",
+          "$ref": "#/$defs/booleanOrExpression"
+        },
+        "roles": {
+          "description": "Custom space roles (name or ID) that can move stories to the next stages, or \"all\" for every user. An empty list allows no role.",
+          "oneOf": [
+            {
+              "const": "all"
+            },
+            {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "next": {
+          "description": "Stages (names declared in this workflow) a story can move to, or \"all\" for every stage. An empty list allows none.",
+          "oneOf": [
+            {
+              "const": "all"
+            },
+            {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "after_publish": {
+          "description": "Stage (name declared in this workflow) assigned to a story after it is published.",
+          "type": "string",
+          "minLength": 1
         }
       }
     },

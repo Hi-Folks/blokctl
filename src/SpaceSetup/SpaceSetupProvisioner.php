@@ -21,6 +21,9 @@ use Blokctl\Action\Story\StoryTranslatedSlugsEnsureAction;
 use Blokctl\Action\Story\StoryWorkflowChangeAction;
 use Blokctl\Action\Story\StoriesTagsAssignAction;
 use Blokctl\Action\Story\StoriesWorkflowAssignAction;
+use Blokctl\Action\Workflow\WorkflowEnsureAction;
+use Blokctl\Action\Workflow\WorkflowEnsureResult;
+use Blokctl\Action\Workflow\WorkflowStageEnsureAction;
 use Blokctl\ApiError;
 use Storyblok\ManagementApi\Data\AppProvision;
 use Storyblok\ManagementApi\Data\Asset;
@@ -636,6 +639,12 @@ final readonly class SpaceSetupProvisioner
         bool $continueOnError,
     ): void {
         $workflow = $this->arrayValue($config['workflow'] ?? []);
+        foreach ($this->listValue($workflow['ensure'] ?? []) as $workflowConfig) {
+            if (is_array($workflowConfig)) {
+                $this->provisionWorkflowDefinition($reporter, $spaceId, $workflowConfig, $dryRun, $continueOnError);
+            }
+        }
+
         if ($this->boolValue($workflow['assign_unstaged'] ?? false)) {
             $reporter->run('Assign workflow stages', SpaceSetupOperationStatus::Updated, $continueOnError, function () use ($spaceId, $workflow, $dryRun): ?SpaceSetupOperationResult {
                 $stageId = $this->nullableIntValue($workflow['stage_id'] ?? null);
@@ -741,6 +750,156 @@ final readonly class SpaceSetupProvisioner
                 );
             });
         }
+    }
+
+    /**
+     * Ensure one workflow and its stages. Stages are reconciled in two passes: first
+     * their own properties (position follows the list order), then the links to other
+     * stages (next stages and after-publish stage), which need every stage to exist.
+     *
+     * @param array<mixed> $workflowConfig
+     */
+    private function provisionWorkflowDefinition(
+        SpaceSetupReporter $reporter,
+        string $spaceId,
+        array $workflowConfig,
+        bool $dryRun,
+        bool $continueOnError,
+    ): void {
+        $name = $this->stringValue($workflowConfig['name'] ?? '');
+        $contentTypes = array_key_exists('content_types', $workflowConfig) ? $this->stringListValue($workflowConfig['content_types']) : null;
+        $label = 'Ensure workflow: ' . $name;
+        $reporter->run($label, SpaceSetupOperationStatus::Updated, $continueOnError, function () use ($spaceId, $name, $contentTypes, $dryRun, $label): SpaceSetupOperationResult {
+            if ($dryRun) {
+                return new SpaceSetupOperationResult(
+                    SpaceSetupOperationStatus::Updated,
+                    $label,
+                    $contentTypes === null ? 'content types: unchanged' : 'content types: ' . implode(', ', $contentTypes),
+                );
+            }
+
+            $result = new WorkflowEnsureAction($this->client)->execute($spaceId, $name, $contentTypes);
+
+            return $this->ensureOperationResult($result->status, $label, 'Workflow ID ' . $result->workflowId() . '.', $result->changedFields, 'Workflow already matches.');
+        });
+
+        $stages = array_values(array_filter($this->listValue($workflowConfig['stages'] ?? []), is_array(...)));
+        foreach ($stages as $index => $stage) {
+            $stageName = $this->stringValue($stage['name'] ?? '');
+            $stageLabel = 'Ensure workflow stage: ' . $name . ' / ' . $stageName;
+            $properties = [
+                'color' => $this->nullableStringValue($stage['color'] ?? null),
+                'position' => $index + 1,
+                'isDefault' => $this->nullableBoolValue($stage, 'default'),
+                'allowPublish' => $this->nullableBoolValue($stage, 'allow_publish'),
+                'allowAdminPublish' => $this->nullableBoolValue($stage, 'allow_admin_publish'),
+                'allowAdminChange' => $this->nullableBoolValue($stage, 'allow_admin_change'),
+                'allowEditorChange' => $this->nullableBoolValue($stage, 'allow_editor_change'),
+                'roles' => $this->allOrListValue($stage, 'roles'),
+            ];
+            $reporter->run($stageLabel, SpaceSetupOperationStatus::Updated, $continueOnError, function () use ($spaceId, $name, $stageName, $properties, $dryRun, $stageLabel): SpaceSetupOperationResult {
+                if ($dryRun) {
+                    return new SpaceSetupOperationResult(SpaceSetupOperationStatus::Updated, $stageLabel, $this->stageDetails($properties));
+                }
+
+                $result = new WorkflowStageEnsureAction($this->client)->execute($spaceId, $name, $stageName, ...$properties);
+
+                return $this->ensureOperationResult($result->status, $stageLabel, 'Stage ID ' . $result->stageId() . '.', $result->changedFields, 'Stage already matches.');
+            });
+        }
+
+        foreach ($stages as $stage) {
+            $nextStages = $this->allOrListValue($stage, 'next');
+            $afterPublish = $this->nullableStringValue($stage['after_publish'] ?? null);
+            if ($nextStages === null && $afterPublish === null) {
+                continue;
+            }
+
+            $stageName = $this->stringValue($stage['name'] ?? '');
+            $linkLabel = 'Link workflow stage: ' . $name . ' / ' . $stageName;
+            $reporter->run($linkLabel, SpaceSetupOperationStatus::Updated, $continueOnError, function () use ($spaceId, $name, $stageName, $nextStages, $afterPublish, $dryRun, $linkLabel): SpaceSetupOperationResult {
+                if ($dryRun) {
+                    return new SpaceSetupOperationResult(
+                        SpaceSetupOperationStatus::Updated,
+                        $linkLabel,
+                        $this->stageDetails(['nextStages' => $nextStages, 'afterPublish' => $afterPublish]),
+                    );
+                }
+
+                $result = new WorkflowStageEnsureAction($this->client)->execute(
+                    spaceId: $spaceId,
+                    workflow: $name,
+                    name: $stageName,
+                    nextStages: $nextStages,
+                    afterPublish: $afterPublish,
+                );
+
+                return $this->ensureOperationResult($result->status, $linkLabel, 'Stage ID ' . $result->stageId() . '.', $result->changedFields, 'Stage links already match.');
+            });
+        }
+    }
+
+    /**
+     * Map a workflow or workflow stage ensure status (both use the same values) to an operation result.
+     *
+     * @param list<string> $changedFields
+     */
+    private function ensureOperationResult(string $status, string $label, string $createdDetail, array $changedFields, string $unchangedDetail): SpaceSetupOperationResult
+    {
+        return match ($status) {
+            WorkflowEnsureResult::CREATED => new SpaceSetupOperationResult(SpaceSetupOperationStatus::Created, $label, $createdDetail),
+            WorkflowEnsureResult::UPDATED => new SpaceSetupOperationResult(SpaceSetupOperationStatus::Updated, $label, 'Changed: ' . implode(', ', $changedFields) . '.'),
+            default => new SpaceSetupOperationResult(SpaceSetupOperationStatus::Skipped, $label, $unchangedDetail),
+        };
+    }
+
+    /**
+     * Dry-run summary of declared stage properties.
+     *
+     * @param array<string, mixed> $properties
+     */
+    private function stageDetails(array $properties): string
+    {
+        $details = [];
+        foreach ($properties as $key => $value) {
+            if ($value === null) {
+                continue;
+            }
+
+            $label = $key === 'isDefault' ? 'default' : strtolower((string) preg_replace('/[A-Z]/', ' $0', $key));
+            $details[] = $label . ': ' . match (true) {
+                is_bool($value) => $value ? 'yes' : 'no',
+                is_array($value) => $value === [WorkflowStageEnsureAction::ALL] ? 'all' : ($value === [] ? 'none' : implode(', ', $this->stringListValue($value))),
+                default => $this->stringValue($value),
+            };
+        }
+
+        return implode('; ', $details);
+    }
+
+    /**
+     * A declared boolean property, or null when the key is not declared.
+     *
+     * @param array<mixed> $data
+     */
+    private function nullableBoolValue(array $data, string $key): ?bool
+    {
+        return array_key_exists($key, $data) ? $this->boolValue($data[$key]) : null;
+    }
+
+    /**
+     * A declared list property that also accepts "all", or null when the key is not declared.
+     *
+     * @param array<mixed> $data
+     * @return list<string>|null
+     */
+    private function allOrListValue(array $data, string $key): ?array
+    {
+        if (!array_key_exists($key, $data)) {
+            return null;
+        }
+
+        return $data[$key] === 'all' ? [WorkflowStageEnsureAction::ALL] : $this->stringListValue($data[$key]);
     }
 
     /**

@@ -1,0 +1,9 @@
+{
+    "workflow_stage": {
+        "id": 203, "name": "In review", "color": "#ffcc12", "position": 2, "is_default": false,
+        "allow_publish": false, "allow_admin_publish": false, "allow_admin_change": false, "allow_editor_change": false,
+        "allow_all_users": false, "space_role_ids": [236218588949864],
+        "allow_all_stages": true, "workflow_stage_ids": [],
+        "after_publish_id": null, "user_ids": [], "workflow_id": 200
+    }
+}

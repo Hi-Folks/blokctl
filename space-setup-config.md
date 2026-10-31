@@ -211,7 +211,7 @@ Except for `version`, all top-level sections are optional. If a section is omitt
 | `continue_on_error` | Global boolean. Continue after a failed step. |
 | `preview` | Set the default preview URL and frontend environments. |
 | `demo_mode` | Remove demo/example mode. |
-| `workflow` | Assign a workflow stage to stories without one. |
+| `workflow` | Create or update custom workflows and stages (`ensure`), and assign workflow stages to stories. |
 | `folders` | Ensure folders exist by portable full slug. |
 | `stories` | Move selected root-level stories/folders, update components, create stories, and reconcile translated slugs. |
 | `apps` | Install Storyblok apps by slug or ID. |
@@ -426,7 +426,63 @@ demo_mode:
 
 ## `workflow`
 
-Assigns a workflow stage to stories that do not have one.
+Creates or updates custom workflows and their stages, and assigns workflow stages to stories.
+
+### `workflow.ensure`
+
+Creates or updates custom workflows and their stages. Runs after `roles`, so stages can reference roles created by the same config, and before the stage assignments below.
+
+```yaml
+workflow:
+  ensure:
+    - name: Article review
+      content_types: [article-page]
+      stages:
+        - name: Writing
+          color: "#babcb6"
+          default: true
+          roles: [Editors - North, Reviewers]
+          next: [In review]
+        - name: In review
+          color: "#ffcc12"
+          roles: [Reviewers]
+          next: [Writing, Approved]
+        - name: Approved
+          color: "#1bb300"
+          allow_publish: true
+          next: all
+          after_publish: Writing
+```
+
+| Key | Required | Description |
+|---|---:|---|
+| `ensure[].name` | Yes | Workflow name. Matched by exact name. |
+| `ensure[].content_types` | To create | Content types (component names) that use the workflow. A content type can belong to only one workflow. |
+| `ensure[].stages` | No | Stages in order. The list order sets each stage's `position`. |
+| `stages[].name` | Yes | Stage name, unique inside the workflow. Matched by exact name. |
+| `stages[].color` | No | Stage color, unique inside the workflow. |
+| `stages[].default` | No | Boolean. The default stage of the workflow; only one per workflow. The current default is unset first. |
+| `stages[].allow_publish` | No | Boolean. Allow publishing in this stage. |
+| `stages[].allow_admin_publish` | No | Boolean. Allow admins to publish in this stage. |
+| `stages[].allow_admin_change` | No | Boolean. Allow admins to move stories to the next stages. |
+| `stages[].allow_editor_change` | No | Boolean. Allow editors to move stories to the next stages. |
+| `stages[].roles` | No | Custom space role names or IDs that can move stories to the next stages, `all` for every user, or `[]` for no role. |
+| `stages[].next` | No | Stages (declared in the same workflow) a story can move to, `all` for every stage, or `[]` for none. |
+| `stages[].after_publish` | No | Stage (declared in the same workflow) assigned after publishing. |
+
+Behavior:
+
+- Only declared properties are reconciled. Workflows and stages that are not in the config are never removed.
+- Stages are reconciled in two passes: first their own properties (`Ensure workflow stage`), then `next` and `after_publish` (`Link workflow stage`), because links need every stage to exist.
+- Storyblok makes a new stage open to all users and all next stages. Declaring `roles` or `next` turns that off for the stage.
+- Validation rejects duplicate workflow names, a content type in two workflows, duplicate stage names or colors, more than one default stage, and `next`/`after_publish` values that are not stages of the same workflow.
+- Custom workflows require a plan that includes them. Users (`user_ids`) are not supported, so configs stay portable between spaces.
+
+See [examples/governance-space.yaml](examples/governance-space.yaml) for roles plus a review workflow.
+
+### Stage assignments
+
+Assigns a workflow stage to stories.
 
 ```yaml
 workflow:

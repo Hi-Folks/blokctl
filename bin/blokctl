@@ -62,7 +62,9 @@ use Blokctl\Command\StoryShowCommand;
 use Blokctl\Command\StoryVersionsCommand;
 use Blokctl\Command\StoryWorkflowChangeCommand;
 use Blokctl\Command\UserMeCommand;
+use Blokctl\Command\WorkflowEnsureCommand;
 use Blokctl\Command\WorkflowsListCommand;
+use Blokctl\Command\WorkflowStageEnsureCommand;
 use Blokctl\Command\WorkflowStageShowCommand;
 use Symfony\Component\Console\Application;
 
@@ -129,7 +131,9 @@ $application->addCommand(new StoryShowCommand());
 $application->addCommand(new StoryVersionsCommand());
 $application->addCommand(new StoryWorkflowChangeCommand());
 $application->addCommand(new UserMeCommand());
+$application->addCommand(new WorkflowEnsureCommand());
 $application->addCommand(new WorkflowsListCommand());
+$application->addCommand(new WorkflowStageEnsureCommand());
 $application->addCommand(new WorkflowStageShowCommand());
 
 $application->run();

@@ -46,6 +46,7 @@ Exceptions that do not require `-S`: `space:create`, `space:setup-validate`, `sp
 - Merges story tags and preview environments.
 - Skips matching apps, folders, fields, tags, workflows, demo mode, preview URLs, root-content moves, and Dimensions configuration.
 - Supports multi-country setup with `folders.ensure`, `stories.move`, and `dimensions.folders`.
+- Creates or updates custom workflows and their stages with `workflow.ensure` (stage order from the list, roles and stage links by name; runs after `roles`).
 - Uploads local asset directories with `assets.upload_directory`, preserving nested folders and skipping matching filenames.
 - Converts space-local assets into the Global Asset Library with `assets.convert_to_global`; requires `target_shared_folder_id` and one source selector (`asset_id`, `asset_ids`, `source_folder_id`, or `source_folder_name`).
 - Creates or updates custom space roles with `roles` (matched by name; only declared properties are reconciled; roles are never removed; users are not invited).
@@ -76,6 +77,10 @@ php bin/blokctl space:setup -S <exact-space-id> \
 # Reconcile region folders and custom roles scoped to them
 php bin/blokctl space:setup -S <exact-space-id> \
   --config examples/roles-space.yaml
+
+# Roles plus a custom review workflow (governance demo)
+php bin/blokctl space:setup -S <exact-space-id> \
+  --config examples/governance-space.yaml
 ```
 
 See `space-setup-config.md` for complete syntax. Reports contain stable JSON status, target/duplication details, masked operations, and summary counts.
@@ -115,6 +120,8 @@ See `space-setup-config.md` for complete syntax. Reports contain stable JSON sta
 
 - **`workflows:list`** — List workflows and their stages with IDs.
 - **`workflow:stage-show`** — Show stage details. Lookup: `--by-name`, `--by-id`. Scope: `--workflow-name`, `--workflow-id`.
+- **`workflow:ensure`** — Create a custom workflow or update its content types. Options: `--name`, `-c`/`--content-type` (repeatable; required to create). A content type can belong to only one workflow.
+- **`workflow:stage-ensure`** — Create a stage or update its declared options. Options: `-w`/`--workflow`, `--name`, `--color`, `--position`, `--[no-]default`, `--[no-]allow-publish`, `--[no-]allow-admin-publish`, `--[no-]allow-admin-change`, `--[no-]allow-editor-change`, `--next` and `--role` (repeatable, names or IDs, `*` for all), `--after-publish`. Create all stages before linking them with `--next`/`--after-publish`.
 
 ### Components
 

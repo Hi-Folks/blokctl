@@ -53,6 +53,63 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     }
 
     #[Test]
+    public function validates_governance_example_yaml_configuration(): void
+    {
+        $config = new SpaceSetupConfigLoader()->load('examples/governance-space.yaml');
+
+        $result = new SpaceSetupConfigValidator()->validate($config);
+
+        $this->assertTrue($result->isValid(), implode(' | ', $result->errors));
+    }
+
+    #[Test]
+    public function rejects_invalid_workflow_definitions(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'workflow' => [
+                'ensure' => [
+                    [
+                        'name' => 'Article review',
+                        'content_types' => ['article-page'],
+                        'stages' => [
+                            ['name' => 'Writing', 'color' => '#BABCB6', 'default' => true, 'next' => ['Review']],
+                            ['name' => 'Writing', 'color' => '#babcb6', 'default' => true, 'after_publish' => 'Done'],
+                        ],
+                    ],
+                    ['name' => 'Article review', 'content_types' => ['page']],
+                    ['name' => 'Pages', 'content_types' => ['article-page']],
+                ],
+            ],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertErrorsContain($result->errors, 'Duplicate workflow name "Article review"');
+        $this->assertErrorsContain($result->errors, 'Content type "article-page" is already used by workflow "Article review"');
+        $this->assertErrorsContain($result->errors, 'Duplicate stage name "Writing"');
+        $this->assertErrorsContain($result->errors, 'Duplicate stage color "#babcb6"');
+        $this->assertErrorsContain($result->errors, 'Only one stage per workflow can be the default.');
+        $this->assertErrorsContain($result->errors, 'Stage "Review" is not declared in workflow "Article review"');
+        $this->assertErrorsContain($result->errors, 'Stage "Done" is not declared in workflow "Article review"');
+    }
+
+    #[Test]
+    public function rejects_unknown_workflow_stage_properties(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'workflow' => [
+                'ensure' => [
+                    ['name' => 'Article review', 'stages' => [['name' => 'Writing', 'user_ids' => [1], 'next' => 'some']]],
+                ],
+            ],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertErrorsContain($result->errors, 'user_ids');
+    }
+
+    #[Test]
     public function rejects_space_roles_without_name_or_with_unknown_properties(): void
     {
         $result = new SpaceSetupConfigValidator()->validate([

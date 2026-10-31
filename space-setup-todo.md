@@ -209,10 +209,10 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 
 ## Priority 6: Workflows and Governance
 
-- [ ] Create and reconcile workflows from config.
-- [ ] Create and reconcile workflow stages.
-- [ ] Resolve workflows and stages by name instead of requiring numeric IDs.
-- [ ] Assign workflow stages to selected stories, not only all unstaged stories.
+- [x] Create and reconcile workflows from config (`workflow.ensure`).
+- [x] Create and reconcile workflow stages (position from list order, roles and stage links by name).
+- [x] Resolve workflows and stages by name instead of requiring numeric IDs.
+- [x] Assign workflow stages to selected stories, not only all unstaged stories (`workflow.assign`).
 - [x] Add collaborators by email: `space:collaborator-invite`, `space:collaborator-list`, and `space:collaborator-remove` (CLI and Actions only; see Decisions to Make).
 - [x] Add custom roles and permissions: `roles` section in `space:setup`, plus `space:role-list`, `space:role-ensure`, and `space:role-delete`.
 - [x] Configure folder/path restrictions for regional editors: `allowed_paths` and `blocked_paths` by full slug or ID (Elite plan).
@@ -260,7 +260,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 ## Priority 10: Developer Experience
 
 - [ ] Generate a starter config: `space:setup-init --output demo-space.yaml`.
-- [ ] Add examples for basic branded, multilanguage, multimarket, workflow, governance, and AI demos.
+- [ ] Add examples for basic branded, multilanguage, multimarket, workflow, governance, and AI demos (governance: `examples/governance-space.yaml`).
 - [ ] Add concise progress output and a final summary table.
 - [ ] Add verbose/debug output for API troubleshooting.
 - [ ] Add setup duration and per-step timing.
@@ -299,6 +299,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 - [x] Global Asset Library conversion with `assets.convert_to_global`
 - [x] Story tag assignments by slug or ID
 - [x] Custom space roles with permissions, allowed and blocked paths by full slug or ID, and allowed languages
+- [x] Custom workflows and workflow stages with `workflow.ensure`
 - [x] Existing-space setup with `-S`
 - [x] Configuration-driven blank-space creation with `space.create_new: true`
 - [x] Configuration-driven duplicate-first setup with `space.duplicate_from`

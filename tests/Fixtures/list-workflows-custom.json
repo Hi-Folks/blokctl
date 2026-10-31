@@ -1,0 +1,6 @@
+{
+    "workflows": [
+        {"id": 100, "content_types": [], "is_default": true, "name": "Default", "per_language_stages": false},
+        {"id": 200, "content_types": ["article-page"], "is_default": false, "name": "Article review", "per_language_stages": false}
+    ]
+}

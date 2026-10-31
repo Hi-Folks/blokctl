@@ -213,7 +213,7 @@ php bin/blokctl space:setup \
 php bin/blokctl space:setup-validate --config examples/demo-space.yaml
 ```
 
-The setup config supports JSON and YAML and is validated against [space-setup-schema.json](space-setup-schema.json) before any space is created or modified. See [examples/demo-space.yaml](examples/demo-space.yaml) for general provisioning, [examples/multi-country-space.yaml](examples/multi-country-space.yaml) for folder, root-content move, and Dimensions reconciliation, [examples/assets-space.yaml](examples/assets-space.yaml) for local-directory asset upload, and [examples/roles-space.yaml](examples/roles-space.yaml) for custom space roles. See [space-setup-config.md](space-setup-config.md) for the full configuration syntax.
+The setup config supports JSON and YAML and is validated against [space-setup-schema.json](space-setup-schema.json) before any space is created or modified. See [examples/demo-space.yaml](examples/demo-space.yaml) for general provisioning, [examples/multi-country-space.yaml](examples/multi-country-space.yaml) for folder, root-content move, and Dimensions reconciliation, [examples/assets-space.yaml](examples/assets-space.yaml) for local-directory asset upload, [examples/roles-space.yaml](examples/roles-space.yaml) for custom space roles, and [examples/governance-space.yaml](examples/governance-space.yaml) for roles plus a custom review workflow. See [space-setup-config.md](space-setup-config.md) for the full configuration syntax.
 
 ```yaml
 execution:
@@ -1197,6 +1197,54 @@ php bin/blokctl workflow:stage-show -S 290817118944379
 | `--workflow-id` | Workflow numeric ID |
 
 Displays stage details: name, ID, workflow, position, color, publish permissions, user access, and allowed next stages.
+
+#### `workflow:ensure` — Create or update a custom workflow
+
+```bash
+php bin/blokctl workflow:ensure -S 290817118944379 --name="Article review" -c article-page
+```
+
+| Option | Short | Description |
+|---|---|---|
+| `--name` | | **(required)** Workflow name. The workflow is matched by exact name |
+| `--content-type` | `-c` | Content type that uses the workflow (repeatable). Required to create the workflow |
+
+Creates the workflow when no workflow with that name exists, otherwise updates its content types if you pass them. A content type can belong to only one workflow: blokctl stops with a clear error when a content type is already used by another workflow. A new workflow has no stages; add them with `workflow:stage-ensure`.
+
+#### `workflow:stage-ensure` — Create or update a workflow stage
+
+```bash
+# Create the stages first
+php bin/blokctl workflow:stage-ensure -S 290817118944379 -w "Article review" \
+  --name=Writing --color="#babcb6" --position=1 --default --role="Editors - North"
+php bin/blokctl workflow:stage-ensure -S 290817118944379 -w "Article review" \
+  --name=Approved --color="#1bb300" --position=2 --allow-publish --after-publish=Writing
+
+# Then link them
+php bin/blokctl workflow:stage-ensure -S 290817118944379 -w "Article review" --name=Writing --next=Approved
+```
+
+| Option | Short | Description |
+|---|---|---|
+| `--workflow` | `-w` | **(required)** Workflow name or ID |
+| `--name` | | **(required)** Stage name, matched by exact name inside the workflow |
+| `--color` | | Stage color, e.g. `#ffcc12`. Must be unique inside the workflow |
+| `--position` | | Stage position (1 = first) |
+| `--default` / `--no-default` | | Make this the default stage of the workflow |
+| `--allow-publish` / `--no-allow-publish` | | Allow publishing in this stage |
+| `--allow-admin-publish` / `--no-allow-admin-publish` | | Allow admins to publish in this stage |
+| `--allow-admin-change` / `--no-allow-admin-change` | | Allow admins to move stories to the next stages |
+| `--allow-editor-change` / `--no-allow-editor-change` | | Allow editors to move stories to the next stages |
+| `--next` | | Next stage name or ID (repeatable); `*` for all stages |
+| `--role` | | Custom role name or ID that can move stories to the next stages (repeatable); `*` for all users |
+| `--after-publish` | | Stage name or ID assigned after publishing |
+
+Creates the stage when it does not exist in the workflow, otherwise updates only the options you pass. Running it again with the same options changes nothing. Next stages and the after-publish stage must already exist, so create all stages before linking them.
+
+Storyblok behavior handled for you:
+
+- A stage created without `--role` or `--next` is open to all users and can move to all stages. Passing `--role` or `--next` also turns off "all users" or "all stages".
+- Only one stage per workflow can be the default. `--default` unsets the current default first.
 
 ### Assets
 
@@ -2259,6 +2307,42 @@ $result->stage;        // array (full stage data: id, name, color, position, per
 $result->workflowName; // string
 $result->workflowId;   // int
 ```
+
+#### Create or update a custom workflow
+
+```php
+use Blokctl\Action\Workflow\WorkflowEnsureAction;
+use Blokctl\Action\Workflow\WorkflowEnsureResult;
+
+$result = (new WorkflowEnsureAction($client))->execute($spaceId, 'Article review', contentTypes: ['article-page']);
+
+$result->status;        // WorkflowEnsureResult::CREATED, UPDATED, or UNCHANGED
+$result->workflowId();  // int
+$result->workflow;      // array<string, mixed> workflow object
+$result->changedFields; // list<string>
+```
+
+`contentTypes: null` keeps the existing content types; they are required to create a workflow. Throws `\RuntimeException` when a content type already belongs to another workflow (a content type can belong to only one) or when the API request fails.
+
+#### Create or update a workflow stage
+
+```php
+use Blokctl\Action\Workflow\WorkflowStageEnsureAction;
+
+$action = new WorkflowStageEnsureAction($client);
+
+// Create stages first, then link them: next stages and the after-publish stage must exist
+$action->execute($spaceId, 'Article review', 'Writing', color: '#babcb6', position: 1, isDefault: true, roles: ['Editors - North']);
+$action->execute($spaceId, 'Article review', 'Approved', color: '#1bb300', position: 2, allowPublish: true, afterPublish: 'Writing');
+$result = $action->execute($spaceId, 'Article review', 'Writing', nextStages: ['Approved']);
+
+$result->status;        // WorkflowStageEnsureResult::CREATED, UPDATED, or UNCHANGED
+$result->stageId();     // int
+$result->stage;         // array<string, mixed> stage object (read back after an update)
+$result->changedFields; // list<string>, API property names, e.g. ['workflow_stage_ids']
+```
+
+All property arguments are optional; `null` keeps the existing value. `nextStages` and `roles` take names or IDs, `[WorkflowStageEnsureAction::ALL]` for all stages or all users, or `[]` for none. Declaring them also sends `allow_all_stages: false` or `allow_all_users: false`, because Storyblok sets both to `true` by default. `isDefault: true` unsets the current default stage first.
 
 ### Assets
 
