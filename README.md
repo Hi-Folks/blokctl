@@ -232,7 +232,7 @@ space:
 
 Reconcile mode is the default. Repeated setup runs preserve unmanaged resources, skip matching state, merge story tags and preview environments, and update only explicitly configured component field properties. Resources omitted from the config are never removed automatically.
 
-**Removals run last.** Something is removed only when the config asks for it explicitly, for example `space.languages.remove` or `stories.unpublish`. All removals run at the end of the setup, after every create and update. This order lets the same run move content away from what is being removed (for example, create a new stage and assign stories to it before an old one is removed), and if a step fails earlier, the run stops before anything is deleted. With `--continue-on-error` (or `execution.continue_on_error: true`) the run continues after a failure and still reaches the removals, so avoid it for configs that remove resources.
+**Removals run last.** Something is removed only when the config asks for it explicitly, for example `space.languages.remove`, `stories.unpublish`, or `datasources[].remove_entries`. All removals run at the end of the setup, after every create and update. This order lets the same run move content away from what is being removed (for example, create a new stage and assign stories to it before an old one is removed), and if a step fails earlier, the run stops before anything is deleted. With `--continue-on-error` (or `execution.continue_on_error: true`) the run continues after a failure and still reaches the removals, so avoid it for configs that remove resources.
 
 When a removal must happen **first**, for example because a new resource needs a name, color, or content type that the removed resource still uses, split the work into two runs:
 
@@ -1258,6 +1258,21 @@ blue,Blue,Blu,Blau
 | `--csv` | | CSV file with columns `name`, `value`, and optional dimension codes. An empty cell leaves that dimension value unchanged |
 
 Entries are matched by name (the entry key). Missing entries are created at the end of the datasource; existing entries get their value and dimension values updated when they differ. Entries that are not declared are kept, and existing entries are not reordered. Dimension codes must exist in the datasource (add them with `datasource:ensure`). The command exits with a non-zero code when an entry fails.
+
+#### `datasource:entries-remove` — Delete datasource entries
+
+```bash
+php bin/blokctl datasource:entries-remove -S 290817118944379 -d colors -e red --dry-run
+php bin/blokctl datasource:entries-remove -S 290817118944379 -d colors -e red -e blue
+```
+
+| Option | Short | Description |
+|---|---|---|
+| `--datasource` | `-d` | **(required)** Datasource slug or ID |
+| `--entry` | `-e` | **(required)** Entry name to delete (repeatable) |
+| `--dry-run` | | Show the entries that would be deleted without changing the datasource |
+
+Asks for confirmation before deleting (`-n` skips the prompt). Names that match no entry are reported as not found and skipped, so the same command can run again safely. To add a single entry, use `datasource:entries-ensure -d colors -e green=Green`.
 
 ### Workflows
 
@@ -2441,6 +2456,24 @@ $result->hasFailures(); // bool
 ```
 
 Throws `\RuntimeException` when the datasource or a dimension code is not found, or an entry name is declared twice. Failures of single entries are collected in the result.
+
+Omit `value` in an entry to change only its dimension values (a value is still required to create the entry).
+
+#### Delete datasource entries (preflight + execute)
+
+```php
+use Blokctl\Action\Datasource\DatasourceEntriesRemoveAction;
+use Blokctl\Action\Datasource\DatasourceEntriesRemoveResult;
+
+$action = new DatasourceEntriesRemoveAction($client);
+$preflight = $action->preflight($spaceId, 'colors', ['red', 'blue']);
+$preflight->entriesWithStatus(DatasourceEntriesRemoveResult::PLANNED);   // entries that exist
+$preflight->entriesWithStatus(DatasourceEntriesRemoveResult::NOT_FOUND); // names with no entry
+
+$result = $action->execute($spaceId, $preflight);
+$result->entriesWithStatus(DatasourceEntriesRemoveResult::REMOVED);
+$result->hasFailures();
+```
 
 ### Workflows
 

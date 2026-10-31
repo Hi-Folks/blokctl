@@ -136,6 +136,18 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     }
 
     #[Test]
+    public function rejects_entries_listed_under_entries_and_remove_entries(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'datasources' => [['slug' => 'colors', 'entries' => [['name' => 'red', 'value' => 'Red']], 'remove_entries' => ['red']]],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertErrorsContain($result->errors, 'Entry "red" is also listed under entries.');
+    }
+
+    #[Test]
     public function rejects_datasource_entries_without_value(): void
     {
         $result = new SpaceSetupConfigValidator()->validate([

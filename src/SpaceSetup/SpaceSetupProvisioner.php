@@ -13,6 +13,8 @@ use Blokctl\Action\Datasource\DatasourceEnsureResult;
 use Blokctl\Action\Datasource\DatasourceEntriesCsv;
 use Blokctl\Action\Datasource\DatasourceEntriesEnsureAction;
 use Blokctl\Action\Datasource\DatasourceEntriesEnsureResult;
+use Blokctl\Action\Datasource\DatasourceEntriesRemoveAction;
+use Blokctl\Action\Datasource\DatasourceEntriesRemoveResult;
 use Blokctl\Action\Folder\FolderCreateAction;
 use Blokctl\Action\Space\SpaceDemoRemoveAction;
 use Blokctl\Action\Space\SpaceLanguagesEnsureAction;
@@ -145,11 +147,61 @@ final readonly class SpaceSetupProvisioner
         bool $continueOnError,
     ): void {
         $this->provisionStoryPublishing($reporter, $spaceId, $config, publish: false, dryRun: $dryRun, continueOnError: $continueOnError);
+        $this->provisionDatasourceEntryRemovals($reporter, $spaceId, $config, $dryRun, $continueOnError);
 
         $space = $this->arrayValue($config['space'] ?? []);
         $removeLanguages = $this->languageRemoveList($space['languages'] ?? []);
         if ($removeLanguages !== []) {
             $this->provisionLanguageRemove($reporter, $spaceId, $removeLanguages, $dryRun, $continueOnError);
+        }
+    }
+
+    /**
+     * Delete the entries listed in datasources[].remove_entries. Entries already gone are skipped.
+     *
+     * @param array<string, mixed> $config
+     */
+    private function provisionDatasourceEntryRemovals(
+        SpaceSetupReporter $reporter,
+        string $spaceId,
+        array $config,
+        bool $dryRun,
+        bool $continueOnError,
+    ): void {
+        foreach ($this->listValue($config['datasources'] ?? []) as $datasource) {
+            if (!is_array($datasource)) {
+                continue;
+            }
+
+            $names = $this->stringListValue($datasource['remove_entries'] ?? []);
+            if ($names === []) {
+                continue;
+            }
+
+            $slug = $this->stringValue($datasource['slug'] ?? '');
+            $label = 'Remove datasource entries: ' . $slug;
+            $reporter->run($label, SpaceSetupOperationStatus::Removed, $continueOnError, function () use ($spaceId, $slug, $names, $dryRun, $label): SpaceSetupOperationResult {
+                if ($dryRun) {
+                    return new SpaceSetupOperationResult(SpaceSetupOperationStatus::Removed, $label, implode(', ', $names));
+                }
+
+                $action = new DatasourceEntriesRemoveAction($this->client);
+                $result = $action->execute($spaceId, $action->preflight($spaceId, $slug, $names));
+                $failed = $result->entriesWithStatus(DatasourceEntriesRemoveResult::FAILED);
+                if ($failed !== []) {
+                    throw new \RuntimeException(implode(' | ', array_map(
+                        static fn(array $entry): string => $entry['name'] . ': ' . $entry['message'],
+                        $failed,
+                    )));
+                }
+
+                $removed = array_column($result->entriesWithStatus(DatasourceEntriesRemoveResult::REMOVED), 'name');
+                if ($removed === []) {
+                    return new SpaceSetupOperationResult(SpaceSetupOperationStatus::Skipped, $label, 'No listed entry exists.');
+                }
+
+                return new SpaceSetupOperationResult(SpaceSetupOperationStatus::Removed, $label, 'Deleted: ' . implode(', ', $removed) . '.');
+            });
         }
     }
 

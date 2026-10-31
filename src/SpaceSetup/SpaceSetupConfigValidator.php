@@ -123,6 +123,11 @@ final readonly class SpaceSetupConfigValidator
             foreach (array_unique(array_diff_assoc($entryNames, array_unique($entryNames))) as $duplicate) {
                 $errors[] = '$.datasources[' . $index . '].entries: Duplicate entry name "' . $duplicate . '".';
             }
+
+            $removed = array_filter(is_array($datasource['remove_entries'] ?? null) ? $datasource['remove_entries'] : [], is_string(...));
+            foreach (array_unique(array_intersect($removed, $entryNames)) as $conflict) {
+                $errors[] = '$.datasources[' . $index . '].remove_entries: Entry "' . $conflict . '" is also listed under entries.';
+            }
         }
 
         return [...$errors, ...$this->workflowErrors($config)];

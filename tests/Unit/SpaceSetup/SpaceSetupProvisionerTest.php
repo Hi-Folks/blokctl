@@ -1288,6 +1288,21 @@ final class SpaceSetupProvisionerTest extends TestCase
     }
 
     #[Test]
+    public function removes_datasource_entries_last(): void
+    {
+        $results = $this->provision([
+            'datasources' => [['slug' => 'colors', 'remove_entries' => ['red', 'blue']]],
+            'tags' => [['tags' => ['Landing'], 'stories' => ['slugs' => ['home']]]],
+        ])->results();
+
+        $this->assertSame(
+            ['Ensure datasource: colors', 'Assign tags: Landing', 'Remove datasource entries: colors'],
+            array_map(static fn(SpaceSetupOperationResult $result): string => $result->label, $results),
+        );
+        $this->assertSame('red, blue', $results[2]->detail);
+    }
+
+    #[Test]
     public function skips_datasource_and_entries_that_already_match(): void
     {
         $reporter = $this->provisionWithClient(

@@ -726,6 +726,14 @@
           "description": "CSV file relative to the config file, with columns name, value, and optional dimension codes. Loaded before the inline entries.",
           "type": "string",
           "minLength": 1
+        },
+        "remove_entries": {
+          "description": "Entry names to delete. Runs at the end of the setup with the other removals; entries that no longer exist are skipped.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },

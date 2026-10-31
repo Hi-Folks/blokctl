@@ -67,6 +67,7 @@ Most resource-oriented commands are backed by reusable Action classes with no CL
 | `Datasource\DatasourceLookup` | Read datasources (by slug or ID), dimensions, and entries (optionally with dimension values) | `datasources()`, `find()`, `entries()`, `dimensions()` |
 | `Datasource\DatasourceEnsureAction` | Create a datasource or update its name and dimensions | `->status`, `->datasourceId()`, `->changedFields` |
 | `Datasource\DatasourceEntriesEnsureAction` | Create or update entries and dimension values (use `DatasourceEntriesCsv::load()` for CSV) | `->count()`, `->entries`, `->hasFailures()` |
+| `Datasource\DatasourceEntriesRemoveAction` | Delete entries by name (preflight+execute, missing names reported as not found) | `->entriesWithStatus()`, `->hasFailures()` |
 | `Workflow\WorkflowsListAction` | List workflows+stages | `->workflows`, `->count()` |
 | `Workflow\WorkflowEnsureAction` | Create a custom workflow or update its content types (one workflow per content type) | `->status`, `->workflowId()`, `->workflow`, `->changedFields` |
 | `Workflow\WorkflowStageEnsureAction` | Create a stage or update declared properties; roles and next stages by name, `[ALL]` for all | `->status`, `->stageId()`, `->stage`, `->changedFields` |

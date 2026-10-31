@@ -617,13 +617,14 @@ datasources:
 | `dimensions` | No | Dimensions as `code: name`. Missing dimensions are added and renamed ones updated. |
 | `entries` | No | Entries with `name` (the key, unique in the datasource), `value`, and optional `dimensions` values per code. |
 | `entries_file` | No | CSV file relative to the config file, with columns `name`, `value`, and one column per dimension code. Loaded before `entries`. |
+| `remove_entries` | No | Entry names to delete. Runs at the end of the setup with the other removals (see [Removals](#removals)); names that match no entry are skipped. |
 
 Behavior:
 
 - Entries are matched by name. Missing entries are created at the end of the datasource in the declared order; existing entries get their value and dimension values updated when they differ.
-- Nothing is removed: undeclared dimensions and entries are kept, and existing entries are not reordered.
+- Nothing is removed unless listed in `remove_entries`: undeclared dimensions and entries are kept, and existing entries are not reordered.
 - Dimension codes used by entries must be declared in `dimensions` or already exist in the datasource.
-- Validation rejects duplicate datasource slugs and duplicate entry names in `entries`.
+- Validation rejects duplicate datasource slugs, duplicate entry names in `entries`, and names listed under both `entries` and `remove_entries`.
 
 See [examples/datasources-space.yaml](examples/datasources-space.yaml).
 
@@ -1013,7 +1014,7 @@ Configured tags are merged with existing story tags. Existing tags are preserved
 
 ## Removals
 
-`space:setup` never removes a resource because it is missing from the config. A removal happens only when the config declares it explicitly; today that is `stories.unpublish` and `space.languages.remove`.
+`space:setup` never removes a resource because it is missing from the config. A removal happens only when the config declares it explicitly; today that is `stories.unpublish`, `datasources[].remove_entries`, and `space.languages.remove`.
 
 All removals run **at the end of the setup**, after every create and update:
 
