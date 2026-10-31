@@ -93,7 +93,9 @@ class SpaceSetupCommand extends Command
                 return self::FAILURE;
             }
 
-            $config = new SpaceSetupConfigLoader()->load($configPath);
+            /** @var list<string> $inputOverrides */
+            $inputOverrides = $input->getOption('set');
+            $config = new SpaceSetupConfigLoader()->load($configPath, $inputOverrides);
             $validation = new SpaceSetupConfigValidator()->validate($config);
             if (!$validation->isValid()) {
                 Render::error('Invalid space setup configuration:');
@@ -104,8 +106,6 @@ class SpaceSetupCommand extends Command
                 return self::FAILURE;
             }
 
-            /** @var string[] $inputOverrides */
-            $inputOverrides = $input->getOption('set');
             $inputs = new SpaceSetupInputsResolver()->resolve($config, $inputOverrides);
             $environment = getenv();
             if (!is_array($environment)) {

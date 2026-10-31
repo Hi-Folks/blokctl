@@ -1,0 +1,11 @@
+version: 1
+inputs:
+  with_roles:
+    default: false
+extends:
+  - path: base/root.yaml
+    when: ${{ inputs.with_roles }}
+  - path: base/datasources.yaml
+    when: ${{ env.BLOKCTL_TEST_WITH_DATASOURCES }}
+  - path: base/root.yaml
+    when: false

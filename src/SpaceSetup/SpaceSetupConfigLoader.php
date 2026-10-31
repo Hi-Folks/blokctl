@@ -13,20 +13,28 @@ final class SpaceSetupConfigLoader
      * relative to the file that lists them), merged in order, and the file itself is
      * merged last. The returned configuration has no `extends` key.
      *
+     * An `extends` entry can be `{path, when}`: the file is used only when `when` is true.
+     * `when` is a boolean or a `${{ inputs.NAME }}` / `${{ env.NAME }}` expression; inputs
+     * come from the main file's `inputs` defaults and the `--set` overrides.
+     *
+     * @param list<string> $overrides Input overrides as NAME=VALUE (the --set values)
      * @return array<string, mixed>
      *
-     * @throws \RuntimeException if a file cannot be read or `extends` contains a loop
+     * @throws \RuntimeException if a file cannot be read, `extends` contains a loop, or a condition cannot be resolved
      */
-    public function load(string $path): array
+    public function load(string $path, array $overrides = []): array
     {
-        return $this->loadWithExtends($path, []);
+        $inputs = $this->mainInputs($this->read($path), $overrides);
+
+        return $this->loadWithExtends($path, [], $inputs);
     }
 
     /**
      * @param list<string> $stack Files being loaded, to detect loops
+     * @param array<string, mixed> $inputs Inputs available to `when` conditions
      * @return array<string, mixed>
      */
-    private function loadWithExtends(string $path, array $stack): array
+    private function loadWithExtends(string $path, array $stack, array $inputs): array
     {
         $data = $this->read($path);
         $realPath = (string) realpath($path);
@@ -47,13 +55,18 @@ final class SpaceSetupConfigLoader
 
         $merger = new SpaceSetupConfigMerger();
         $merged = [];
-        foreach ($extends as $basePath) {
+        foreach ($extends as $entry) {
+            $basePath = is_array($entry) ? ($entry['path'] ?? null) : $entry;
             if (!is_string($basePath) || $basePath === '') {
-                throw new \RuntimeException('extends must contain file paths in ' . $path);
+                throw new \RuntimeException('extends must contain file paths or {path, when} entries in ' . $path);
+            }
+
+            if (is_array($entry) && array_key_exists('when', $entry) && !$this->isTrue($entry['when'], $inputs, $basePath)) {
+                continue;
             }
 
             $resolved = str_starts_with($basePath, DIRECTORY_SEPARATOR) ? $basePath : dirname($realPath) . DIRECTORY_SEPARATOR . $basePath;
-            $base = $this->absolutePaths($this->loadWithExtends($resolved, [...$stack, $realPath]), dirname((string) realpath($resolved)));
+            $base = $this->absolutePaths($this->loadWithExtends($resolved, [...$stack, $realPath], $inputs), dirname((string) realpath($resolved)));
             /** @var array<string, mixed> $merged */
             $merged = $merger->merge($merged, $base);
         }
@@ -62,6 +75,73 @@ final class SpaceSetupConfigLoader
         $result = $merger->merge($merged, $data);
 
         return $result;
+    }
+
+    /**
+     * Inputs for `when` conditions: the defaults declared in the main file, then the
+     * overrides for those inputs. Other overrides are checked later by the inputs resolver.
+     *
+     * @param array<string, mixed> $config
+     * @param list<string> $overrides
+     * @return array<string, mixed>
+     */
+    private function mainInputs(array $config, array $overrides): array
+    {
+        $definitions = is_array($config['inputs'] ?? null) ? $config['inputs'] : [];
+        $inputs = [];
+        foreach ($definitions as $name => $definition) {
+            if (is_string($name) && is_array($definition) && array_key_exists('default', $definition)) {
+                $inputs[$name] = $definition['default'];
+            }
+        }
+
+        foreach ($overrides as $override) {
+            [$name, $value] = array_pad(explode('=', $override, 2), 2, null);
+            if (is_string($name) && array_key_exists($name, $definitions) && $value !== null) {
+                try {
+                    $inputs[$name] = json_decode($value, true, 512, JSON_THROW_ON_ERROR);
+                } catch (\JsonException) {
+                    $inputs[$name] = $value;
+                }
+            }
+        }
+
+        return $inputs;
+    }
+
+    /**
+     * @param array<string, mixed> $inputs
+     */
+    private function isTrue(mixed $condition, array $inputs, string $file): bool
+    {
+        if (is_string($condition)) {
+            $environment = getenv();
+            $environment = array_merge(is_array($environment) ? $environment : [], $_ENV);
+
+            // An environment variable that is not set means "off"; an undeclared input is an error.
+            if (preg_match('/^\$\{\{\s*env\.([A-Za-z_][A-Za-z0-9_]*)\s*}}$/', trim($condition), $matches) === 1 && !array_key_exists($matches[1], $environment)) {
+                return false;
+            }
+
+            try {
+                $condition = new SpaceSetupVariableResolver([
+                    'inputs' => $inputs,
+                    'env' => $environment,
+                ])->resolve($condition);
+            } catch (\RuntimeException $runtimeException) {
+                throw new \RuntimeException(sprintf(
+                    'Cannot evaluate the condition for extends %s: %s Conditions can use inputs declared in the main file and env variables.',
+                    $file,
+                    $runtimeException->getMessage(),
+                ), 0, $runtimeException);
+            }
+        }
+
+        if (is_bool($condition)) {
+            return $condition;
+        }
+
+        return is_scalar($condition) && in_array(strtolower(trim((string) $condition)), ['1', 'true', 'yes', 'on'], true);
     }
 
     /**

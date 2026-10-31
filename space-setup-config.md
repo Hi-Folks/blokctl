@@ -83,6 +83,8 @@ php bin/blokctl space:setup-validate --config examples/demo-space.yaml
 
 ## Composing configurations with `extends`
 
+For a step-by-step guide to building a library of reusable files, see [Reusable space setups](space-setup-reusable-configs.md).
+
 Keep reusable parts in their own files (components, datasources, governance) and combine them in a short main file:
 
 ```yaml
@@ -118,10 +120,38 @@ Merge rules:
 
 Items cannot be removed through `extends`; leave them out of the base file instead. File paths inside a base file (`entries_file`, `content_file`, `assets.upload_directory[].source`) are relative to that base file.
 
-Check the result before applying it:
+### Optional files with `when`
+
+An `extends` entry can be an object with `path` and `when`. The file is used only when `when` is true, so one main file covers several variants:
+
+```yaml
+version: 1
+inputs:
+  with_governance:
+    default: true
+extends:
+  - base/components.yaml
+  - path: base/governance.yaml
+    when: ${{ inputs.with_governance }}
+```
+
+```bash
+# Without roles and the review workflow
+php bin/blokctl space:setup -S 290817118944379 --config customer-acme.yaml --set with_governance=false
+```
+
+`when` is a boolean or one expression:
+
+- `${{ inputs.NAME }}`: an input **declared in the main file**, with its default or the `--set` value. Inputs declared only in base files cannot be used, because the conditions decide which base files are read. An undeclared input is an error.
+- `${{ env.NAME }}`: an environment variable, also from `.env`. A variable that is not set counts as false.
+
+`true`, `1`, `yes`, and `on` (any case) count as true; anything else counts as false. Conditions also work in base files that extend other files.
+
+Check the result before applying it, also for a variant:
 
 ```bash
 php bin/blokctl space:setup-validate --config customer-acme.yaml --print-merged
+php bin/blokctl space:setup-validate --config customer-acme.yaml --print-merged --set with_governance=false
 ```
 
 See [examples/composition/](examples/composition/) for a complete example.

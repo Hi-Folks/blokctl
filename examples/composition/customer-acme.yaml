@@ -2,16 +2,21 @@
 # Customer configuration: reuses the base files and adds only what is specific to Acme.
 # Check the merged result with:
 #   php bin/blokctl space:setup-validate --config examples/composition/customer-acme.yaml --print-merged
+#   php bin/blokctl space:setup-validate --config examples/composition/customer-acme.yaml --print-merged --set with_governance=false
 version: 1
 
 extends:
   - base/datasources.yaml
   - base/components.yaml
-  - base/governance.yaml
+  # Optional part: use --set with_governance=false to leave out roles and the review workflow.
+  - path: base/governance.yaml
+    when: ${{ inputs.with_governance }}
 
 inputs:
   customer_name:
     default: Acme
+  with_governance:
+    default: true
 
 datasources:
   - slug: banner-themes        # same slug as in the base: merged

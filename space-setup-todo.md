@@ -253,7 +253,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 
 - [x] Define predictable merge rules for maps, lists, and keyed resources (documented in `space-setup-config.md`).
 - [ ] Allow reusable named profiles such as localization, commerce, governance, and AI.
-- [ ] Add conditional sections based on parameters.
+- [x] Add conditional sections based on parameters (`extends` entries with `when`).
 - [ ] Add plan-aware or capability-aware conditional steps (`assert.plan_at_least` checks the plan; conditional steps are still open).
 - [ ] Add reusable setup hooks only when a declarative operation is not practical.
 

@@ -35,7 +35,7 @@ Exceptions that do not require `-S`: `space:create`, `space:setup-validate`, `sp
 - **`space:collaborator-remove`** — Remove collaborators. Options: `-e`/`--email` and `--id` (repeatable; use `--id` for pending invitations, which are not in the list), `--dry-run`. Asks for confirmation (skip with `-n`).
 - **`space:role-delete`** — Delete a custom space role. Options: `--role` (name or ID), `--dry-run`. Lists collaborators that still have the role, then asks for confirmation (skip with `-n`).
 - **`space:setup-export`** — Export components, datasources, roles, and workflows of a space as a `space:setup` YAML config. Options: `--section` (repeatable), `-c`/`--component`, `-d`/`--datasource`, `-o`/`--output`, `--entries-dir` (CSV files). Unsupported settings become `# WARNING` comments. Progress goes to stderr (`-q` hides it). Secret values (names containing token, secret, password, api_key, ...) become `####YOURSECRET####`; configure with `--secret-name`, `--secret-placeholder`, or `BLOKCTL_SECRET_NAMES`/`BLOKCTL_SECRET_PLACEHOLDER` in `.env`; `--include-secrets` keeps them. Read-only.
-- **`space:setup-validate`** — Validate a setup YAML/JSON file against `space-setup-schema.json` without accessing Storyblok. Options: `--config`, `--print-merged` (show the result of `extends`). No `--space-id` needed.
+- **`space:setup-validate`** — Validate a setup YAML/JSON file against `space-setup-schema.json` without accessing Storyblok. Options: `--config`, `--print-merged` (show the result of `extends`), `--set NAME=VALUE` (inputs for `extends` conditions). No `--space-id` needed.
 
 ### Configuration as Code setup
 
@@ -48,7 +48,7 @@ Exceptions that do not require `-S`: `space:create`, `space:setup-validate`, `sp
 - Skips matching apps, folders, fields, tags, workflows, demo mode, preview URLs, root-content moves, and Dimensions configuration.
 - Supports multi-country setup with `folders.ensure`, `stories.move`, and `dimensions.folders`.
 - Checks the target space first with `assert` (stories, components, datasources, languages, apps, `plan_at_least`); a failed check stops the run before any change.
-- Combines reusable config files with `extends` (named items merge by name or slug, operations concatenate, value lists are replaced).
+- Combines reusable config files with `extends` (named items merge by name or slug, operations concatenate, value lists are replaced); `{path, when: ${{ inputs.x }}}` makes a file optional.
 - Creates components with their folder and fields with `components.ensure` (after datasources, before stories).
 - Creates or updates datasources, dimensions, and entries with `datasources` (inline or `entries_file` CSV); `remove_entries` deletes entries at the end with the other removals.
 - Inserts components into story list fields with `stories.insert_component` (index or append; skipped when the same block is already present; runs after `stories.update`).

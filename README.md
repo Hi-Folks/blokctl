@@ -213,7 +213,7 @@ php bin/blokctl space:setup \
 php bin/blokctl space:setup-validate --config examples/demo-space.yaml
 ```
 
-The setup config supports JSON and YAML and is validated against [space-setup-schema.json](space-setup-schema.json) before any space is created or modified. See [examples/demo-space.yaml](examples/demo-space.yaml) for general provisioning, [examples/multi-country-space.yaml](examples/multi-country-space.yaml) for folder, root-content move, and Dimensions reconciliation, [examples/assets-space.yaml](examples/assets-space.yaml) for local-directory asset upload, [examples/roles-space.yaml](examples/roles-space.yaml) for custom space roles, [examples/datasources-space.yaml](examples/datasources-space.yaml) for datasources with dimensions and CSV entries, [examples/components-space.yaml](examples/components-space.yaml) for a new component that uses a datasource and is added to the home page, and [examples/governance-space.yaml](examples/governance-space.yaml) for roles plus a custom review workflow. See [space-setup-config.md](space-setup-config.md) for the full configuration syntax.
+The setup config supports JSON and YAML and is validated against [space-setup-schema.json](space-setup-schema.json) before any space is created or modified. See [examples/demo-space.yaml](examples/demo-space.yaml) for general provisioning, [examples/multi-country-space.yaml](examples/multi-country-space.yaml) for folder, root-content move, and Dimensions reconciliation, [examples/assets-space.yaml](examples/assets-space.yaml) for local-directory asset upload, [examples/roles-space.yaml](examples/roles-space.yaml) for custom space roles, [examples/datasources-space.yaml](examples/datasources-space.yaml) for datasources with dimensions and CSV entries, [examples/components-space.yaml](examples/components-space.yaml) for a new component that uses a datasource and is added to the home page, and [examples/governance-space.yaml](examples/governance-space.yaml) for roles plus a custom review workflow. See [space-setup-config.md](space-setup-config.md) for the full configuration syntax, and [space-setup-reusable-configs.md](space-setup-reusable-configs.md) for building reusable setups from small files.
 
 ```yaml
 execution:
@@ -232,7 +232,9 @@ space:
 
 Reconcile mode is the default. Repeated setup runs preserve unmanaged resources, skip matching state, merge story tags and preview environments, and update only explicitly configured component field properties. Resources omitted from the config are never removed automatically.
 
-**Reusable config files.** A config can extend other config files with `extends`, so common parts (components, datasources, roles, workflows) live in their own files and each customer file adds only what is specific. Named items such as components, fields, datasources, entries, roles, and stages merge by name or slug; check the result with `space:setup-validate --print-merged`. See [examples/composition/](examples/composition/) and the merge rules in [space-setup-config.md](space-setup-config.md).
+**Reusable config files.** For a step-by-step guide (export a showcase space into a library, write short customer files, add optional parts and checks), see [Reusable space setups](space-setup-reusable-configs.md).
+
+A config can extend other config files with `extends`, so common parts (components, datasources, roles, workflows) live in their own files and each customer file adds only what is specific. Named items such as components, fields, datasources, entries, roles, and stages merge by name or slug; check the result with `space:setup-validate --print-merged`. An `extends` entry can be optional (`{path, when}`), so one file covers variants, for example `when: ${{ inputs.with_governance }}` switched with `--set with_governance=false`. See [examples/composition/](examples/composition/) and the merge rules in [space-setup-config.md](space-setup-config.md).
 
 ```yaml
 version: 1

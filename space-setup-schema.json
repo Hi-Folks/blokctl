@@ -14,17 +14,49 @@
       "const": 1
     },
     "extends": {
-      "description": "Configuration files to merge before this one, in order (paths relative to this file). Named items (components, fields, datasources, entries, roles, workflows, stages, folders) merge by name or slug; operation lists are concatenated; plain value lists are replaced.",
+      "description": "Configuration files to merge before this one, in order (paths relative to this file). An entry can be {path, when} to use the file only when a condition is true. Named items (components, fields, datasources, entries, roles, workflows, stages, folders) merge by name or slug; operation lists are concatenated; plain value lists are replaced.",
       "oneOf": [
         {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "File path, relative to this file."
         },
         {
           "type": "array",
           "items": {
-            "type": "string",
-            "minLength": 1
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "description": "File path, relative to this file."
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "path"
+                ],
+                "properties": {
+                  "path": {
+                    "description": "File path, relative to this file.",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "when": {
+                    "description": "Use the file only when this is true: a boolean, or a ${{ inputs.NAME }} / ${{ env.NAME }} expression. Inputs must be declared in the main file.",
+                    "oneOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
           }
         }
       ]

@@ -29,6 +29,12 @@ class SpaceSetupValidateCommand extends Command
             'JSON or YAML setup configuration file',
         );
         $this->addOption(
+            'set',
+            null,
+            InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
+            'Input value as NAME=VALUE, used by extends conditions (repeatable)',
+        );
+        $this->addOption(
             'print-merged',
             null,
             InputOption::VALUE_NONE,
@@ -46,7 +52,9 @@ class SpaceSetupValidateCommand extends Command
         }
 
         try {
-            $config = new SpaceSetupConfigLoader()->load($configPath);
+            /** @var list<string> $overrides */
+            $overrides = $input->getOption('set');
+            $config = new SpaceSetupConfigLoader()->load($configPath, $overrides);
             $result = new SpaceSetupConfigValidator()->validate($config);
         } catch (\Exception $exception) {
             $output->writeln('<error>' . $exception->getMessage() . '</error>');

@@ -89,6 +89,45 @@ final class SpaceSetupConfigMergerTest extends TestCase
     }
 
     #[Test]
+    public function loader_skips_extends_entries_whose_condition_is_false(): void
+    {
+        $config = new SpaceSetupConfigLoader()->load(__DIR__ . '/../../Fixtures/composition/conditional.yaml');
+
+        $this->assertArrayNotHasKey('roles', $config);
+        $this->assertArrayNotHasKey('datasources', $config);
+    }
+
+    #[Test]
+    public function loader_uses_set_overrides_and_env_variables_in_conditions(): void
+    {
+        $_ENV['BLOKCTL_TEST_WITH_DATASOURCES'] = 'yes';
+
+        try {
+            $config = new SpaceSetupConfigLoader()->load(__DIR__ . '/../../Fixtures/composition/conditional.yaml', ['with_roles=true']);
+        } finally {
+            unset($_ENV['BLOKCTL_TEST_WITH_DATASOURCES']);
+        }
+
+        $this->assertSame([['name' => 'Editors', 'permissions' => ['read_stories']]], $this->at($config, ['roles']));
+        $this->assertSame('colors', $this->at($config, ['datasources', 0, 'slug']));
+    }
+
+    #[Test]
+    public function loader_reports_conditions_that_use_undeclared_inputs(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'blokctl-when-') . '.yaml';
+        file_put_contents($path, "version: 1\nextends:\n  - path: base.yaml\n    when: \${{ inputs.missing }}\n");
+
+        try {
+            $this->expectException(\RuntimeException::class);
+            $this->expectExceptionMessage('Cannot evaluate the condition for extends base.yaml');
+            new SpaceSetupConfigLoader()->load($path);
+        } finally {
+            unlink($path);
+        }
+    }
+
+    #[Test]
     public function loader_rejects_extends_loops(): void
     {
         $this->expectException(\RuntimeException::class);
