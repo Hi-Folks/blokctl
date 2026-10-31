@@ -77,6 +77,13 @@ Validate a config without accessing Storyblok:
 php bin/blokctl space:setup-validate --config examples/demo-space.yaml
 ```
 
+Add `--json` to receive `{valid, errors, warnings}` for automated repair loops. The
+validator also checks inline and file-based story content against fields declared in
+`components.ensure` and `components.fields`, including nested blocks, required fields,
+basic value types, and component allowlists. Pass `-S <space-id>` to include existing
+components from that space in this read-only check. Without `-S`, content that uses an
+undeclared component produces an unchecked-component warning.
+
 ## Exporting an existing space
 
 `space:setup-export -S <space-id> -o space.yaml` writes the components, datasources, roles, and workflows of an existing space in this format, so a space built in the UI can be versioned and applied to other spaces. See the README for the options.

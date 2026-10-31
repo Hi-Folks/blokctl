@@ -12,6 +12,7 @@
 .phpactor.json
 /tmp/test-results
 /docs/*
+!/docs/ai-space-setup-workflow.md
 test-push-results.sh
 .DS_Store
 examples/demos/

@@ -64,6 +64,10 @@ Recommended implementation order:
   ```bash
   php bin/blokctl space:setup-validate --config demo-space.yaml
   ```
+- [x] Validate setup story content against configured and existing component fields
+  before mutations, with nested-block, required-field, basic-type, and allowlist checks.
+- [x] Add machine-readable `space:setup-validate --json` output for AI repair loops.
+- [x] Document the guarded AI authoring workflow for tool-neutral and Claude agents.
 
 ## Priority 1A: PHP Schema as Code
 

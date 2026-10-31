@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Blokctl\Command;
 
+use Blokctl\ManagementAccessToken;
 use Blokctl\SpaceSetup\SpaceSetupConfigLoader;
 use Blokctl\SpaceSetup\SpaceSetupConfigValidator;
+use Blokctl\SpaceSetup\SpaceSetupContentChecker;
+use Storyblok\ManagementApi\Data\Enum\Region;
+use Storyblok\ManagementApi\ManagementApiClient;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -40,6 +44,9 @@ class SpaceSetupValidateCommand extends Command
             InputOption::VALUE_NONE,
             'Print the configuration after merging the files listed in extends',
         );
+        $this->addOption('json', null, InputOption::VALUE_NONE, 'Print a machine-readable validation result');
+        $this->addOption('space-id', 'S', InputOption::VALUE_REQUIRED, 'Also validate content against components in this existing space (read-only)');
+        $this->addOption('region', 'R', InputOption::VALUE_REQUIRED, 'Storyblok region (' . implode(', ', Region::values()) . ')');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -47,7 +54,7 @@ class SpaceSetupValidateCommand extends Command
         /** @var string|null $configPath */
         $configPath = $input->getOption('config');
         if ($configPath === null || $configPath === '') {
-            $output->writeln('<error>A setup configuration file is required. Provide it with --config.</error>');
+            $this->writeResult($output, (bool) $input->getOption('json'), false, ['A setup configuration file is required. Provide it with --config.']);
             return self::FAILURE;
         }
 
@@ -57,17 +64,48 @@ class SpaceSetupValidateCommand extends Command
             $config = new SpaceSetupConfigLoader()->load($configPath, $overrides);
             $result = new SpaceSetupConfigValidator()->validate($config);
         } catch (\Exception $exception) {
-            $output->writeln('<error>' . $exception->getMessage() . '</error>');
+            $this->writeResult($output, (bool) $input->getOption('json'), false, [$exception->getMessage()]);
             return self::FAILURE;
         }
 
         if (!$result->isValid()) {
-            $output->writeln('<error>Invalid space setup configuration:</error>');
-            foreach ($result->errors as $error) {
-                $output->writeln('  - ' . $error);
+            $this->writeResult($output, (bool) $input->getOption('json'), false, array_values($result->errors));
+            return self::FAILURE;
+        }
+
+        try {
+            $checker = new SpaceSetupContentChecker($config);
+            /** @var string|null $spaceId */
+            $spaceId = $input->getOption('space-id');
+            if ($checker->hasContentToCheck() && $spaceId !== null && $spaceId !== '') {
+                $checker->withSpace($this->client($input), $spaceId);
             }
 
+            $realPath = realpath($configPath);
+            $contentResult = $checker->check(dirname($realPath === false ? $configPath : $realPath));
+        } catch (\Exception $exception) {
+            $this->writeResult($output, (bool) $input->getOption('json'), false, [$exception->getMessage()]);
             return self::FAILURE;
+        }
+
+        $warnings = array_map(
+            static fn(string $component): string => sprintf('Component "%s" was not checked; declare it in the config or pass --space-id.', $component),
+            $contentResult->uncheckedComponents,
+        );
+        if (!$contentResult->isValid()) {
+            $this->writeResult($output, (bool) $input->getOption('json'), false, $contentResult->errors, $warnings);
+            return self::FAILURE;
+        }
+
+        if ((bool) $input->getOption('json')) {
+            $this->writeResult(
+                $output,
+                true,
+                true,
+                warnings: $warnings,
+                config: $input->getOption('print-merged') ? $config : null,
+            );
+            return self::SUCCESS;
         }
 
         if ($input->getOption('print-merged')) {
@@ -75,7 +113,54 @@ class SpaceSetupValidateCommand extends Command
             return self::SUCCESS;
         }
 
+        foreach ($warnings as $warning) {
+            $output->writeln('<comment>Warning: ' . $warning . '</comment>');
+        }
+
         $output->writeln('<info>Space setup configuration is valid.</info>');
         return self::SUCCESS;
+    }
+
+    private function client(InputInterface $input): ManagementApiClient
+    {
+        /** @var string|null $regionValue */
+        $regionValue = $input->getOption('region');
+        $region = $regionValue === null ? Region::EU : Region::tryFrom(strtoupper($regionValue));
+        if ($region === null) {
+            throw new \RuntimeException('Invalid region "' . $regionValue . '". Valid regions: ' . implode(', ', Region::values()));
+        }
+
+        return new ManagementApiClient(ManagementAccessToken::fromEnvironment($_ENV), region: $region, shouldRetry: true);
+    }
+
+    /**
+     * @param list<string> $errors
+     * @param list<string> $warnings
+     * @param array<string, mixed>|null $config
+     */
+    private function writeResult(
+        OutputInterface $output,
+        bool $asJson,
+        bool $valid,
+        array $errors = [],
+        array $warnings = [],
+        array|null $config = null,
+    ): void {
+        if ($asJson) {
+            $payload = ['valid' => $valid, 'errors' => $errors, 'warnings' => $warnings];
+            if ($config !== null) {
+                $payload['config'] = $config;
+            }
+
+            $output->writeln(json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+            return;
+        }
+
+        if (!$valid) {
+            $output->writeln('<error>Invalid space setup configuration:</error>');
+            foreach ($errors as $error) {
+                $output->writeln('  - ' . $error);
+            }
+        }
     }
 }

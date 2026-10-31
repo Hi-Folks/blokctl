@@ -56,6 +56,7 @@ The official [Storyblok CLI](https://www.storyblok.com/docs/libraries/storyblok-
 | This README | Installation, every CLI command, and the PHP Action API |
 | [space-setup-config.md](space-setup-config.md) | Reference for `space:setup` configuration files: every section and key, merge rules for `extends`, `when`, `assert`, removals |
 | [space-setup-reusable-configs.md](space-setup-reusable-configs.md) | Guide: export a showcase space into reusable files, write short customer files, make parts optional, check the target space, apply |
+| [docs/ai-space-setup-workflow.md](docs/ai-space-setup-workflow.md) | Guarded workflow for AI assistants: inspect read-only, generate YAML, validate, dry-run, request approval, apply |
 | [examples/](examples/) | Ready-to-run setup configs (composition, components, datasources, governance, roles, assets, multi-country) and scripts |
 | [management-api-behavior.md](management-api-behavior.md) | Management API behavior verified with live requests, for your own automation |
 | [CHANGELOG.md](CHANGELOG.md) | Changes per release |
@@ -220,11 +221,13 @@ php bin/blokctl space:setup \
   --config examples/demo-space.yaml \
   --set frontend_host=customer-demo.example.com
 
-# Validate a setup config without accessing Storyblok
+# Validate locally against the JSON Schema and declared components
 php bin/blokctl space:setup-validate --config examples/demo-space.yaml
 ```
 
 The setup config supports JSON and YAML and is validated against [space-setup-schema.json](space-setup-schema.json) before any space is created or modified. See [examples/demo-space.yaml](examples/demo-space.yaml) for general provisioning, [examples/multi-country-space.yaml](examples/multi-country-space.yaml) for folder, root-content move, and Dimensions reconciliation, [examples/assets-space.yaml](examples/assets-space.yaml) for local-directory asset upload, [examples/roles-space.yaml](examples/roles-space.yaml) for custom space roles, [examples/datasources-space.yaml](examples/datasources-space.yaml) for datasources with dimensions and CSV entries, [examples/components-space.yaml](examples/components-space.yaml) for a new component that uses a datasource and is added to the home page, and [examples/governance-space.yaml](examples/governance-space.yaml) for roles plus a custom review workflow. See [space-setup-config.md](space-setup-config.md) for the full configuration syntax, and [space-setup-reusable-configs.md](space-setup-reusable-configs.md) for building reusable setups from small files.
+
+When the config creates, inserts, or updates story content, `space:setup` also performs a content-schema preflight before creating, duplicating, or modifying a space. For an existing target it reads that space's components; for duplication it reads the source space; for a new blank space it uses the components declared in the config. A content error stops the run before any mutation.
 
 ```yaml
 execution:
@@ -384,6 +387,91 @@ php bin/blokctl space:setup --config examples/demo-space.yaml --report setup-res
 Reports are also written for dry runs and partial setup failures. Preview tokens are masked.
 
 When duplicate-first provisioning fails after the new space is created, blokctl preserves the duplicated space for inspection or recovery. It does not automatically delete or roll back the space. Use `--report` to retain its space ID and the completed, skipped, and failed operation details.
+
+#### `space:setup-validate` — Validate a setup config
+
+`space:setup-validate` checks a YAML or JSON setup without changing Storyblok. Local validation does not require a token or space ID. It validates the merged configuration against [space-setup-schema.json](space-setup-schema.json), then checks story content against fields declared in `components.ensure` and `components.fields`.
+
+```bash
+# Local validation with human-readable output
+php bin/blokctl space:setup-validate --config setup.yaml
+
+# Stable output for scripts and AI repair loops
+php bin/blokctl space:setup-validate --config setup.yaml --json
+
+# Read existing component definitions from a space (read-only)
+php bin/blokctl space:setup-validate \
+  -S 290817118944379 \
+  --config setup.yaml \
+  --json
+
+# Validate a composed variant and include its merged config in the JSON response
+php bin/blokctl space:setup-validate \
+  --config customers/acme.yaml \
+  --set with_governance=false \
+  --print-merged \
+  --json
+```
+
+Passing `-S` is optional and read-only: the command fetches components but never writes to the space. It therefore requires a valid Management API token and access to that exact space. Use `-R` when the space is outside the default EU region. Without `-S`, a component used by story content but not declared in the config is returned as a warning because its fields cannot be checked locally.
+
+Content validation covers:
+
+- root components and fields in `stories.create`, including JSON `content_file` paths resolved relative to the setup file;
+- components inserted with `stories.insert_component` and partial fields changed by `stories.update`;
+- unknown fields and components, with a suggestion for close field-name misspellings;
+- required fields for created and inserted content (not for partial updates);
+- basic Storyblok value shapes and types, including text, numbers, booleans, options, assets, links, rich text, multi-assets, and block lists;
+- recursively nested `bloks` and `component_whitelist` restrictions.
+
+Runtime expressions and directives such as `${{ inputs.title }}`, `_asset`, `_slug`, `asset._find`, and `asset._ref` are resolved later and are intentionally not type-checked as literal values.
+
+Successful `--json` output has a stable top-level shape:
+
+```json
+{
+  "valid": true,
+  "errors": [],
+  "warnings": []
+}
+```
+
+Invalid schema or story content exits with status `1` and lists paths that an automation or AI assistant can repair:
+
+```json
+{
+  "valid": false,
+  "errors": [
+    "$.stories.create[0].content.headline: unknown field \"headline\" in component \"page\"."
+  ],
+  "warnings": []
+}
+```
+
+An unchecked component is a warning and does not make an otherwise valid config fail:
+
+```json
+{
+  "valid": true,
+  "errors": [],
+  "warnings": [
+    "Component \"page\" was not checked; declare it in the config or pass --space-id."
+  ]
+}
+```
+
+With `--print-merged --json`, the response also contains a `config` property holding the fully merged configuration. Without `--json`, `--print-merged` prints that configuration as YAML. A valid result exits with status `0`.
+
+| Option | Description |
+|---|---|
+| `--config`, `-c` | YAML or JSON setup file to validate |
+| `--set` | Input value as `NAME=VALUE`, used by conditional `extends` entries; repeatable |
+| `--print-merged` | Include or print the configuration after resolving `extends` |
+| `--json` | Emit `{valid, errors, warnings}` instead of formatted console messages |
+| `--space-id`, `-S` | Read existing component definitions from this exact space; no mutations |
+| `--region`, `-R` | Region for `-S`: `EU`, `US`, `AP`, `CA`, or `CN`; defaults to `EU` |
+
+For AI-assisted setup authoring, follow the complete guarded sequence in [Authoring Storyblok space setups with an AI assistant](docs/ai-space-setup-workflow.md): inspect read-only, generate YAML, validate and repair, show a dry-run plan, and apply only after explicit approval.
 
 #### `space:setup-export` — Export a space as a setup config
 

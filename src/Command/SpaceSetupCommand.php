@@ -11,6 +11,7 @@ use Blokctl\ManagementAccessToken;
 use Blokctl\Render;
 use Blokctl\SpaceSetup\SpaceSetupConfigLoader;
 use Blokctl\SpaceSetup\SpaceSetupConfigValidator;
+use Blokctl\SpaceSetup\SpaceSetupContentChecker;
 use Blokctl\SpaceSetup\SpaceSetupInputsResolver;
 use Blokctl\SpaceSetup\SpaceSetupOperationStatus;
 use Blokctl\SpaceSetup\SpaceSetupProvisioner;
@@ -96,6 +97,12 @@ class SpaceSetupCommand extends Command
             /** @var list<string> $inputOverrides */
             $inputOverrides = $input->getOption('set');
             $config = new SpaceSetupConfigLoader()->load($configPath, $inputOverrides);
+            $configRealPath = realpath($configPath);
+            if ($configRealPath === false) {
+                throw new \RuntimeException('Unable to resolve setup configuration path: ' . $configPath);
+            }
+
+            $configDirectory = dirname($configRealPath);
             $validation = new SpaceSetupConfigValidator()->validate($config);
             if (!$validation->isValid()) {
                 Render::error('Invalid space setup configuration:');
@@ -148,6 +155,27 @@ class SpaceSetupCommand extends Command
                 ];
             }
 
+            $contentChecker = new SpaceSetupContentChecker($config);
+            if ($contentChecker->hasContentToCheck()) {
+                if ($createNew) {
+                    $contentChecker->withOnlyConfiguredComponents();
+                } elseif ($this->hasValue($duplicateFrom)) {
+                    $contentChecker->withSpace($this->client, (string) $duplicateFrom);
+                } elseif ($this->hasValue($spaceId)) {
+                    $contentChecker->withSpace($this->client, (string) $spaceId);
+                }
+
+                $contentValidation = $contentChecker->check($configDirectory);
+                if (!$contentValidation->isValid()) {
+                    Render::error('Story content does not match the component schema:');
+                    foreach ($contentValidation->errors as $error) {
+                        Render::error($error);
+                    }
+
+                    return self::FAILURE;
+                }
+            }
+
             $spaceId = new SpaceSetupTargetResolver()->resolve(
                 existingSpaceId: $spaceId,
                 createNew: $createNew,
@@ -192,12 +220,7 @@ class SpaceSetupCommand extends Command
                 $this->hasValue($duplicateFrom) => 'Duplicate from ' . $duplicateFrom . ' as "' . $newSpaceName . '"',
                 default => 'Existing space',
             };
-            $configRealPath = realpath($configPath);
-            if ($configRealPath === false) {
-                throw new \RuntimeException('Unable to resolve setup configuration path: ' . $configPath);
-            }
-
-            return $this->runSetup($spaceId, $config, $dryRun, $continueOnError, $mode, $reportPath, dirname($configRealPath))
+            return $this->runSetup($spaceId, $config, $dryRun, $continueOnError, $mode, $reportPath, $configDirectory)
                 ? self::SUCCESS
                 : self::FAILURE;
         } catch (\Exception $exception) {
