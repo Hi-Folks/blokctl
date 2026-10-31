@@ -72,6 +72,33 @@ final class SpaceSetupValidateCommandTest extends TestCase
         }
     }
 
+    public function testPrintMergedMasksSecretInputsInJsonAndYaml(): void
+    {
+        $path = $this->configFile(<<<'YAML'
+            version: 1
+            inputs:
+              api_key:
+                secret: true
+                default: very-secret-value
+            preview:
+              default: "https://example.test/?key=very-secret-value"
+            YAML);
+
+        try {
+            $jsonTester = new CommandTester(new SpaceSetupValidateCommand());
+            $this->assertSame(0, $jsonTester->execute(['--config' => $path, '--print-merged' => true, '--json' => true]));
+            $this->assertStringNotContainsString('very-secret-value', $jsonTester->getDisplay());
+            $this->assertStringContainsString('********', $jsonTester->getDisplay());
+
+            $yamlTester = new CommandTester(new SpaceSetupValidateCommand());
+            $this->assertSame(0, $yamlTester->execute(['--config' => $path, '--print-merged' => true]));
+            $this->assertStringNotContainsString('very-secret-value', $yamlTester->getDisplay());
+            $this->assertStringContainsString('********', $yamlTester->getDisplay());
+        } finally {
+            unlink($path);
+        }
+    }
+
     private function configFile(string $contents): string
     {
         $path = tempnam(sys_get_temp_dir(), 'blokctl-config-');

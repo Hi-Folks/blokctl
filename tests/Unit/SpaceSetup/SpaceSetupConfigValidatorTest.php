@@ -816,6 +816,8 @@ final class SpaceSetupConfigValidatorTest extends TestCase
             'inputs' => [
                 'enabled' => [
                     'default' => true,
+                    'from_env' => 'SETUP_ENABLED',
+                    'secret' => true,
                 ],
                 'position' => [
                     'default' => 3,

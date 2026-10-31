@@ -56,7 +56,8 @@ Recommended implementation order:
 
 - [x] Add editor autocomplete and inline validation through the JSON Schema.
 - [x] Add optional template metadata: name, description, category, owner, and tags.
-- [ ] Complete secret/masked runtime parameter handling.
+- [x] Complete secret/masked runtime parameter handling with `from_env` input sourcing
+  and masking across validation, console, dry-run, errors, and JSON reports.
 - [x] Add repeatable CLI overrides: `--set customer_name=Acme`.
 - [x] Support namespaced parameter placeholders such as `${{ inputs.customer_name }}`.
 - [x] Add a config validation command:
@@ -285,7 +286,8 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 - [x] Keep collaborator invitations out of `space:setup` configs: invitations send real emails, and pending invitations are not returned by the collaborators list, so reruns could not skip them.
 - [x] Define whether unresolved variables fail setup or resolve to empty strings: unresolved variables fail setup.
 - [ ] Define whether IDs are permitted in portable templates or names/slugs are required.
-- [ ] Define how config secrets are masked in logs and reports.
+- [x] Define how config secrets are masked in logs and reports: inputs marked
+  `secret: true` are replaced with `********`; `from_env` is the recommended source.
 - [ ] Define a stable compatibility policy for config schema versions.
 
 ## Current Supported Sections

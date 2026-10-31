@@ -74,4 +74,44 @@ final class SpaceSetupInputsResolverTest extends TestCase
             'inputs' => [],
         ], ['invalid']);
     }
+
+    #[Test]
+    public function resolves_environment_values_between_defaults_and_cli_overrides(): void
+    {
+        $resolver = new SpaceSetupInputsResolver();
+        $config = [
+            'inputs' => [
+                'api_key' => [
+                    'default' => 'default-key',
+                    'from_env' => 'DEMO_API_KEY',
+                    'secret' => true,
+                ],
+            ],
+        ];
+
+        $fromEnvironment = $resolver->resolveWithSecrets($config, [], ['DEMO_API_KEY' => 'environment-key']);
+        $fromCli = $resolver->resolveWithSecrets($config, ['api_key=cli-key'], ['DEMO_API_KEY' => 'environment-key']);
+
+        $this->assertSame(['api_key' => 'environment-key'], $fromEnvironment->values);
+        $this->assertContains('default-key', $fromEnvironment->secretValues);
+        $this->assertContains('environment-key', $fromEnvironment->secretValues);
+        $this->assertSame(['api_key' => 'cli-key'], $fromCli->values);
+        $this->assertContains('cli-key', $fromCli->secretValues);
+    }
+
+    #[Test]
+    public function required_environment_input_reports_its_variable_name(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Required setup input is missing: api_key (environment variable DEMO_API_KEY)');
+
+        new SpaceSetupInputsResolver()->resolve([
+            'inputs' => [
+                'api_key' => [
+                    'required' => true,
+                    'from_env' => 'DEMO_API_KEY',
+                ],
+            ],
+        ], [], []);
+    }
 }

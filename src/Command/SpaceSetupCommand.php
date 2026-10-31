@@ -20,6 +20,7 @@ use Blokctl\SpaceSetup\SpaceSetupReporter;
 use Blokctl\SpaceSetup\SpaceSetupReportWriter;
 use Blokctl\SpaceSetup\SpaceSetupTargetResolver;
 use Blokctl\SpaceSetup\SpaceSetupVariableResolver;
+use Blokctl\SpaceSetup\SpaceSetupValueMasker;
 use Storyblok\ManagementApi\Data\Enum\Region;
 use Storyblok\ManagementApi\ManagementApiClient;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -47,6 +48,9 @@ class SpaceSetupCommand extends Command
 
     /** @var array<string, mixed>|null */
     private array|null $reportTemplate = null;
+
+    /** @var list<mixed> */
+    private array $reportSecretValues = [];
 
     #[\Override]
     protected function configure(): void
@@ -82,6 +86,7 @@ class SpaceSetupCommand extends Command
     {
         $this->duplicationReport = null;
         $this->reportTemplate = null;
+        $this->reportSecretValues = [];
         /** @var string|null $reportPath */
         $reportPath = $input->getOption('report');
         /** @var string|null $spaceId */
@@ -121,15 +126,19 @@ class SpaceSetupCommand extends Command
                 ? $this->arrayValue($config['template'])
                 : null;
 
-            $inputs = new SpaceSetupInputsResolver()->resolve($config, $inputOverrides);
             $environment = getenv();
             if (!is_array($environment)) {
                 $environment = [];
             }
 
+            $environment = array_merge($environment, $_ENV);
+            $inputResult = new SpaceSetupInputsResolver()->resolveWithSecrets($config, $inputOverrides, $environment);
+            $inputs = $inputResult->values;
+            $this->reportSecretValues = $inputResult->secretValues;
+
             $baseVariables = [
                 'inputs' => $inputs,
-                'env' => array_merge($environment, $_ENV),
+                'env' => $environment,
             ];
             $preflightConfig = new SpaceSetupVariableResolver([
                 ...$baseVariables,
@@ -142,7 +151,7 @@ class SpaceSetupCommand extends Command
             if (!$preflightValidation->isValid()) {
                 Render::error('Resolved space setup configuration is invalid:');
                 foreach ($preflightValidation->errors as $error) {
-                    Render::error($error);
+                    Render::error($this->mask($error));
                 }
 
                 return self::FAILURE;
@@ -177,7 +186,7 @@ class SpaceSetupCommand extends Command
                 if (!$contentValidation->isValid()) {
                     Render::error('Story content does not match the component schema:');
                     foreach ($contentValidation->errors as $error) {
-                        Render::error($error);
+                        Render::error($this->mask($error));
                     }
 
                     return self::FAILURE;
@@ -218,7 +227,7 @@ class SpaceSetupCommand extends Command
             if (!$resolvedValidation->isValid()) {
                 Render::error('Resolved space setup configuration is invalid:');
                 foreach ($resolvedValidation->errors as $error) {
-                    Render::error($error);
+                    Render::error($this->mask($error));
                 }
 
                 return self::FAILURE;
@@ -237,7 +246,7 @@ class SpaceSetupCommand extends Command
                 : self::FAILURE;
         } catch (\Exception $exception) {
             $this->writeFailureReport($reportPath, $dryRun, $exception);
-            Render::error($exception->getMessage());
+            Render::error($this->mask($exception->getMessage()));
             return self::FAILURE;
         }
     }
@@ -262,10 +271,11 @@ class SpaceSetupCommand extends Command
                 $continueOnError,
                 $mode,
                 $configDirectory,
+                $this->reportSecretValues,
             );
         } catch (SpaceSetupProvisioningException $spaceSetupProvisioningException) {
             $this->writeReport($reportPath, $spaceSetupProvisioningException->reporter, $spaceId, $dryRun);
-            Render::error($spaceSetupProvisioningException->getMessage());
+            Render::error($this->mask($spaceSetupProvisioningException->getMessage()));
             return false;
         }
 
@@ -293,6 +303,7 @@ class SpaceSetupCommand extends Command
             ],
             duplication: $this->duplicationReport,
             template: $this->reportTemplate,
+            secretValues: $this->reportSecretValues,
         );
         Render::labelValue('JSON report', $path);
     }
@@ -306,7 +317,7 @@ class SpaceSetupCommand extends Command
             return;
         }
 
-        $reporter = new SpaceSetupReporter($dryRun);
+        $reporter = new SpaceSetupReporter($dryRun, masker: new SpaceSetupValueMasker($this->reportSecretValues));
         $reporter->run(
             'Prepare space setup',
             SpaceSetupOperationStatus::Updated,
@@ -324,8 +335,13 @@ class SpaceSetupCommand extends Command
                 $dryRun,
             );
         } catch (\Exception $reportException) {
-            Render::error($reportException->getMessage());
+            Render::error($this->mask($reportException->getMessage()));
         }
+    }
+
+    private function mask(string $value): string
+    {
+        return new SpaceSetupValueMasker($this->reportSecretValues)->mask($value);
     }
 
     /**

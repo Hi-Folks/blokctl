@@ -138,6 +138,20 @@ final class SpaceSetupConfigMergerTest extends TestCase
     }
 
     #[Test]
+    public function loader_uses_from_env_inputs_in_conditions(): void
+    {
+        $_ENV['BLOKCTL_TEST_WITH_ROLES'] = 'true';
+
+        try {
+            $config = new SpaceSetupConfigLoader()->load(__DIR__ . '/../../Fixtures/composition/conditional.yaml');
+        } finally {
+            unset($_ENV['BLOKCTL_TEST_WITH_ROLES']);
+        }
+
+        $this->assertSame([['name' => 'Editors', 'permissions' => ['read_stories']]], $this->at($config, ['roles']));
+    }
+
+    #[Test]
     public function loader_reports_conditions_that_use_undeclared_inputs(): void
     {
         $path = tempnam(sys_get_temp_dir(), 'blokctl-when-') . '.yaml';

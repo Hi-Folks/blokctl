@@ -8,6 +8,8 @@ use Blokctl\ManagementAccessToken;
 use Blokctl\SpaceSetup\SpaceSetupConfigLoader;
 use Blokctl\SpaceSetup\SpaceSetupConfigValidator;
 use Blokctl\SpaceSetup\SpaceSetupContentChecker;
+use Blokctl\SpaceSetup\SpaceSetupInputsResolver;
+use Blokctl\SpaceSetup\SpaceSetupValueMasker;
 use Storyblok\ManagementApi\Data\Enum\Region;
 use Storyblok\ManagementApi\ManagementApiClient;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -51,10 +53,11 @@ class SpaceSetupValidateCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $masker = new SpaceSetupValueMasker();
         /** @var string|null $configPath */
         $configPath = $input->getOption('config');
         if ($configPath === null || $configPath === '') {
-            $this->writeResult($output, (bool) $input->getOption('json'), false, ['A setup configuration file is required. Provide it with --config.']);
+            $this->writeResult($output, (bool) $input->getOption('json'), false, ['A setup configuration file is required. Provide it with --config.'], masker: $masker);
             return self::FAILURE;
         }
 
@@ -64,14 +67,27 @@ class SpaceSetupValidateCommand extends Command
             $config = new SpaceSetupConfigLoader()->load($configPath, $overrides);
             $result = new SpaceSetupConfigValidator()->validate($config);
         } catch (\Exception $exception) {
-            $this->writeResult($output, (bool) $input->getOption('json'), false, [$exception->getMessage()]);
+            $this->writeResult($output, (bool) $input->getOption('json'), false, [$exception->getMessage()], masker: $masker);
             return self::FAILURE;
         }
 
         if (!$result->isValid()) {
-            $this->writeResult($output, (bool) $input->getOption('json'), false, array_values($result->errors));
+            $this->writeResult($output, (bool) $input->getOption('json'), false, array_values($result->errors), masker: $masker);
             return self::FAILURE;
         }
+
+        $environment = getenv();
+        if (!is_array($environment)) {
+            $environment = [];
+        }
+
+        $inputResult = new SpaceSetupInputsResolver()->resolveWithSecrets(
+            $config,
+            $overrides,
+            array_merge($environment, $_ENV),
+            false,
+        );
+        $masker = new SpaceSetupValueMasker($inputResult->secretValues);
 
         try {
             $checker = new SpaceSetupContentChecker($config);
@@ -84,7 +100,7 @@ class SpaceSetupValidateCommand extends Command
             $realPath = realpath($configPath);
             $contentResult = $checker->check(dirname($realPath === false ? $configPath : $realPath));
         } catch (\Exception $exception) {
-            $this->writeResult($output, (bool) $input->getOption('json'), false, [$exception->getMessage()]);
+            $this->writeResult($output, (bool) $input->getOption('json'), false, [$exception->getMessage()], masker: $masker);
             return self::FAILURE;
         }
 
@@ -93,7 +109,7 @@ class SpaceSetupValidateCommand extends Command
             $contentResult->uncheckedComponents,
         );
         if (!$contentResult->isValid()) {
-            $this->writeResult($output, (bool) $input->getOption('json'), false, $contentResult->errors, $warnings);
+            $this->writeResult($output, (bool) $input->getOption('json'), false, $contentResult->errors, $warnings, masker: $masker);
             return self::FAILURE;
         }
 
@@ -104,12 +120,15 @@ class SpaceSetupValidateCommand extends Command
                 true,
                 warnings: $warnings,
                 config: $input->getOption('print-merged') ? $config : null,
+                masker: $masker,
             );
             return self::SUCCESS;
         }
 
         if ($input->getOption('print-merged')) {
-            $output->write(Yaml::dump($config, 10, 2, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE | Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK | Yaml::DUMP_COMPACT_NESTED_MAPPING), false, OutputInterface::OUTPUT_RAW);
+            /** @var array<string, mixed> $maskedConfig */
+            $maskedConfig = $masker->maskValue($config);
+            $output->write(Yaml::dump($maskedConfig, 10, 2, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE | Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK | Yaml::DUMP_COMPACT_NESTED_MAPPING), false, OutputInterface::OUTPUT_RAW);
             return self::SUCCESS;
         }
 
@@ -145,7 +164,15 @@ class SpaceSetupValidateCommand extends Command
         array $errors = [],
         array $warnings = [],
         array|null $config = null,
+        SpaceSetupValueMasker|null $masker = null,
     ): void {
+        $masker ??= new SpaceSetupValueMasker();
+        /** @var list<string> $errors */
+        $errors = $masker->maskValue($errors);
+        /** @var list<string> $warnings */
+        $warnings = $masker->maskValue($warnings);
+        /** @var array<string, mixed>|null $config */
+        $config = $masker->maskValue($config);
         if ($asJson) {
             $payload = ['valid' => $valid, 'errors' => $errors, 'warnings' => $warnings];
             if ($config !== null) {

@@ -11,8 +11,13 @@ reviewable YAML file; `blokctl` validates and executes it deterministically.
 - Use read-only inspection first. Useful commands include `space:setup-export`,
   `components:list`, `component:show`, `story:show`, `datasources:list`,
   `space:role-list`, and `workflows:list`.
-- Do not place management tokens or other secrets in the setup file. Use inputs and
-  environment variables, and leave exported secret placeholders for the user to fill.
+- Do not place management tokens or other secrets in the setup file. Declare each
+  runtime secret as an input with `secret: true` and `from_env: VARIABLE_NAME`, then
+  reference `${{ inputs.NAME }}`. Do not use a direct `${{ env.NAME }}` expression for
+  a secret because blokctl cannot infer that it must be masked. Leave exported secret
+  placeholders for the user to fill through their secret manager or environment.
+- Never put a secret in `--set NAME=value`: blokctl masks its own output, but the shell
+  can retain the command in history or expose it in the process list.
 - Never apply a setup until the user has reviewed the generated config and dry-run
   plan and explicitly approved the real run.
 

@@ -10,6 +10,7 @@ final readonly class SpaceSetupReportWriter
      * @param array<string, mixed> $target
      * @param array<string, mixed>|null $duplication
      * @param array<string, mixed>|null $template
+     * @param list<mixed> $secretValues
      */
     public function write(
         string $path,
@@ -18,12 +19,13 @@ final readonly class SpaceSetupReportWriter
         array $target,
         array|null $duplication = null,
         array|null $template = null,
+        array $secretValues = [],
     ): void {
-        $masker = new SpaceSetupValueMasker();
+        $masker = new SpaceSetupValueMasker($secretValues);
         $operations = array_map(
             static fn(SpaceSetupOperationResult $result): array => [
                 'status' => strtolower($result->status->value),
-                'label' => $result->label,
+                'label' => $masker->mask($result->label),
                 'detail' => $result->detail === null ? null : $masker->mask($result->detail),
             ],
             $reporter->results(),
@@ -33,17 +35,17 @@ final readonly class SpaceSetupReportWriter
             'schema_version' => 1,
             'status' => $reporter->hasFailures() ? 'failed' : ($dryRun ? 'planned' : 'completed'),
             'dry_run' => $dryRun,
-            'target' => $target,
+            'target' => $masker->maskValue($target),
             'operations' => $operations,
             'summary' => $reporter->counts(),
         ];
 
         if ($duplication !== null) {
-            $report['duplication'] = $duplication;
+            $report['duplication'] = $masker->maskValue($duplication);
         }
 
         if ($template !== null) {
-            $report['template'] = $template;
+            $report['template'] = $masker->maskValue($template);
         }
 
         $directory = dirname($path);

@@ -78,8 +78,8 @@ final class SpaceSetupConfigLoader
     }
 
     /**
-     * Inputs for `when` conditions: the defaults declared in the main file, then the
-     * overrides for those inputs. Other overrides are checked later by the inputs resolver.
+     * Inputs for `when` conditions: defaults and from_env values declared in the main
+     * file, then CLI overrides. Other overrides are checked later by the inputs resolver.
      *
      * @param array<string, mixed> $config
      * @param list<string> $overrides
@@ -90,8 +90,22 @@ final class SpaceSetupConfigLoader
         $definitions = is_array($config['inputs'] ?? null) ? $config['inputs'] : [];
         $inputs = [];
         foreach ($definitions as $name => $definition) {
-            if (is_string($name) && is_array($definition) && array_key_exists('default', $definition)) {
+            if (!is_string($name) || !is_array($definition)) {
+                continue;
+            }
+
+            if (array_key_exists('default', $definition)) {
                 $inputs[$name] = $definition['default'];
+            }
+
+            $environmentName = $definition['from_env'] ?? null;
+            if (is_string($environmentName)) {
+                $environmentValue = getenv($environmentName);
+                if ($environmentValue !== false) {
+                    $inputs[$name] = $environmentValue;
+                } elseif (array_key_exists($environmentName, $_ENV)) {
+                    $inputs[$name] = $_ENV[$environmentName];
+                }
             }
         }
 

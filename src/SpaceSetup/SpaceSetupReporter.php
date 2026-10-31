@@ -16,13 +16,14 @@ final class SpaceSetupReporter
     public function __construct(
         private readonly bool $dryRun,
         private readonly string|null $spaceId = null,
+        private readonly SpaceSetupValueMasker $masker = new SpaceSetupValueMasker(),
     ) {}
 
     public function start(string $spaceId, string $mode): void
     {
         Render::title($this->dryRun ? 'SPACE SETUP PLAN' : 'SPACE SETUP');
         Render::titleSection('Target');
-        Render::labelValue('Mode', $mode);
+        Render::labelValue('Mode', $this->masker->mask($mode));
         Render::labelValue('Space ID', $spaceId);
         Render::titleSection('Operations');
     }
@@ -136,14 +137,17 @@ final class SpaceSetupReporter
 
     private function record(SpaceSetupOperationResult $result): void
     {
-        $this->results[] = $result;
+        $maskedResult = new SpaceSetupOperationResult(
+            $result->status,
+            $this->masker->mask($result->label),
+            $result->detail === null ? null : $this->masker->mask($result->detail),
+        );
+        $this->results[] = $maskedResult;
         Render::operation(
-            status: $result->status->value,
-            label: $result->label,
-            color: $result->status->color(),
-            detail: $result->detail === null
-                ? null
-                : new SpaceSetupValueMasker()->mask($result->detail),
+            status: $maskedResult->status->value,
+            label: $maskedResult->label,
+            color: $maskedResult->status->color(),
+            detail: $maskedResult->detail,
         );
     }
 }

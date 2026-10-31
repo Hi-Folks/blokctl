@@ -228,7 +228,7 @@ The complete setup configuration supports namespaced expressions:
 
 | Context | Description |
 |---|---|
-| `${{ inputs.NAME }}` | Declared setup input default or `--set` override. |
+| `${{ inputs.NAME }}` | Declared setup input from `--set`, `from_env`, or `default`. |
 | `${{ env.NAME }}` | Environment variable named `NAME`. |
 | `${{ space.id }}` | Target space ID. For create or duplicate modes, this is the newly created space ID. |
 | `${{ space.preview_token }}` | First preview access token of the target space. |
@@ -257,8 +257,9 @@ Values passed through `--set` are parsed as JSON when possible. For example, `--
 Input resolution priority is:
 
 1. A matching `--set NAME=VALUE` CLI override.
-2. The input's `default` value declared in the YAML or JSON config.
-3. A validation error when the input is marked `required` and no value is available.
+2. The environment variable named by the input's `from_env` setting.
+3. The input's `default` value declared in the YAML or JSON config.
+4. A validation error when the input is marked `required` and no value is available.
 
 The `env` and `space` contexts are not setup inputs:
 
@@ -504,7 +505,8 @@ Reconcile mode:
 
 ## `inputs`
 
-Declares runtime values that can have defaults or be supplied through `--set`.
+Declares runtime values that can have defaults, be read from environment variables,
+or be supplied through `--set`.
 
 ```yaml
 inputs:
@@ -515,6 +517,12 @@ inputs:
   frontend_host:
     default: "demo.example.com"
 
+  integration_api_key:
+    description: "API key used by the integration field"
+    required: true
+    secret: true
+    from_env: CUSTOMER_INTEGRATION_API_KEY
+
   enable_feature:
     default: false
 ```
@@ -522,9 +530,53 @@ inputs:
 | Key | Required | Description |
 |---|---:|---|
 | `description` | No | Human-readable input description. |
-| `required` | No | Require a default or `--set` override. Defaults to `false`. |
-| `default` | No | Default input value. Supports strings, numbers, booleans, arrays, and objects. |
-| `secret` | No | Marks a value as sensitive for future masked output support. |
+| `required` | No | Require a value from `--set`, `from_env`, or `default`. Defaults to `false`. |
+| `default` | No | Fallback value. Supports strings, numbers, booleans, arrays, and objects. |
+| `from_env` | No | Environment variable from which to read the value. |
+| `secret` | No | Mask the resolved value in console, validation, dry-run, and JSON report output. Defaults to `false`. |
+
+### Secret inputs
+
+For credentials and tokens, declare a secret input with `from_env`, then reference the
+input rather than the environment context directly:
+
+```yaml
+inputs:
+  webhook_token:
+    required: true
+    secret: true
+    from_env: CUSTOMER_WEBHOOK_TOKEN
+
+preview:
+  default: "https://frontend.example.com/?auth=${{ inputs.webhook_token }}"
+```
+
+```bash
+export CUSTOMER_WEBHOOK_TOKEN='replace-with-the-real-value'
+php bin/blokctl space:setup-validate --config setup.yaml --print-merged
+php bin/blokctl space:setup -S 290817118944379 --config setup.yaml --dry-run
+```
+
+The value is replaced with `********` when it appears by itself or inside a longer
+string. Masking applies to validation errors and merged output, operation labels and
+details, dry-run output, failure output, and `--report` JSON (including target,
+duplication, and template metadata). Secret defaults are also masked by
+`space:setup-validate --print-merged`, even when an environment value or `--set`
+override takes precedence.
+
+Important boundaries:
+
+- `from_env` is recommended because the value does not need to appear in the config.
+- `--set secret_name=value` is supported and masked by blokctl, but the shell may save
+  it in history or expose it in the process list. Prefer `from_env` for secrets.
+- A literal secret stored in the YAML/JSON file is still readable in that source file;
+  output masking does not encrypt or rewrite the file.
+- Values referenced directly as `${{ env.NAME }}` are not known to be secret. Route
+  them through a declared `secret: true` input with `from_env` to enable masking.
+- Secret values shorter than three characters are masked when they are the complete
+  value, but not inside larger strings, to avoid corrupting ordinary output.
+- Masking reduces accidental disclosure; it is not a substitute for secret rotation,
+  least-privilege credentials, private report storage, and normal CI log controls.
 
 ## `assert`
 

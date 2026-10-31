@@ -6,6 +6,8 @@ All notable changes to `blokctl` will be documented in this file.
 
 ### Added
 
+- Added secret setup inputs with `from_env` sourcing and recursive masking in
+  validation, merged configs, console and dry-run output, errors, and JSON reports.
 - Added read-only `template:list`, `template:show`, and `template:find` commands for
   discovering, validating, and filtering local setup templates, with JSON output.
 - Added optional top-level `template` metadata (`name`, `description`, `category`,

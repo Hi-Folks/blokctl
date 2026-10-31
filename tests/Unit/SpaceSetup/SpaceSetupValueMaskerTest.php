@@ -35,4 +35,23 @@ final class SpaceSetupValueMaskerTest extends TestCase
             $masker->mask('https://example.com/?path=/home'),
         );
     }
+
+    #[Test]
+    public function masks_declared_secrets_recursively_and_inside_strings(): void
+    {
+        $masker = new SpaceSetupValueMasker(['secret-value', 123, 'x']);
+
+        $this->assertSame('Authorization: Bearer ********', $masker->mask('Authorization: Bearer secret-value'));
+        $this->assertSame([
+            'token' => '********',
+            'number' => '********',
+            'short_exact' => '********',
+            'short_embedded' => 'prefix-x',
+        ], $masker->maskValue([
+            'token' => 'secret-value',
+            'number' => 123,
+            'short_exact' => 'x',
+            'short_embedded' => 'prefix-x',
+        ]));
+    }
 }

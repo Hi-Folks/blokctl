@@ -232,17 +232,21 @@
           "type": "string"
         },
         "required": {
-          "description": "Require a default value or matching --set override.",
+          "description": "Require a value from --set, from_env, or default.",
           "type": "boolean",
           "default": false
         },
         "secret": {
-          "description": "Marks the input as sensitive metadata. Complete masking of secret inputs is not yet implemented.",
+          "description": "Marks the input value as secret so blokctl masks it in console output, validation output, dry-run output, and JSON setup reports.",
           "type": "boolean",
           "default": false
         },
+        "from_env": {
+          "$ref": "#/$defs/nonEmptyString",
+          "description": "Reads the input from this environment variable. Precedence: --set, from_env, default."
+        },
         "default": {
-          "description": "Default input value used when no matching --set override is provided."
+          "description": "Default input value used when neither from_env nor a matching --set override provides one."
         }
       }
     },

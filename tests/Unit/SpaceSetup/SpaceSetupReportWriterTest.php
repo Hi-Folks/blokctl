@@ -54,10 +54,11 @@ final class SpaceSetupReportWriterTest extends TestCase
                     'mode' => 'Existing space',
                 ],
                 template: [
-                    'name' => 'Retail Demo',
+                    'name' => 'Retail secret-value Demo',
                     'category' => 'commerce',
                     'tags' => ['retail'],
                 ],
+                secretValues: ['secret-value'],
             );
 
             $report = $this->readReport($path);
@@ -76,7 +77,7 @@ final class SpaceSetupReportWriterTest extends TestCase
             $this->assertSame('https://demo.test/?token=********&path=home', $operations[0]['detail']);
             $this->assertSame(1, $summary['updated']);
             $this->assertSame(0, $summary['failed']);
-            $this->assertSame('Retail Demo', $template['name']);
+            $this->assertSame('Retail ******** Demo', $template['name']);
         } finally {
             @unlink($path);
         }

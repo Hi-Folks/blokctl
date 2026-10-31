@@ -293,6 +293,24 @@ php bin/blokctl space:setup \
 php bin/blokctl space:setup-validate --config examples/demo-space.yaml
 ```
 
+Secrets should be declared as inputs and sourced from the environment:
+
+```yaml
+inputs:
+  integration_api_key:
+    required: true
+    secret: true
+    from_env: CUSTOMER_INTEGRATION_API_KEY
+```
+
+Use `${{ inputs.integration_api_key }}` in the config. blokctl masks the resolved value
+as `********` in validation and merged output, dry-run and real-run console output, and
+JSON setup reports. Prefer `from_env` over `--set` for secrets because command-line
+values may remain in shell history or appear in the process list. Direct
+`${{ env.NAME }}` expressions cannot be identified as secret automatically. See
+[Secret inputs](space-setup-config.md#secret-inputs) for precedence, guarantees, and
+security boundaries.
+
 The setup config supports JSON and YAML and is validated against [space-setup-schema.json](space-setup-schema.json) before any space is created or modified. See [examples/demo-space.yaml](examples/demo-space.yaml) for general provisioning, [examples/multi-country-space.yaml](examples/multi-country-space.yaml) for folder, root-content move, and Dimensions reconciliation, [examples/assets-space.yaml](examples/assets-space.yaml) for local-directory asset upload, [examples/roles-space.yaml](examples/roles-space.yaml) for custom space roles, [examples/datasources-space.yaml](examples/datasources-space.yaml) for datasources with dimensions and CSV entries, [examples/components-space.yaml](examples/components-space.yaml) for a new component that uses a datasource and is added to the home page, and [examples/governance-space.yaml](examples/governance-space.yaml) for roles plus a custom review workflow. See [space-setup-config.md](space-setup-config.md) for the full configuration syntax, and [space-setup-reusable-configs.md](space-setup-reusable-configs.md) for building reusable setups from small files.
 
 Reusable configs can declare optional `template` metadata (`name`, `description`,
@@ -447,7 +465,7 @@ space:
 | `--dry-run` | Print the planned setup without changing Storyblok |
 | `--continue-on-error` | Continue after a non-fatal step failure |
 | `--report` | Write a machine-readable JSON setup report |
-| `--set` | Override a declared setup input as `NAME=VALUE` (repeatable) |
+| `--set` | Override a declared setup input as `NAME=VALUE` (repeatable; prefer `from_env` for secrets) |
 
 Choose exactly one target mode: use `-S` to reconcile an existing space, configure `space.create_new: true` with `space.name` to create a blank target, or configure `space.duplicate_from` with `space.name` to duplicate a template. Other setup sections work identically with every target mode.
 
@@ -463,7 +481,8 @@ Use `--report` to write the target space, duplication readiness details, individ
 php bin/blokctl space:setup --config examples/demo-space.yaml --report setup-result.json
 ```
 
-Reports are also written for dry runs and partial setup failures. Preview tokens are masked.
+Reports are also written for dry runs and partial setup failures. Preview tokens and
+values from inputs declared with `secret: true` are masked.
 
 When duplicate-first provisioning fails after the new space is created, blokctl preserves the duplicated space for inspection or recovery. It does not automatically delete or roll back the space. Use `--report` to retain its space ID and the completed, skipped, and failed operation details.
 

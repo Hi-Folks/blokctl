@@ -2,6 +2,7 @@ version: 1
 inputs:
   with_roles:
     default: false
+    from_env: BLOKCTL_TEST_WITH_ROLES
 extends:
   - path: base/root.yaml
     when: ${{ inputs.with_roles }}

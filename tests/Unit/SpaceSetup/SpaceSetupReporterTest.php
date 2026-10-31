@@ -7,6 +7,7 @@ namespace Tests\Unit\SpaceSetup;
 use Blokctl\SpaceSetup\SpaceSetupOperationResult;
 use Blokctl\SpaceSetup\SpaceSetupOperationStatus;
 use Blokctl\SpaceSetup\SpaceSetupReporter;
+use Blokctl\SpaceSetup\SpaceSetupValueMasker;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Console\Output\NullOutput;
 use Tests\TestCase;
@@ -101,5 +102,25 @@ final class SpaceSetupReporterTest extends TestCase
         $this->assertTrue($reporter->hasFailures());
         $this->assertSame('Space setup completed with failures.', $reporter->completionMessage());
         $this->assertSame('https://app.storyblok.com/#/me/spaces/294778237819845', $reporter->spaceUrl());
+    }
+
+    #[Test]
+    public function stores_masked_labels_and_details(): void
+    {
+        $reporter = new SpaceSetupReporter(false, masker: new SpaceSetupValueMasker(['super-secret']));
+        $reporter->run(
+            'Configure super-secret integration',
+            SpaceSetupOperationStatus::Updated,
+            false,
+            static fn(): SpaceSetupOperationResult => new SpaceSetupOperationResult(
+                SpaceSetupOperationStatus::Updated,
+                'Configured super-secret integration',
+                'Credential: super-secret',
+            ),
+        );
+
+        $result = $reporter->results()[0];
+        $this->assertSame('Configured ******** integration', $result->label);
+        $this->assertSame('Credential: ********', $result->detail);
     }
 }

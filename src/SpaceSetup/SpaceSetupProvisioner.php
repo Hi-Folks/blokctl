@@ -73,6 +73,7 @@ final readonly class SpaceSetupProvisioner
 
     /**
      * @param array<string, mixed> $config
+     * @param list<mixed> $secretValues
      */
     public function run(
         string $spaceId,
@@ -81,8 +82,9 @@ final readonly class SpaceSetupProvisioner
         bool $continueOnError,
         string $mode,
         string $configDirectory = '.',
+        array $secretValues = [],
     ): SpaceSetupReporter {
-        $reporter = new SpaceSetupReporter($dryRun, $spaceId);
+        $reporter = new SpaceSetupReporter($dryRun, $spaceId, new SpaceSetupValueMasker($secretValues));
         $reporter->start($spaceId, $mode);
 
         $this->assetReferences->clear();
