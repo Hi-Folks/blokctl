@@ -152,7 +152,62 @@ final readonly class SpaceSetupConfigValidator
             }
         }
 
-        return [...$errors, ...$this->workflowErrors($config)];
+        return [...$errors, ...$this->workflowErrors($config), ...$this->assetReferenceErrors($config)];
+    }
+
+    /**
+     * assets.upload_url names must be unique, and every `asset: { _ref: name }` in the
+     * config must point to one of them.
+     *
+     * @param array<mixed> $config
+     * @return list<string>
+     */
+    private function assetReferenceErrors(array $config): array
+    {
+        $assets = is_array($config['assets'] ?? null) ? $config['assets'] : [];
+        $declared = [];
+        $errors = [];
+        foreach (is_array($assets['upload_url'] ?? null) ? $assets['upload_url'] : [] as $index => $upload) {
+            $name = is_array($upload) && is_string($upload['name'] ?? null) ? $upload['name'] : null;
+            if ($name === null) {
+                continue;
+            }
+
+            if (in_array($name, $declared, true)) {
+                $errors[] = '$.assets.upload_url[' . $index . '].name: Duplicate asset reference "' . $name . '".';
+            }
+
+            $declared[] = $name;
+        }
+
+        foreach (array_unique($this->assetReferencesIn($config)) as $reference) {
+            if (!in_array($reference, $declared, true)) {
+                $errors[] = '$: Asset reference "' . $reference . '" is not declared in assets.upload_url.';
+            }
+        }
+
+        return $errors;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function assetReferencesIn(mixed $value): array
+    {
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $references = [];
+        if (is_array($value['asset'] ?? null) && is_string($value['asset']['_ref'] ?? null)) {
+            $references[] = $value['asset']['_ref'];
+        }
+
+        foreach ($value as $item) {
+            $references = [...$references, ...$this->assetReferencesIn($item)];
+        }
+
+        return $references;
     }
 
     /**

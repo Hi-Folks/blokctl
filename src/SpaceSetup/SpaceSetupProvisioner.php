@@ -63,9 +63,13 @@ use Storyblok\ManagementApi\QueryParameters\StoriesParams;
 
 final readonly class SpaceSetupProvisioner
 {
+    private SpaceSetupAssetReferences $assetReferences;
+
     public function __construct(
         private ManagementApiClient $client,
-    ) {}
+    ) {
+        $this->assetReferences = new SpaceSetupAssetReferences();
+    }
 
     /**
      * @param array<string, mixed> $config
@@ -80,6 +84,8 @@ final readonly class SpaceSetupProvisioner
     ): SpaceSetupReporter {
         $reporter = new SpaceSetupReporter($dryRun, $spaceId);
         $reporter->start($spaceId, $mode);
+
+        $this->assetReferences->clear();
 
         try {
             $this->provisionAssertions($reporter, $spaceId, $config, $dryRun);
@@ -1952,8 +1958,9 @@ final readonly class SpaceSetupProvisioner
     ): void {
         $assets = $this->arrayValue($config['assets'] ?? []);
         $uploadDirectories = $this->listValue($assets['upload_directory'] ?? []);
+        $uploadUrls = $this->listValue($assets['upload_url'] ?? []);
         $convertToGlobal = $this->listValue($assets['convert_to_global'] ?? []);
-        if ($uploadDirectories === [] && $convertToGlobal === []) {
+        if ($uploadDirectories === [] && $uploadUrls === [] && $convertToGlobal === []) {
             return;
         }
 
@@ -1961,7 +1968,7 @@ final readonly class SpaceSetupProvisioner
             'folders' => [],
             'paths' => [],
         ];
-        if (!$dryRun && $uploadDirectories !== []) {
+        if (!$dryRun && ($uploadDirectories !== [] || $uploadUrls !== [])) {
             $folderState = $this->assetFolderState($spaceId);
         }
 
@@ -2053,6 +2060,12 @@ final readonly class SpaceSetupProvisioner
                     $assetFilenameCache[$folderId][] = $file['filename'];
                     return null;
                 });
+            }
+        }
+
+        foreach ($uploadUrls as $upload) {
+            if (is_array($upload)) {
+                $this->provisionAssetFromUrl($reporter, $spaceId, $upload, $dryRun, $continueOnError, $folderState);
             }
         }
 
@@ -2658,7 +2671,7 @@ final readonly class SpaceSetupProvisioner
         return count($value) === 1
             && array_key_exists('asset', $value)
             && is_array($value['asset'])
-            && array_key_exists('_find', $value['asset']);
+            && (array_key_exists('_find', $value['asset']) || array_key_exists('_ref', $value['asset']));
     }
 
     /**
@@ -2667,18 +2680,31 @@ final readonly class SpaceSetupProvisioner
      */
     private function resolveAssetDirective(string $spaceId, array $assetConfig): array
     {
-        $find = $this->arrayValue($assetConfig['_find'] ?? []);
-        if ($find === []) {
-            throw new \RuntimeException('Asset directives require _find criteria.');
-        }
-
         foreach (array_keys($assetConfig) as $key) {
-            if (is_string($key) && str_starts_with($key, '_') && $key !== '_find') {
+            if (is_string($key) && str_starts_with($key, '_') && !in_array($key, ['_find', '_ref'], true)) {
                 throw new \RuntimeException('Unsupported asset directive key: ' . $key);
             }
         }
 
-        $asset = $this->findAsset($spaceId, $find);
+        if (array_key_exists('_find', $assetConfig) && array_key_exists('_ref', $assetConfig)) {
+            throw new \RuntimeException('Asset directives take either _find or _ref, not both.');
+        }
+
+        if (array_key_exists('_ref', $assetConfig)) {
+            $reference = $this->stringValue($assetConfig['_ref']);
+            $asset = $this->assetReferences->get($reference);
+            if (!$asset instanceof Asset) {
+                throw new \RuntimeException(sprintf('Asset reference "%s" is not available: declare it in assets.upload_url (and check that its upload did not fail).', $reference));
+            }
+        } else {
+            $find = $this->arrayValue($assetConfig['_find'] ?? []);
+            if ($find === []) {
+                throw new \RuntimeException('Asset directives require _find criteria.');
+            }
+
+            $asset = $this->findAsset($spaceId, $find);
+        }
+
         $field = AssetField::makeFromAsset($asset)->toArray();
         foreach ($assetConfig as $key => $value) {
             if (!is_string($key)) {
@@ -3256,6 +3282,109 @@ final readonly class SpaceSetupProvisioner
         }
 
         return $paths;
+    }
+
+    /**
+     * Upload one asset from a URL into a folder and remember it by name for `asset: { _ref: name }`.
+     * An asset with the same filename already in the folder is reused instead of uploaded again.
+     *
+     * @param array<mixed> $upload
+     * @param array{folders: array<int, array{id: int, name: string, parent_id: int|null}>, paths: array<string, int>} $folderState
+     */
+    private function provisionAssetFromUrl(
+        SpaceSetupReporter $reporter,
+        string $spaceId,
+        array $upload,
+        bool $dryRun,
+        bool $continueOnError,
+        array &$folderState,
+    ): void {
+        $name = $this->stringValue($upload['name'] ?? '');
+        $url = $this->stringValue($upload['url'] ?? '');
+        $targetFolder = trim($this->stringValue($upload['target_folder'] ?? ''), '/');
+        $urlPath = parse_url($url, PHP_URL_PATH);
+        $filename = $this->nullableStringValue($upload['filename'] ?? null)
+            ?? rawurldecode(basename(is_string($urlPath) ? $urlPath : ''));
+        $label = 'Upload asset from URL: ' . $name;
+
+        $reporter->run($label, SpaceSetupOperationStatus::Created, $continueOnError, function () use ($spaceId, $name, $url, $targetFolder, $filename, $dryRun, &$folderState, $label): SpaceSetupOperationResult {
+            if ($name === '' || $targetFolder === '' || !preg_match('#^https?://#i', $url)) {
+                throw new \RuntimeException('assets.upload_url entries require name, an http(s) url, and target_folder.');
+            }
+
+            if ($filename === '' || pathinfo($filename, PATHINFO_EXTENSION) === '') {
+                throw new \RuntimeException(sprintf('Cannot take a filename with an extension from %s; set filename for "%s".', $url, $name));
+            }
+
+            if ($dryRun) {
+                return new SpaceSetupOperationResult(SpaceSetupOperationStatus::Created, $label, sprintf('%s -> %s/%s', $url, $targetFolder, $filename));
+            }
+
+            $this->ensureAssetFolderPath($spaceId, $targetFolder, $folderState);
+            $folderId = $folderState['paths'][$targetFolder] ?? null;
+            if (!is_int($folderId)) {
+                throw new \RuntimeException('Asset folder was not resolved: ' . $targetFolder);
+            }
+
+            $existing = $this->assetInFolderByFilename($spaceId, $folderId, $filename);
+            if ($existing instanceof Asset) {
+                $this->assetReferences->set($name, $existing);
+
+                return new SpaceSetupOperationResult(SpaceSetupOperationStatus::Skipped, $label, sprintf('Reusing %s/%s (asset ID %s).', $targetFolder, $filename, $existing->id()));
+            }
+
+            $directory = sys_get_temp_dir() . '/blokctl_' . bin2hex(random_bytes(8));
+            $path = $directory . '/' . $filename;
+            try {
+                $content = @file_get_contents($url, false, stream_context_create(['http' => ['timeout' => 30, 'follow_location' => 1]]));
+                if ($content === false || $content === '') {
+                    throw new \RuntimeException('Failed to download ' . $url);
+                }
+
+                if (!mkdir($directory, 0o700) || file_put_contents($path, $content) === false) {
+                    throw new \RuntimeException('Failed to store the downloaded file ' . $filename);
+                }
+
+                $asset = new AssetApi($this->client, $spaceId)->upload($path, $folderId)->data();
+            } finally {
+                if (is_file($path)) {
+                    unlink($path);
+                }
+
+                if (is_dir($directory)) {
+                    rmdir($directory);
+                }
+            }
+
+            $this->assetReferences->set($name, $asset);
+
+            return new SpaceSetupOperationResult(SpaceSetupOperationStatus::Created, $label, sprintf('%s/%s (asset ID %s).', $targetFolder, $filename, $asset->id()));
+        });
+    }
+
+    private function assetInFolderByFilename(string $spaceId, int $folderId, string $filename): ?Asset
+    {
+        $page = 1;
+        do {
+            $assets = new AssetApi($this->client, $spaceId)->page(
+                new AssetsParams(inFolder: $folderId),
+                new PaginationParams($page, 1000),
+            )->data();
+            foreach ($assets as $asset) {
+                if (!$asset instanceof Asset) {
+                    continue;
+                }
+
+                $path = parse_url($asset->filename(), PHP_URL_PATH);
+                if (rawurldecode(basename(is_string($path) ? $path : $asset->filename())) === $filename) {
+                    return $asset;
+                }
+            }
+
+            ++$page;
+        } while (count($assets) === 1000);
+
+        return null;
     }
 
     /**

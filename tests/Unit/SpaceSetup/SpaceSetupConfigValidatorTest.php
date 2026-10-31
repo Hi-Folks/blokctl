@@ -212,6 +212,30 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     }
 
     #[Test]
+    public function rejects_undeclared_and_duplicate_asset_references(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'assets' => ['upload_url' => [
+                ['name' => 'logo', 'url' => 'https://example.com/logo.svg', 'target_folder' => 'Brand'],
+                ['name' => 'logo', 'url' => 'https://example.com/logo2.svg', 'target_folder' => 'Brand'],
+            ]],
+            'stories' => ['update' => [[
+                'slug' => 'home',
+                'components' => [['path' => 'content.body[0]', 'component' => 'hero', 'fields' => [
+                    'image' => ['asset' => ['_ref' => 'logo']],
+                    'background' => ['asset' => ['_ref' => 'missing']],
+                ]]],
+            ]]],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertErrorsContain($result->errors, 'Duplicate asset reference "logo"');
+        $this->assertErrorsContain($result->errors, 'Asset reference "missing" is not declared in assets.upload_url.');
+        $this->assertCount(2, $result->errors);
+    }
+
+    #[Test]
     public function rejects_unknown_workflow_stage_properties(): void
     {
         $result = new SpaceSetupConfigValidator()->validate([

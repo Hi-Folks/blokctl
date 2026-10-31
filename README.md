@@ -49,6 +49,17 @@ The official [Storyblok CLI](https://www.storyblok.com/docs/libraries/storyblok-
 
 **blokctl** is a different kind of tool. It focuses on **crafting and auto-setup**: fine-tuning and adapting your Storyblok space programmatically. Use it to configure preview URLs, install apps, assign workflow stages, manage tags, add component fields, and orchestrate demo setups — all from the command line or from your own PHP code.
 
+## Documentation
+
+| Document | Use it for |
+|---|---|
+| This README | Installation, every CLI command, and the PHP Action API |
+| [space-setup-config.md](space-setup-config.md) | Reference for `space:setup` configuration files: every section and key, merge rules for `extends`, `when`, `assert`, removals |
+| [space-setup-reusable-configs.md](space-setup-reusable-configs.md) | Guide: export a showcase space into reusable files, write short customer files, make parts optional, check the target space, apply |
+| [examples/](examples/) | Ready-to-run setup configs (composition, components, datasources, governance, roles, assets, multi-country) and scripts |
+| [management-api-behavior.md](management-api-behavior.md) | Management API behavior verified with live requests, for your own automation |
+| [CHANGELOG.md](CHANGELOG.md) | Changes per release |
+
 ## Requirements
 
 - PHP 8.4.1 or higher
@@ -268,6 +279,8 @@ Languages declared under `space.languages` are ensured before story operations r
 Story content can be personalized per demo: `stories.update` changes fields of existing components by path, `stories.insert_component` adds a component to a list field such as `content.body` (a rerun does not insert it twice), and `stories.publish` publishes the result in the same run.
 
 Local asset directories can also be reconciled into Storyblok asset folders. Paths are relative to the setup config file, nested directories can be preserved, and assets with the same filename in the same target folder are skipped.
+
+Assets can also be uploaded from URLs with `assets.upload_url` and used by name in story content with `asset: { _ref: customer_logo }`, for example a customer logo whose URL is passed with `--set logo_url=...`. An asset with the same filename in the target folder is reused. See [`assets.upload_url`](space-setup-config.md#assetsupload_url).
 
 Space-local assets can also be converted into the organization Global Asset Library through `assets.convert_to_global`. Each entry requires `target_shared_folder_id` and exactly one source selector: `asset_id`, `asset_ids`, `source_folder_id`, or `source_folder_name`.
 
@@ -3035,7 +3048,7 @@ Each Action follows these conventions:
 
 ## Storyblok Management API notes
 
-[management-api-behavior.md](management-api-behavior.md) lists Management API behavior verified with live requests while building blokctl: response codes and empty bodies, partial updates, defaults, and side effects for space roles, collaborators, workflows, and workflow stages. It also lists gaps and inconsistencies in the official API reference. Read it if you build your own automation on the Management API.
+[management-api-behavior.md](management-api-behavior.md) lists Management API behavior verified with live requests while building blokctl: response codes and empty bodies, partial updates, defaults, and side effects for space roles, collaborators, workflows and stages, datasources and entries, and components and component folders. It also lists gaps and inconsistencies in the official API reference. Read it if you build your own automation on the Management API.
 
 ## Example scripts
 

@@ -8,6 +8,7 @@ All notable changes to `blokctl` will be documented in this file.
 
 - Added conditional `extends` entries: `{path, when}` uses the file only when `when` is true (a boolean, `${{ inputs.NAME }}` from the main file's inputs and `--set`, or `${{ env.NAME }}`, where an unset variable counts as false). `examples/composition/customer-acme.yaml` makes governance optional.
 - Added `--set` to `space:setup-validate`, to validate and print (`--print-merged`) a variant.
+- Added `assets.upload_url` to `space:setup` configs: download files from URLs into an asset folder (an asset with the same filename is reused) and use them by name in story content with `asset: { _ref: name }`. Validation rejects duplicate names and undeclared references.
 - Added `space-setup-reusable-configs.md`, a step-by-step guide to reusable setups: export a showcase space into library files, combine them with `extends`, make parts optional with `when`, and check the target space with `assert`.
 
 ## 0.19.0 - 2026-10-31

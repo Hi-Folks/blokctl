@@ -194,8 +194,8 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
         on_existing: skip
   ```
 
-- [ ] Add asset upload from URLs.
-- [ ] Allow uploaded asset references in later sections, for example `{{ assets.customer_logo }}`.
+- [x] Add asset upload from URLs (`assets.upload_url`).
+- [x] Allow uploaded asset references in later sections (`asset: { _ref: customer_logo }`).
 - [x] Add asset folder creation for local-directory uploads.
 - [ ] Investigate and document asset behavior when duplicating spaces.
 - [ ] Add optional asset copying from a template space.

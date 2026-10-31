@@ -145,6 +145,8 @@ The `space:setup` command is composed from services under `Blokctl\SpaceSetup`:
 - `SpaceSetupReporter` and `SpaceSetupReportWriter`
 - `SpaceSetupExporter` (constructor: client, optional progress callback, `secretNames`, `secretPlaceholder`; reverse of the provisioner: `export($spaceId, $sections, $components, $datasources, $entriesDirectory)` returns the config, warnings, and CSV files; `->toYaml()`)
 
+For building reusable setups from small files (`extends`, `when`, `assert`, `assets.upload_url`), see `space-setup-reusable-configs.md`.
+
 These services support validated YAML/JSON setup, reconcile behavior, dry-run planning, structured operation results, machine-readable reports, folder reconciliation, selected root-content moves, and Dimensions folder configuration. The setup command is currently the supported orchestration entry point; use individual Actions when embedding custom workflows in PHP.
 
 ### Mutating action (preflight + execute)

@@ -1355,6 +1355,13 @@
             "$ref": "#/$defs/assetUploadDirectory"
           }
         },
+        "upload_url": {
+          "description": "Assets downloaded from URLs and uploaded once. Use them in story content with asset: { _ref: name }.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/assetUploadUrl"
+          }
+        },
         "convert_to_global": {
           "description": "Convert space-local assets into shared assets in the Global Asset Library.",
           "type": "array",
@@ -1394,6 +1401,38 @@
           "description": "Behavior when the target asset folder already contains the same filename. Only skip is currently supported.",
           "const": "skip",
           "default": "skip"
+        }
+      }
+    },
+    "assetUploadUrl": {
+      "description": "One asset downloaded from a URL. An asset with the same filename already in the target folder is reused.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "url",
+        "target_folder"
+      ],
+      "properties": {
+        "name": {
+          "description": "Reference name, used as asset: { _ref: name } in story content.",
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "description": "http(s) URL of the file.",
+          "type": "string",
+          "minLength": 1
+        },
+        "target_folder": {
+          "description": "Asset folder path, for example Brand or Brand/Logos. Missing folders are created.",
+          "type": "string",
+          "minLength": 1
+        },
+        "filename": {
+          "description": "Filename in Storyblok. Defaults to the last part of the URL path; required when that has no extension.",
+          "type": "string",
+          "minLength": 1
         }
       }
     },

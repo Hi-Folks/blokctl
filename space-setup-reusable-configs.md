@@ -130,6 +130,37 @@ php bin/blokctl space:setup -S <space-id> --config customers/acme.yaml --set wit
 
 `when` can also read an environment variable, for example `when: ${{ env.WITH_AI }}`. A variable that is not set counts as false, so it works as an on/off switch from the shell or `.env`. Inputs used in `when` must be declared in the customer file.
 
+### Customer images
+
+Customer logos and images can come from a URL passed as an input, and are used by name:
+
+```yaml
+inputs:
+  logo_url:
+    required: true
+
+assets:
+  upload_url:
+    - name: customer_logo
+      url: ${{ inputs.logo_url }}
+      target_folder: Brand
+      filename: customer-logo.svg
+
+stories:
+  insert_component:
+    - slug: home
+      target: { path: content.body, index: 1 }
+      component:
+        component: promo-banner
+        title: "Welcome ${{ inputs.customer_name }}"
+        logo:
+          asset: { _ref: customer_logo }
+```
+
+```bash
+php bin/blokctl space:setup -S <space-id> --config customers/acme.yaml --set logo_url=https://acme.example.com/logo.svg
+```
+
 ## 5. Check the target space first
 
 A customer file often relies on content it does not create, for example the `home` story where the banner is inserted. Add an `assert` section so the setup stops before any change when the space does not fit:

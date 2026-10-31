@@ -141,7 +141,15 @@ Key patterns:
 - Resolve local asset sources relative to the setup config, preserve nested directories, and skip existing filename-plus-folder matches.
 - Reconcile only explicitly declared space-level AI settings.
 - Keep AI Translations disclaimer acceptance separate from general Storyblok AI activation.
-- Update `space-setup-config.md`, examples, schema, changelog, roadmap, and focused tests when adding setup syntax.
+- Run removals (anything that deletes or unpublishes) in `provisionRemovals()`, at the end of the run, so a failure earlier leaves extra resources at worst, never missing ones.
+- Run `assert` checks first; when a new section creates resources, add them to `providedByConfig()` so `assert` treats them as present.
+- When a new section holds a list of named items (matched by name or slug on reruns), add its path to `SpaceSetupConfigMerger::NAMED_LISTS`, otherwise `extends` concatenates the list.
+- When a new section contains file paths, make them absolute for base files in `SpaceSetupConfigLoader::absolutePaths()`, because paths in a base file are relative to that file.
+- When a new section can be read back from a space, add it to `SpaceSetupExporter` (IDs as names, slugs, or folder paths; secret-looking values masked), and check the round trip: exporting a space and applying the export to the same space must skip every operation.
+- Compare declared values only on reruns (stored values may carry extra keys such as an option `_uid`, and keep their type); unchanged items are reported as `SKIPPED`.
+- Build API error messages with `ApiError::message($response)`.
+- Record live-verified Management API behavior in `management-api-behavior.md`.
+- Update `space-setup-config.md`, `space-setup-reusable-configs.md` when the workflow changes, examples, schema, changelog, roadmap, and focused tests when adding setup syntax.
 
 ### Step 3: Register in `bin/blokctl`
 

@@ -1438,6 +1438,75 @@ final class SpaceSetupProvisionerTest extends TestCase
     }
 
     #[Test]
+    public function plans_asset_upload_from_url(): void
+    {
+        $result = $this->singleResult([
+            'assets' => ['upload_url' => [[
+                'name' => 'logo',
+                'url' => 'https://example.com/media/acme-logo.svg?v=2',
+                'target_folder' => 'Brand',
+            ]]],
+        ]);
+
+        $this->assertPlanned($result, 'Upload asset from URL: logo');
+        $this->assertSame('https://example.com/media/acme-logo.svg?v=2 -> Brand/acme-logo.svg', $result->detail);
+    }
+
+    #[Test]
+    public function reuses_an_existing_asset_from_url_and_resolves_its_reference(): void
+    {
+        $update = new MockResponse($this->storyJson(['body' => []]));
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                new MockResponse('{"asset_folders":[{"id":3001,"name":"Brand","parent_id":null}]}'),
+                new MockResponse($this->assetsJson([
+                    ['id' => 501, 'filename' => 'https://a.storyblok.com/f/680/other.png', 'content_type' => 'image/png'],
+                    ['id' => 502, 'filename' => 'https://a.storyblok.com/f/680/acme-logo.svg', 'content_type' => 'image/svg+xml'],
+                ])),
+                new MockResponse($this->storyJson(['body' => [['_uid' => 'hero', 'component' => 'hero-section']]])),
+                $update,
+            ),
+            [
+                'assets' => ['upload_url' => [['name' => 'logo', 'url' => 'https://example.com/acme-logo.svg', 'target_folder' => 'Brand']]],
+                'stories' => ['update' => [[
+                    'id' => '440448565',
+                    'components' => [[
+                        'path' => 'content.body[0]',
+                        'component' => 'hero-section',
+                        'fields' => ['image' => ['asset' => ['_ref' => 'logo', 'alt' => 'Acme logo']]],
+                    ]],
+                ]]],
+            ],
+        );
+
+        $results = $reporter->results();
+        $this->assertSame(SpaceSetupOperationStatus::Skipped, $results[0]->status);
+        $this->assertSame('Reusing Brand/acme-logo.svg (asset ID 502).', $results[0]->detail);
+        $this->assertFalse($reporter->hasFailures());
+        $payload = $this->requestJsonPayload($update);
+        $this->assertSame(502, $this->valueAtPath($payload, ['story', 'content', 'body', 0, 'image', 'id']));
+        $this->assertSame('Acme logo', $this->valueAtPath($payload, ['story', 'content', 'body', 0, 'image', 'alt']));
+    }
+
+    #[Test]
+    public function fails_when_an_asset_reference_was_not_uploaded(): void
+    {
+        $reporter = $this->provisionWithClient(
+            $this->createMockClient(
+                new MockResponse($this->storyJson(['body' => [['_uid' => 'hero', 'component' => 'hero-section']]])),
+            ),
+            ['stories' => ['update' => [[
+                'id' => '440448565',
+                'components' => [['path' => 'content.body[0]', 'component' => 'hero-section', 'fields' => ['image' => ['asset' => ['_ref' => 'logo']]]]],
+            ]]]],
+            continueOnError: true,
+        );
+
+        $this->assertTrue($reporter->hasFailures());
+        $this->assertStringContainsString('Asset reference "logo" is not available', (string) $reporter->results()[0]->detail);
+    }
+
+    #[Test]
     public function plans_each_tag_assignment(): void
     {
         $result = $this->singleResult([

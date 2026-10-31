@@ -51,6 +51,7 @@ Exceptions that do not require `-S`: `space:create`, `space:setup-validate`, `sp
 - Combines reusable config files with `extends` (named items merge by name or slug, operations concatenate, value lists are replaced); `{path, when: ${{ inputs.x }}}` makes a file optional.
 - Creates components with their folder and fields with `components.ensure` (after datasources, before stories).
 - Creates or updates datasources, dimensions, and entries with `datasources` (inline or `entries_file` CSV); `remove_entries` deletes entries at the end with the other removals.
+- Uploads assets from URLs with `assets.upload_url` (reused by filename) and uses them in story content with `asset: { _ref: name }`.
 - Inserts components into story list fields with `stories.insert_component` (index or append; skipped when the same block is already present; runs after `stories.update`).
 - Publishes selected stories with `stories.publish` (after other operations) and unpublishes with `stories.unpublish` (with the removals at the end).
 - Creates or updates custom workflows and their stages with `workflow.ensure` (stage order from the list, roles and stage links by name; runs after `roles`).
@@ -90,7 +91,31 @@ php bin/blokctl space:setup -S <exact-space-id> \
   --config examples/governance-space.yaml
 ```
 
+```bash
+# Datasources with dimensions and CSV entries
+php bin/blokctl space:setup -S <exact-space-id> --config examples/datasources-space.yaml
+
+# A new component that uses a datasource, inserted on the home page and published
+php bin/blokctl space:setup -S <exact-space-id> --config examples/components-space.yaml --dry-run
+
+# Reusable library files combined in a customer file, with an optional part
+php bin/blokctl space:setup-validate --config examples/composition/customer-acme.yaml --print-merged --set with_governance=false
+```
+
+Order inside one run: `assert` checks, preview, demo mode, language additions, folders, datasources, `components.ensure`, story moves, assets (`upload_directory`, `upload_url`), `stories.update`, `stories.insert_component`, `stories.create`, roles, workflows (`ensure`, then assignments), apps, translated slugs, AI, Dimensions, `components.fields`, tags, `stories.publish`, then removals (`stories.unpublish`, `remove_entries`, language removals).
+
 See `space-setup-config.md` for complete syntax. Reports contain stable JSON status, target/duplication details, masked operations, and summary counts.
+
+### Preparing a customer demo (workflow)
+
+Use this when the user wants to set up a demo or a new space from reusable parts. The full guide is `space-setup-reusable-configs.md`.
+
+1. **Capture the reusable parts** from a showcase space (read-only): `space:setup-export -S <showcase-id> --section=components -o library/components.yaml`, likewise `--section=datasources --entries-dir=datasources` and `--section=roles --section=workflows`. Secrets become `####YOURSECRET####` and are listed as warnings; tell the user to review them.
+2. **Write a short customer file** that lists the library files in `extends` and adds only customer-specific values: inputs (`customer_name`, `logo_url`), datasource entries or component settings that differ (same name or slug = merged), `assets.upload_url` for the logo, `stories.update` / `stories.insert_component` with `asset: { _ref: ... }`, `stories.publish`.
+3. **Make variants optional** with `extends: [{path: ..., when: ${{ inputs.with_x }}}]` instead of copying files.
+4. **Guard the run** with `assert` (stories the config relies on, `plan_at_least` when using `allowed_paths` or custom workflows).
+5. **Check before applying**: `space:setup-validate --config <file> --print-merged --set ...`, then `space:setup -S <id> --config <file> --set ... --dry-run`, then the real run. Reruns are safe: unchanged items are skipped.
+
 
 ### Preview URLs
 

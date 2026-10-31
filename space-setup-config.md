@@ -799,6 +799,16 @@ stories:
 
 Only declared fields are changed. Object values are merged recursively with existing object fields, which allows partial asset updates such as changing `image.alt` while preserving `image.id`, `image.filename`, and `image.fieldtype`.
 
+Asset fields can also use an asset uploaded from a URL in the same run, with `asset._ref` (see [`assets.upload_url`](#assetsupload_url)):
+
+```yaml
+fields:
+  image:
+    asset:
+      _ref: customer_logo
+      alt: "${{ inputs.customer_name }} logo"
+```
+
 Asset fields can be resolved from existing space assets with `asset._find`. The resolver uses the Management API asset list filters, converts the matching asset into a Storyblok asset field, removes `_find`, and applies the remaining asset keys such as `alt`, `title`, `source`, `copyright`, or `focus`. By default `require_unique` is `true`, so setup fails when no asset or multiple assets match. `in_folder` accepts an asset folder ID or a configured folder path such as `Brand` or `Brand/products`.
 
 ## `stories.insert_component`
@@ -1010,6 +1020,51 @@ Reconcile mode creates missing target asset folders and uploads missing files. A
 Each `convert_to_global` entry must define exactly one source selector: `asset_id`, `asset_ids`, `source_folder_id`, or `source_folder_name`. Folder-based selection fetches matching assets with pagination. Filters are only valid for folder-based selection. The destination is always explicit: `target_shared_folder_id` is required.
 
 See [examples/assets-space.yaml](examples/assets-space.yaml) for a runnable example.
+
+
+### `assets.upload_url`
+
+Downloads files from URLs and uploads them into an asset folder, then makes them available by name to later steps. Use it for customer logos or hero images that live on a website or a CDN.
+
+```yaml
+inputs:
+  logo_url:
+    default: https://acme.example.com/logo.svg
+
+assets:
+  upload_url:
+    - name: customer_logo
+      url: ${{ inputs.logo_url }}
+      target_folder: Brand
+      filename: acme-logo.svg
+
+stories:
+  update:
+    - slug: home
+      components:
+        - path: content.body[0]
+          component: hero-section
+          fields:
+            image:
+              asset:
+                _ref: customer_logo
+                alt: Acme logo
+```
+
+| Key | Required | Description |
+|---|---:|---|
+| `name` | Yes | Reference name, used as `asset: { _ref: name }` in `stories.update`, `stories.insert_component`, and `stories.create` content. Unique in the config. |
+| `url` | Yes | `http` or `https` URL of the file. |
+| `target_folder` | Yes | Asset folder path, for example `Brand` or `Brand/Logos`. Missing folders are created. |
+| `filename` | No | Filename in Storyblok. Defaults to the last part of the URL path. Required when that has no extension. |
+
+Behavior:
+
+- An asset with the same filename already in the target folder is reused, not uploaded again, so running the setup again does not create duplicates. To replace an image, use a new filename.
+- Assets are uploaded before story operations, so `_ref` works in every story step of the same run.
+- `asset._ref` accepts the same extra keys as `_find` (`alt`, `title`, `copyright`, `focus`, ...). Use either `_find` or `_ref`, not both.
+- Validation rejects duplicate names and a `_ref` that no `upload_url` entry declares. If an upload fails, the steps that use its reference fail with a clear message.
+- `--dry-run` shows the URL and target path without downloading.
 
 ## `components`
 
