@@ -1193,6 +1193,36 @@ For one specific story, or to remove a stage, use `story:workflow-change`.
 
 ### Datasources
 
+#### Example: create a datasource, add entries, and change a value
+
+Create a `colors` datasource, add a `light` and a `dark` entry, then change the value of `light`:
+
+```bash
+# 1. Create the datasource
+php bin/blokctl datasource:ensure -S 290817118944379 --slug=colors --name="Colors"
+
+# 2. Add two entries (quote values that start with #)
+php bin/blokctl datasource:entries-ensure -S 290817118944379 -d colors \
+  -e "light=#f5f5f5" -e "dark=#1a1a1a"
+
+# 3. Change the value of the light entry
+php bin/blokctl datasource:entries-ensure -S 290817118944379 -d colors -e "light=#fafafa"
+
+# 4. Check the result
+php bin/blokctl datasource:entries-list -S 290817118944379 -d colors
+```
+
+Step 3 changes only `light`; `dark` is not touched. The output reports what changed:
+
+```text
+ light ......................................................... updated: value
+ Created .................................................................... 0
+ Updated .................................................................... 1
+ Unchanged .................................................................. 0
+```
+
+Running any step again changes nothing, so the same commands can be kept in a setup script.
+
 #### `datasources:list` — List datasources
 
 ```bash
