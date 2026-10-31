@@ -1,0 +1,5 @@
+{"component_groups": [
+  {"name": "Marketing", "id": 700, "uuid": "uuid-marketing", "parent_id": null, "parent_uuid": null},
+  {"name": "Banners", "id": 701, "uuid": "uuid-banners", "parent_id": 700, "parent_uuid": "uuid-marketing"},
+  {"name": "SEO", "id": 710, "uuid": "uuid-seo", "parent_id": null, "parent_uuid": null}
+]}

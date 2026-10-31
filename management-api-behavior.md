@@ -121,6 +121,22 @@ Endpoints: `/v1/spaces/:space_id/datasources` (body wrapped as `{"datasource": {
 | The datasources list has no slug filter (only `search` and `by_ids`), although the docs say it can be filtered by slug | Docs inconsistency |
 | Entries can only be created one per request; there is no bulk endpoint | Documented |
 
+## Components and component folders
+
+Endpoints: `/v1/spaces/:space_id/components` (body `{"component": {...}}`) and `/v1/spaces/:space_id/component_groups` (body `{"component_group": {...}}`). In the API, component folders are called component groups.
+
+| Behavior | Status |
+|---|---|
+| A `PUT` that includes `schema` **replaces the whole schema**: fields that are not sent are deleted. Send the complete schema when changing fields | Verified 2026-10-31 |
+| A `PUT` without `schema` (for example only `display_name`) keeps the schema and the other settings | Verified 2026-10-31 |
+| Component names are unique (`422` `name: has already been taken`) | Verified 2026-10-31 |
+| Tabs are schema entries with a `tab-` key, `type: tab`, `display_name`, and `keys` (the fields in the tab) | Verified 2026-10-31 |
+| `component_group_uuid` (the folder UUID) assigns a component to a folder, on create and on update. The docs mention `component_group_id` without saying whether it is the ID or the UUID | Verified 2026-10-31 |
+| Folder names are unique in the **whole space**, not only inside their parent (`422` `name: has already been taken`) | Verified 2026-10-31 |
+| Deleting a folder also deletes its subfolders. Components inside are kept and moved to the root of the block library | Verified 2026-10-31 |
+| Updates of components and folders return `200` with the object | Verified 2026-10-31 |
+| Deleting a component keeps it in stories, without a schema definition | Documented |
+
 ## Workflows
 
 Endpoint: `/v1/spaces/:space_id/workflows`. Request bodies are wrapped as `{"workflow": {...}}`.
@@ -161,4 +177,6 @@ Who can move a story to the next stages: `user_ids`, `space_role_ids`, `allow_al
 - `workflow:stage-ensure` and `workflow.ensure` send `allow_all_users: false` / `allow_all_stages: false` when roles or next stages are declared, unset the current default stage before setting a new one, and read the stage back after an update.
 - `workflow:ensure` rejects a content type that already belongs to another workflow before sending the request.
 - Datasource and entry commands match datasources by slug and entries by name, add dimensions through `dimensions_attributes`, and set dimension values with a separate request per entry and dimension.
+- `component:ensure` and `components.ensure` update component settings without sending the schema; field changes always send the complete schema.
+- `component:folder-ensure` checks the whole folder path before creating anything, because folder names are unique in the space.
 - `space:role-delete` lists the collaborators who still have the role before deleting it.

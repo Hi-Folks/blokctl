@@ -77,6 +77,9 @@ final readonly class ComponentFieldAddAction
 
     /**
      * Add a field to the component inside a tab.
+     *
+     * @param array<string, mixed> $extra Additional schema properties for the field, for example
+     *                                    description, default_value, options, source, or datasource_slug
      */
     public function execute(
         string $spaceId,
@@ -90,6 +93,7 @@ final readonly class ComponentFieldAddAction
         bool $required = false,
         bool $translatable = false,
         ?bool $customizeToolbar = null,
+        array $extra = [],
     ): void {
         $component = $preflight->component;
 
@@ -141,6 +145,12 @@ final readonly class ComponentFieldAddAction
             $component->insertField($field, $pos);
         } else {
             $component->insertField($field, $nextPos);
+        }
+
+        if ($extra !== []) {
+            $schema = $component->getSchema();
+            $schema[$fieldName] = [...(is_array($schema[$fieldName] ?? null) ? $schema[$fieldName] : []), ...$extra];
+            $component->setSchema($schema);
         }
 
         new ComponentApi($this->client, $spaceId)

@@ -1,0 +1,1 @@
+{"component": {"id": 800, "name": "promo-banner", "display_name": "Promo", "is_root": true, "is_nestable": true, "component_group_uuid": "uuid-banners", "color": "#ff6600", "schema": {"title": {"type": "text", "pos": 0}}}}

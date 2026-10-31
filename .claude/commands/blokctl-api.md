@@ -76,7 +76,9 @@ Most resource-oriented commands are backed by reusable Action classes with no CL
 | `Component\ComponentsListAction` | List/filter components | `->components`, `->count()` |
 | `Component\ComponentsUsageAction` | Analyze component usage | `->usage`, `->storiesAnalyzed` |
 | `Component\ComponentsDiffAction` | Compare components between two spaces (optional second client for another region) | `->onlyInSource`, `->onlyInTarget`, `->differences`, `->identical`, `->hasDifferences()`, `->toArray()` |
-| `Component\ComponentFieldAddAction` | Add field to component (preflight+execute) | `->component`, `->schema` |
+| `Component\ComponentEnsureAction` | Create a component or update its settings (never the schema) | `->status`, `->componentId()`, `->changedFields` |
+| `Component\ComponentFolderEnsureAction` | Create a component folder path | `->uuid()`, `->created` |
+| `Component\ComponentFieldAddAction` | Add field to component (preflight+execute; `extra` for description, options, datasource source, ...) | `->component`, `->schema` |
 | `Component\ComponentShowAction` | Get component fields and schema | `->component` |
 | `AppProvision\AppProvisionListAction` | List installed apps | `->provisions`, `->count()` |
 | `AppProvision\AppProvisionInstallAction` | Install app (preflight+execute) | `->appOptions` (for selection) |

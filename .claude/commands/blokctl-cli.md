@@ -46,6 +46,7 @@ Exceptions that do not require `-S`: `space:create`, `space:setup-validate`, `sp
 - Merges story tags and preview environments.
 - Skips matching apps, folders, fields, tags, workflows, demo mode, preview URLs, root-content moves, and Dimensions configuration.
 - Supports multi-country setup with `folders.ensure`, `stories.move`, and `dimensions.folders`.
+- Creates components with their folder and fields with `components.ensure` (after datasources, before stories).
 - Creates or updates datasources, dimensions, and entries with `datasources` (inline or `entries_file` CSV); `remove_entries` deletes entries at the end with the other removals.
 - Inserts components into story list fields with `stories.insert_component` (index or append; skipped when the same block is already present; runs after `stories.update`).
 - Publishes selected stories with `stories.publish` (after other operations) and unpublishes with `stories.unpublish` (with the removals at the end).
@@ -139,6 +140,8 @@ See `space-setup-config.md` for complete syntax. Reports contain stable JSON sta
 - **`components:usage`** — Analyze component usage across stories. Options: `--starts-with`, `--per-page`.
 - **`components:diff`** — Compare components (settings, fields, default values, tabs, presets) between `-S` (source) and `--target-space` / `-T`. Read-only. Options: `--target-region`, `--component` / `-c` (repeatable), `--with-presets`, `--json`, `--exit-code`.
 - **`component:show`** — Display component fields and schema. Lookup: `--by-name`, `--by-id`. Option: `--with-tabs`.
+- **`component:ensure`** — Create a component or update its settings. Options: `--name`, `--display-name`, `--type` (`content_type`, `nestable`, `universal`), `--folder` (path, created when missing), `--color`, `--icon`, `--preview-field`, `--description`. Never changes fields.
+- **`component:folder-ensure`** — Create a component folder path, e.g. `--path=Marketing/Banners`. Folder names are unique in the space.
 - **`component:field-add`** — Add a field to a component. Options: `--component`, `--field`, `--type` (core type or `custom`), `--field-type` (plugin slug), `--tab`, `--display-name`, `--required`, `--translatable`.
 
 ### Apps

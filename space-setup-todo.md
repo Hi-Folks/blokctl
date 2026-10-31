@@ -82,12 +82,12 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
   - Generated config should pass `SpaceSetupConfigValidator` and should be executable by `SpaceSetupProvisioner`.
   - First exporter target can emit only currently supported sections, especially `components.fields`; keep the public schema API stable so richer exports can be added later.
 
-- [ ] Expand `space:setup` to create and reconcile full components, component folders, and datasources.
-  - Add `components.ensure` for component/block creation and full schema reconciliation, instead of only adding fields to existing components.
-  - Add component folder/group reconciliation by path, matching the `Folder` model.
-  - Add datasource reconciliation by slug, including dimensions; preserve or explicitly manage datasource entries separately.
-  - Reuse existing setup primitives: validation, dry-run planning, operation reporting, continue-on-error behavior, and idempotent update checks.
-  - Keep destructive schema changes explicit and gated by the destructive-operation decision below.
+- [x] Expand `space:setup` to create and reconcile full components, component folders, and datasources.
+  - [x] Add `components.ensure` for component/block creation with settings and fields (no full schema replacement: undeclared fields are kept).
+  - [x] Add component folder/group reconciliation by path (`folder` in `components.ensure`, `component:folder-ensure`).
+  - [x] Add datasource reconciliation by slug, including dimensions; preserve or explicitly manage datasource entries separately (`datasources`, `remove_entries`).
+  - [x] Reuse existing setup primitives: validation, dry-run planning, operation reporting, continue-on-error behavior, and idempotent update checks.
+  - [ ] Keep destructive schema changes (field or component removal) explicit and gated by the destructive-operation decision below.
 
 - [ ] Add story validation against the declared PHP schema.
   - Validate root component names, nested `bloks` content, required fields, scalar field value types, allowed components/folders for `bloks`, datasource-backed option values where practical, and custom field plugin values when validators are available.
@@ -308,6 +308,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 - [x] Story publishing and unpublishing by slug, ID, or folder
 - [x] Component insertion into story list fields with `stories.insert_component`
 - [x] Datasources, dimensions, and entries with `datasources`
+- [x] Components with folder and fields with `components.ensure`
 - [x] Existing-space setup with `-S`
 - [x] Configuration-driven blank-space creation with `space.create_new: true`
 - [x] Configuration-driven duplicate-first setup with `space.duplicate_from`

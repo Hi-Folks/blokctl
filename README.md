@@ -213,7 +213,7 @@ php bin/blokctl space:setup \
 php bin/blokctl space:setup-validate --config examples/demo-space.yaml
 ```
 
-The setup config supports JSON and YAML and is validated against [space-setup-schema.json](space-setup-schema.json) before any space is created or modified. See [examples/demo-space.yaml](examples/demo-space.yaml) for general provisioning, [examples/multi-country-space.yaml](examples/multi-country-space.yaml) for folder, root-content move, and Dimensions reconciliation, [examples/assets-space.yaml](examples/assets-space.yaml) for local-directory asset upload, [examples/roles-space.yaml](examples/roles-space.yaml) for custom space roles, [examples/datasources-space.yaml](examples/datasources-space.yaml) for datasources with dimensions and CSV entries, and [examples/governance-space.yaml](examples/governance-space.yaml) for roles plus a custom review workflow. See [space-setup-config.md](space-setup-config.md) for the full configuration syntax.
+The setup config supports JSON and YAML and is validated against [space-setup-schema.json](space-setup-schema.json) before any space is created or modified. See [examples/demo-space.yaml](examples/demo-space.yaml) for general provisioning, [examples/multi-country-space.yaml](examples/multi-country-space.yaml) for folder, root-content move, and Dimensions reconciliation, [examples/assets-space.yaml](examples/assets-space.yaml) for local-directory asset upload, [examples/roles-space.yaml](examples/roles-space.yaml) for custom space roles, [examples/datasources-space.yaml](examples/datasources-space.yaml) for datasources with dimensions and CSV entries, [examples/components-space.yaml](examples/components-space.yaml) for a new component that uses a datasource and is added to the home page, and [examples/governance-space.yaml](examples/governance-space.yaml) for roles plus a custom review workflow. See [space-setup-config.md](space-setup-config.md) for the full configuration syntax.
 
 ```yaml
 execution:
@@ -1580,6 +1580,35 @@ Read-only: nothing is changed in either space. Components are matched by name an
 
 IDs, UUIDs, `_uid`, `pos`, and timestamps are ignored. Properties that store space-specific IDs (for example asset folder IDs or tag IDs in a whitelist) can report differences between unrelated spaces even when the setup is equivalent. Use `-v` to also list identical components.
 
+#### `component:ensure` — Create or update a component
+
+```bash
+php bin/blokctl component:ensure -S 290817118944379 \
+  --name=promo-banner --display-name="Promo banner" --type=nestable \
+  --folder="Marketing/Banners" --color="#ff6600" --preview-field=title
+```
+
+| Option | Description |
+|---|---|
+| `--name` | **(required)** Component technical name. The component is matched by name |
+| `--display-name` | Display name |
+| `--type` | `content_type`, `nestable`, or `universal`. Defaults to `nestable` when creating |
+| `--folder` | Component folder path in the block library, e.g. `Marketing/Banners`. Missing folders are created |
+| `--color` | Color, e.g. `#ff6600` |
+| `--icon` | Icon name |
+| `--preview-field` | Field shown as preview in the block list |
+| `--description` | Description |
+
+Creates the component (with no fields) when it does not exist, otherwise updates only the options you pass. Running it again with the same options changes nothing. Fields are never touched by this command: add them with `component:field-add`, or declare them in `space:setup` with `components.ensure`.
+
+#### `component:folder-ensure` — Create a component folder path
+
+```bash
+php bin/blokctl component:folder-ensure -S 290817118944379 --path="Marketing/Banners"
+```
+
+Creates the missing folders of the path, each inside the previous one. Folder names are unique in the whole space (not only inside their parent), so a name that already exists in another location stops the command before anything is created.
+
 #### `component:field-add` — Add a field to a component
 
 ```bash
@@ -2795,6 +2824,38 @@ $result = (new ComponentsDiffAction($client, $targetClient))->execute($sourceSpa
 ```
 
 Throws `\RuntimeException` when components or presets cannot be fetched, or when a name in `componentNames` exists in neither space.
+
+#### Create or update a component
+
+```php
+use Blokctl\Action\Component\ComponentEnsureAction;
+use Blokctl\Action\Component\ComponentEnsureResult;
+
+$result = (new ComponentEnsureAction($client))->execute(
+    spaceId: $spaceId,
+    name: 'promo-banner',
+    displayName: 'Promo banner',
+    type: ComponentEnsureAction::NESTABLE,   // CONTENT_TYPE, NESTABLE, or UNIVERSAL
+    folder: 'Marketing/Banners',             // created when missing
+    color: '#ff6600',
+);
+
+$result->status;        // ComponentEnsureResult::CREATED, UPDATED, or UNCHANGED
+$result->componentId(); // int
+$result->changedFields; // e.g. ['display_name', 'is_root']
+```
+
+Every setting is optional; `null` keeps the existing value. Updates never send the schema, because a schema in an update replaces all fields.
+
+#### Create a component folder path
+
+```php
+use Blokctl\Action\Component\ComponentFolderEnsureAction;
+
+$result = (new ComponentFolderEnsureAction($client))->execute($spaceId, 'Marketing/Banners');
+$result->uuid();   // folder UUID, used as component_group_uuid
+$result->created;  // paths created by this call, e.g. ['Marketing/Banners']
+```
 
 #### Add a field to a component
 

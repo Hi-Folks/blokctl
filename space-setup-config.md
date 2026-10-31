@@ -220,7 +220,7 @@ Except for `version`, all top-level sections are optional. If a section is omitt
 | `ai_translation` | Configure the disclaimer required by AI Translations. |
 | `dimensions` | Reconcile Dimensions app folders. |
 | `assets` | Upload local asset directories and convert space assets into the Global Asset Library. |
-| `components` | Add fields to existing components. |
+| `components` | Create components (`ensure`) and create or update fields (`fields`). |
 | `roles` | Create or update custom space roles. |
 | `tags` | Assign tags to stories by ID or slug. |
 
@@ -903,7 +903,52 @@ See [examples/assets-space.yaml](examples/assets-space.yaml) for a runnable exam
 
 ## `components`
 
-Adds fields to existing components.
+Creates components (`ensure`) and creates or updates fields (`fields`).
+
+### `components.ensure`
+
+Creates components, or updates their declared settings, then reconciles their fields. Runs after `datasources`, so an option field can use a datasource from the same config, and before story operations, so `stories.insert_component` can use the new component.
+
+```yaml
+components:
+  ensure:
+    - name: promo-banner
+      display_name: Promo banner
+      type: nestable              # content_type, nestable, or universal
+      folder: Marketing/Banners   # created when missing
+      color: "#ff6600"
+      preview_field: title
+      fields:
+        - field: title
+          type: text
+          tab: Content
+          required: true
+        - field: theme
+          type: option
+          tab: Design
+          source: internal
+          datasource_slug: banner-themes
+```
+
+| Key | Required | Description |
+|---|---:|---|
+| `ensure[].name` | Yes | Component technical name, unique in the space. The component is matched by name. |
+| `ensure[].display_name` | No | Display name. |
+| `ensure[].type` | No | `content_type`, `nestable`, or `universal`. Defaults to `nestable` when the component is created. |
+| `ensure[].folder` | No | Component folder path in the block library, for example `Marketing/Banners`. Missing folders are created. Folder names are unique in the whole space. |
+| `ensure[].color` | No | Component color. |
+| `ensure[].icon` | No | Component icon name. |
+| `ensure[].preview_field` | No | Field shown as preview in the block list. |
+| `ensure[].description` | No | Component description. |
+| `ensure[].fields` | No | Fields, with the same keys as `components.fields` below (without `component`). |
+
+Only declared settings and fields are reconciled; nothing is removed. Component settings are updated without sending the schema, because a schema in an update replaces all fields of the component. Validation rejects duplicate component names and duplicate fields inside a component.
+
+See [examples/components-space.yaml](examples/components-space.yaml): a datasource, a new component that uses it, and the component added to the home page.
+
+### `components.fields`
+
+Adds fields to existing components, or updates their declared properties.
 
 ```yaml
 components:
@@ -936,6 +981,14 @@ components:
 | `fields[].required` | No | Boolean. Defaults to `false` when creating a field. Existing fields change only when declared. |
 | `fields[].translatable` | No | Boolean. Defaults to `false` when creating a field. Existing fields change only when declared. |
 | `fields[].customize_toolbar` | No | Boolean. Enable or disable richtext toolbar customization on fields that support it. Existing fields change only when declared. |
+| `fields[].description` | No | Field description shown to editors. |
+| `fields[].default_value` | No | Default value. |
+| `fields[].options` | No | Options for `option`/`options` fields, as `{name, value}` pairs or plain strings. |
+| `fields[].source` | No | Option source: `internal` (a datasource of this space), `internal_stories`, `internal_languages`, or `external`. |
+| `fields[].datasource_slug` | No | Datasource slug for option fields with `source: internal`. |
+| `fields[].component_whitelist` | No | Components allowed in a `bloks` field. Use with `restrict_components: true`. |
+| `fields[].restrict_components` | No | Boolean. Restrict a `bloks` field to `component_whitelist`. |
+| `fields[].filetypes` | No | Allowed file types for asset fields, for example `images`, `videos`. |
 
 Missing fields are created. Existing fields are compared using only properties declared in the setup config: matching fields are skipped and differing declared properties are updated. Unmanaged field properties are preserved.
 

@@ -78,7 +78,7 @@
       "$ref": "#/$defs/assets"
     },
     "components": {
-      "description": "Creates or updates explicitly configured fields on existing components.",
+      "description": "Creates components (ensure) and creates or updates explicitly configured fields.",
       "$ref": "#/$defs/components"
     },
     "roles": {
@@ -1425,13 +1425,17 @@
       }
     },
     "components": {
-      "description": "Component field reconciliation configuration.",
+      "description": "Component definitions and field reconciliation.",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "fields"
-      ],
       "properties": {
+        "ensure": {
+          "description": "Components to create or update, matched by technical name. Runs after datasources and before story operations.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/componentDefinition"
+          }
+        },
         "fields": {
           "description": "Fields to create or update on existing components.",
           "type": "array",
@@ -1439,7 +1443,8 @@
             "$ref": "#/$defs/componentField"
           }
         }
-      }
+      },
+      "minProperties": 1
     },
     "componentField": {
       "description": "Desired field on an existing Storyblok component. Existing fields update only explicitly declared properties.",
@@ -1500,6 +1505,284 @@
         "customize_toolbar": {
           "description": "Enable or disable richtext toolbar customization on fields that support it. Existing fields change only when declared.",
           "$ref": "#/$defs/booleanOrExpression"
+        },
+        "description": {
+          "description": "Field description shown to editors.",
+          "type": "string"
+        },
+        "default_value": {
+          "description": "Default value of the field.",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {
+          "description": "Options for option/options fields, as name/value pairs or plain strings.",
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name",
+                  "value"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "source": {
+          "description": "Option source, for example internal (a datasource of this space), internal_stories, internal_languages, or external.",
+          "type": "string"
+        },
+        "datasource_slug": {
+          "description": "Datasource slug for option fields with source: internal.",
+          "type": "string",
+          "minLength": 1
+        },
+        "component_whitelist": {
+          "description": "Components allowed in a bloks field (used with restrict_components: true).",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "restrict_components": {
+          "description": "Restrict a bloks field to the components in component_whitelist.",
+          "$ref": "#/$defs/booleanOrExpression"
+        },
+        "filetypes": {
+          "description": "Allowed file types for asset fields, for example images, videos, texts.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "componentDefinition": {
+      "description": "A component, matched by technical name. Only declared settings and fields are reconciled; nothing is removed.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "description": "Component technical name, unique in the space.",
+          "type": "string",
+          "minLength": 1
+        },
+        "display_name": {
+          "description": "Display name.",
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "description": "content_type, nestable, or universal. Defaults to nestable when the component is created.",
+          "enum": [
+            "content_type",
+            "nestable",
+            "universal"
+          ]
+        },
+        "folder": {
+          "description": "Component folder path in the block library, for example Marketing/Banners. Missing folders are created; folder names are unique in the space.",
+          "type": "string",
+          "minLength": 1
+        },
+        "color": {
+          "description": "Component color, for example #ff6600.",
+          "type": "string",
+          "minLength": 1
+        },
+        "icon": {
+          "description": "Component icon name.",
+          "type": "string",
+          "minLength": 1
+        },
+        "preview_field": {
+          "description": "Field shown as preview in the block list.",
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "description": "Component description.",
+          "type": "string"
+        },
+        "fields": {
+          "description": "Fields of the component, reconciled like components.fields.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/componentDefinitionField"
+          }
+        }
+      }
+    },
+    "componentDefinitionField": {
+      "description": "A field of a component declared in components.ensure.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "field",
+        "type"
+      ],
+      "properties": {
+        "field": {
+          "description": "Technical field name.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "type": {
+          "description": "Storyblok field type, such as text, richtext, asset, bloks, custom, or plugin.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "field_type": {
+          "description": "Plugin or custom field type, for example sb-ai-seo.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "fieldType": {
+          "description": "Camel-case alias of field_type.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "tab": {
+          "description": "Tab display name. Defaults to General when creating a field; existing fields move only when this property is declared.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "pos": {
+          "description": "Numeric field position.",
+          "$ref": "#/$defs/integerOrExpression"
+        },
+        "display_name": {
+          "description": "Human-readable field label.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "displayName": {
+          "description": "Camel-case alias of display_name.",
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "required": {
+          "description": "Mark the field as required. Defaults to false when creating a field; existing fields change only when declared.",
+          "$ref": "#/$defs/booleanOrExpression",
+          "default": false
+        },
+        "translatable": {
+          "description": "Mark the field as translatable. Defaults to false when creating a field; existing fields change only when declared.",
+          "$ref": "#/$defs/booleanOrExpression",
+          "default": false
+        },
+        "customize_toolbar": {
+          "description": "Enable or disable richtext toolbar customization on fields that support it. Existing fields change only when declared.",
+          "$ref": "#/$defs/booleanOrExpression"
+        },
+        "description": {
+          "description": "Field description shown to editors.",
+          "type": "string"
+        },
+        "default_value": {
+          "description": "Default value of the field.",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {
+          "description": "Options for option/options fields, as name/value pairs or plain strings.",
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name",
+                  "value"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "source": {
+          "description": "Option source, for example internal (a datasource of this space), internal_stories, internal_languages, or external.",
+          "type": "string"
+        },
+        "datasource_slug": {
+          "description": "Datasource slug for option fields with source: internal.",
+          "type": "string",
+          "minLength": 1
+        },
+        "component_whitelist": {
+          "description": "Components allowed in a bloks field (used with restrict_components: true).",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "restrict_components": {
+          "description": "Restrict a bloks field to the components in component_whitelist.",
+          "$ref": "#/$defs/booleanOrExpression"
+        },
+        "filetypes": {
+          "description": "Allowed file types for asset fields, for example images, videos, texts.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },

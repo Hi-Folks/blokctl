@@ -1,0 +1,58 @@
+# yaml-language-server: $schema=../space-setup-schema.json
+
+version: 1
+
+execution:
+  mode: reconcile
+
+# A customer promo banner in one run:
+# 1. a datasource for the banner themes
+# 2. a new component whose theme field uses that datasource
+# 3. the component added to the home page, which is then published
+
+datasources:
+  - slug: banner-themes
+    name: Banner themes
+    entries:
+      - name: light
+        value: "#f5f5f5"
+      - name: dark
+        value: "#1a1a1a"
+
+components:
+  ensure:
+    - name: promo-banner
+      display_name: Promo banner
+      type: nestable
+      folder: Marketing/Banners
+      color: "#ff6600"
+      preview_field: title
+      fields:
+        - field: title
+          type: text
+          tab: Content
+          required: true
+        - field: text
+          type: textarea
+          tab: Content
+        - field: theme
+          type: option
+          tab: Design
+          source: internal
+          datasource_slug: banner-themes
+          default_value: light
+
+stories:
+  insert_component:
+    - slug: home
+      target:
+        path: content.body
+        index: 1
+      match: [title]
+      component:
+        component: promo-banner
+        title: Special offer for our customers
+        text: Valid until the end of the month.
+        theme: dark
+  publish:
+    slugs: [home]

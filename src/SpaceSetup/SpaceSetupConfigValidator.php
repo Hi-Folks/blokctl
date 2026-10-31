@@ -104,6 +104,28 @@ final readonly class SpaceSetupConfigValidator
             }
         }
 
+        $componentsConfig = is_array($config['components'] ?? null) ? $config['components'] : [];
+        $componentNames = [];
+        foreach (is_array($componentsConfig['ensure'] ?? null) ? $componentsConfig['ensure'] : [] as $index => $definition) {
+            $name = is_array($definition) && is_string($definition['name'] ?? null) ? $definition['name'] : null;
+            if ($name === null) {
+                continue;
+            }
+
+            if (in_array($name, $componentNames, true)) {
+                $errors[] = '$.components.ensure[' . $index . '].name: Duplicate component name "' . $name . '".';
+            }
+
+            $componentNames[] = $name;
+            $fieldNames = array_values(array_filter(array_map(
+                static fn(mixed $field): mixed => is_array($field) ? ($field['field'] ?? null) : null,
+                is_array($definition['fields'] ?? null) ? $definition['fields'] : [],
+            ), is_string(...)));
+            foreach (array_unique(array_diff_assoc($fieldNames, array_unique($fieldNames))) as $duplicate) {
+                $errors[] = '$.components.ensure[' . $index . '].fields: Duplicate field "' . $duplicate . '".';
+            }
+        }
+
         $datasourceSlugs = [];
         foreach (is_array($config['datasources'] ?? null) ? $config['datasources'] : [] as $index => $datasource) {
             $slug = is_array($datasource) && is_string($datasource['slug'] ?? null) ? $datasource['slug'] : null;

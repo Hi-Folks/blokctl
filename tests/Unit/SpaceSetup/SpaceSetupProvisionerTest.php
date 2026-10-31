@@ -1324,6 +1324,33 @@ final class SpaceSetupProvisionerTest extends TestCase
     }
 
     #[Test]
+    public function plans_components_after_datasources_and_before_stories(): void
+    {
+        $results = $this->provision([
+            'datasources' => [['slug' => 'themes']],
+            'components' => [
+                'ensure' => [[
+                    'name' => 'promo',
+                    'type' => 'nestable',
+                    'folder' => 'Marketing/Banners',
+                    'fields' => [['field' => 'theme', 'type' => 'option', 'source' => 'internal', 'datasource_slug' => 'themes']],
+                ]],
+                'fields' => [['component' => 'page', 'field' => 'seo', 'type' => 'text']],
+            ],
+            'stories' => ['insert_component' => [['slug' => 'home', 'target' => ['path' => 'content.body'], 'component' => ['component' => 'promo']]]],
+        ])->results();
+
+        $this->assertSame([
+            'Ensure datasource: themes',
+            'Ensure component: promo',
+            'Ensure component field: promo.theme',
+            'Insert component: home content.body (promo)',
+            'Ensure component field: page.seo',
+        ], array_map(static fn(SpaceSetupOperationResult $result): string => $result->label, $results));
+        $this->assertSame('type: nestable; folder: Marketing/Banners', $results[1]->detail);
+    }
+
+    #[Test]
     public function plans_each_tag_assignment(): void
     {
         $result = $this->singleResult([

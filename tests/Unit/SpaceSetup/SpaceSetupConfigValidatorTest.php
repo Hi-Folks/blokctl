@@ -160,6 +160,44 @@ final class SpaceSetupConfigValidatorTest extends TestCase
     }
 
     #[Test]
+    public function validates_components_example_yaml_configuration(): void
+    {
+        $config = new SpaceSetupConfigLoader()->load('examples/components-space.yaml');
+
+        $result = new SpaceSetupConfigValidator()->validate($config);
+
+        $this->assertTrue($result->isValid(), implode(' | ', $result->errors));
+    }
+
+    #[Test]
+    public function rejects_duplicate_component_definitions_and_fields(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'components' => ['ensure' => [
+                ['name' => 'promo', 'fields' => [['field' => 'title', 'type' => 'text'], ['field' => 'title', 'type' => 'textarea']]],
+                ['name' => 'promo', 'type' => 'nestable'],
+            ]],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertErrorsContain($result->errors, 'Duplicate component name "promo"');
+        $this->assertErrorsContain($result->errors, 'Duplicate field "title"');
+    }
+
+    #[Test]
+    public function rejects_invalid_component_type(): void
+    {
+        $result = new SpaceSetupConfigValidator()->validate([
+            'version' => 1,
+            'components' => ['ensure' => [['name' => 'promo', 'type' => 'block']]],
+        ]);
+
+        $this->assertFalse($result->isValid());
+        $this->assertErrorsContain($result->errors, 'type');
+    }
+
+    #[Test]
     public function rejects_unknown_workflow_stage_properties(): void
     {
         $result = new SpaceSetupConfigValidator()->validate([

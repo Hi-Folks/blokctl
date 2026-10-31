@@ -1,0 +1,4 @@
+{"components": [
+  {"id": 800, "name": "promo-banner", "display_name": "Promo banner", "is_root": false, "is_nestable": true, "component_group_uuid": "uuid-banners", "color": "#ff6600", "icon": null, "preview_field": "title", "description": null, "schema": {"title": {"type": "text", "pos": 0}}},
+  {"id": 801, "name": "promo-banner-old", "display_name": null, "is_root": false, "is_nestable": true, "component_group_uuid": null, "color": null, "icon": null, "preview_field": null, "description": null, "schema": {}}
+], "component_groups": []}

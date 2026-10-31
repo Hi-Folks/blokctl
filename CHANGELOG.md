@@ -13,6 +13,10 @@ All notable changes to `blokctl` will be documented in this file.
 - Added reusable PHP classes `DatasourceLookup`, `DatasourceEnsureAction`, `DatasourceEntriesEnsureAction`, `DatasourceEntriesRemoveAction`, and `DatasourceEntriesCsv`.
 - Added `datasources` to `space:setup` YAML/JSON configs (dimensions, inline entries, and `entries_file` CSV), with `examples/datasources-space.yaml`.
 - Added verified datasource and datasource entry behavior to `management-api-behavior.md`.
+- Added `component:ensure` (create a component or update its type, folder, display name, color, icon, preview field) and `component:folder-ensure` (create a component folder path) commands, with PHP actions `ComponentEnsureAction` and `ComponentFolderEnsureAction`.
+- Added `components.ensure` to `space:setup` YAML/JSON configs: create components with their folder and fields. Runs after datasources and before story operations. Added `examples/components-space.yaml`.
+- Added field properties to `components.fields` and `components.ensure`: `description`, `default_value`, `options`, `source`, `datasource_slug`, `component_whitelist`, `restrict_components`, and `filetypes`. `ComponentFieldAddAction::execute()` accepts them through `extra`.
+- Added verified component and component folder behavior to `management-api-behavior.md` (a schema in an update replaces all fields; folder names are unique in the space).
 
 ## 0.17.0 - 2026-10-31
 

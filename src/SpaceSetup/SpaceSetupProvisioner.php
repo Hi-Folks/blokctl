@@ -6,6 +6,8 @@ namespace Blokctl\SpaceSetup;
 
 use Blokctl\Action\AppProvision\AppProvisionInstallAction;
 use Blokctl\Action\Asset\AssetsConvertToGlobalAction;
+use Blokctl\Action\Component\ComponentEnsureAction;
+use Blokctl\Action\Component\ComponentEnsureResult;
 use Blokctl\Action\Component\ComponentFieldAddAction;
 use Blokctl\Action\Component\ComponentFieldAddResult;
 use Blokctl\Action\Datasource\DatasourceEnsureAction;
@@ -83,6 +85,7 @@ final readonly class SpaceSetupProvisioner
             $this->provisionLanguages($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionFolders($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionDatasources($reporter, $spaceId, $config, $configDirectory, $dryRun, $continueOnError);
+            $this->provisionComponentDefinitions($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionStoryMoves($reporter, $spaceId, $config, $dryRun, $continueOnError);
             $this->provisionAssets($reporter, $spaceId, $config, $configDirectory, $dryRun, $continueOnError);
             $this->provisionStoryUpdates($reporter, $spaceId, $config, $dryRun, $continueOnError);
@@ -1912,26 +1915,98 @@ final readonly class SpaceSetupProvisioner
     ): void {
         $components = $this->arrayValue($config['components'] ?? []);
         foreach ($this->listValue($components['fields'] ?? []) as $field) {
-            if (!is_array($field)) {
+            if (is_array($field)) {
+                $this->runComponentFieldOperation($reporter, $spaceId, $this->stringValue($field['component'] ?? ''), $field, $dryRun, $continueOnError);
+            }
+        }
+    }
+
+    /**
+     * Create components declared in components.ensure, or update their settings, then
+     * reconcile their fields. Runs after datasources, so option fields can use a
+     * datasource from the same config, and before story operations.
+     *
+     * @param array<string, mixed> $config
+     */
+    private function provisionComponentDefinitions(
+        SpaceSetupReporter $reporter,
+        string $spaceId,
+        array $config,
+        bool $dryRun,
+        bool $continueOnError,
+    ): void {
+        $components = $this->arrayValue($config['components'] ?? []);
+        foreach ($this->listValue($components['ensure'] ?? []) as $definition) {
+            if (!is_array($definition)) {
                 continue;
             }
 
-            $componentName = $this->stringValue($field['component'] ?? '');
-            $fieldName = $this->stringValue($field['field'] ?? '');
-            $reporter->run('Ensure component field: ' . $componentName . '.' . $fieldName, SpaceSetupOperationStatus::Created, $continueOnError, function () use ($spaceId, $field, $componentName, $fieldName, $dryRun): ?SpaceSetupOperationResult {
-                $type = $this->stringValue($field['type'] ?? '');
-                $tab = $this->stringValue($field['tab'] ?? 'General');
-                if ($componentName === '' || $fieldName === '' || $type === '') {
-                    throw new \RuntimeException('Component field entries require component, field, and type.');
-                }
-
+            $name = $this->stringValue($definition['name'] ?? '');
+            $settings = [
+                'displayName' => $this->nullableStringValue($definition['display_name'] ?? null),
+                'type' => $this->nullableStringValue($definition['type'] ?? null),
+                'folder' => $this->nullableStringValue($definition['folder'] ?? null),
+                'color' => $this->nullableStringValue($definition['color'] ?? null),
+                'icon' => $this->nullableStringValue($definition['icon'] ?? null),
+                'previewField' => $this->nullableStringValue($definition['preview_field'] ?? null),
+                'description' => $this->nullableStringValue($definition['description'] ?? null),
+            ];
+            $label = 'Ensure component: ' . $name;
+            $reporter->run($label, SpaceSetupOperationStatus::Updated, $continueOnError, function () use ($spaceId, $name, $settings, $dryRun, $label): SpaceSetupOperationResult {
                 if ($dryRun) {
-                    return null;
+                    $details = [];
+                    foreach ($settings as $key => $value) {
+                        if ($value !== null) {
+                            $details[] = strtolower((string) preg_replace('/[A-Z]/', ' $0', $key)) . ': ' . $value;
+                        }
+                    }
+
+                    return new SpaceSetupOperationResult(SpaceSetupOperationStatus::Updated, $label, implode('; ', $details));
                 }
 
-                return $this->reconcileComponentField($spaceId, $componentName, $fieldName, $type, $tab, $field);
+                $result = new ComponentEnsureAction($this->client)->execute($spaceId, $name, ...$settings);
+
+                return match ($result->status) {
+                    ComponentEnsureResult::CREATED => new SpaceSetupOperationResult(SpaceSetupOperationStatus::Created, $label, 'Component ID ' . $result->componentId() . '.'),
+                    ComponentEnsureResult::UPDATED => new SpaceSetupOperationResult(SpaceSetupOperationStatus::Updated, $label, 'Changed: ' . implode(', ', $result->changedFields) . '.'),
+                    default => new SpaceSetupOperationResult(SpaceSetupOperationStatus::Skipped, $label, 'Component already matches.'),
+                };
             });
+
+            foreach ($this->listValue($definition['fields'] ?? []) as $field) {
+                if (is_array($field)) {
+                    $this->runComponentFieldOperation($reporter, $spaceId, $name, $field, $dryRun, $continueOnError);
+                }
+            }
         }
+    }
+
+    /**
+     * @param array<mixed> $field
+     */
+    private function runComponentFieldOperation(
+        SpaceSetupReporter $reporter,
+        string $spaceId,
+        string $componentName,
+        array $field,
+        bool $dryRun,
+        bool $continueOnError,
+    ): void {
+        $fieldName = $this->stringValue($field['field'] ?? '');
+        $reporter->run('Ensure component field: ' . $componentName . '.' . $fieldName, SpaceSetupOperationStatus::Created, $continueOnError, function () use ($spaceId, $field, $componentName, $fieldName, $dryRun): ?SpaceSetupOperationResult {
+            $type = $this->stringValue($field['type'] ?? '');
+            $tab = $this->stringValue($field['tab'] ?? 'General');
+            if ($componentName === '' || $fieldName === '' || $type === '') {
+                throw new \RuntimeException('Component field entries require component, field, and type.');
+            }
+
+            if ($dryRun) {
+                return null;
+            }
+
+            /** @var array<string, mixed> $field */
+            return $this->reconcileComponentField($spaceId, $componentName, $fieldName, $type, $tab, $field);
+        });
     }
 
     /**
@@ -2515,6 +2590,7 @@ final readonly class SpaceSetupProvisioner
                 customizeToolbar: array_key_exists('customize_toolbar', $field)
                     ? $this->boolValue($field['customize_toolbar'])
                     : null,
+                extra: $this->extraFieldProperties($field),
             );
 
             return new SpaceSetupOperationResult(SpaceSetupOperationStatus::Created, $label);
@@ -2594,7 +2670,51 @@ final readonly class SpaceSetupProvisioner
             }
         }
 
+        foreach ($this->extraFieldProperties($declared) as $key => $value) {
+            $changed = $this->setWhenDifferent($existing, $key, $value) || $changed;
+        }
+
         return $changed;
+    }
+
+    /**
+     * Declared field properties beyond the core ones, normalized to the schema format:
+     * description, default_value, options (list of name/value), source, datasource_slug,
+     * component_whitelist, restrict_components, and filetypes.
+     *
+     * @param array<mixed> $field
+     * @return array<string, mixed>
+     */
+    private function extraFieldProperties(array $field): array
+    {
+        $extra = [];
+        foreach (['description', 'default_value', 'source', 'datasource_slug'] as $key) {
+            if (array_key_exists($key, $field)) {
+                $extra[$key] = $this->stringValue($field[$key]);
+            }
+        }
+
+        if (array_key_exists('options', $field)) {
+            $extra['options'] = array_map(
+                fn(mixed $option): array => [
+                    'name' => $this->stringValue(is_array($option) ? ($option['name'] ?? '') : $option),
+                    'value' => $this->stringValue(is_array($option) ? ($option['value'] ?? '') : $option),
+                ],
+                $this->listValue($field['options']),
+            );
+        }
+
+        foreach (['component_whitelist', 'filetypes'] as $key) {
+            if (array_key_exists($key, $field)) {
+                $extra[$key] = $this->stringListValue($field[$key]);
+            }
+        }
+
+        if (array_key_exists('restrict_components', $field)) {
+            $extra['restrict_components'] = $this->boolValue($field['restrict_components']);
+        }
+
+        return $extra;
     }
 
     /**
