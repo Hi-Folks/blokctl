@@ -1,0 +1,7 @@
+version: 1
+extends:
+  - base/datasources.yaml
+roles:
+  - name: Editors
+    permissions: [read_stories, save_stories]
+  - name: Reviewers

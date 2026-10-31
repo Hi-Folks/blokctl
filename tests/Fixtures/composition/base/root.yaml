@@ -1,0 +1,4 @@
+version: 1
+roles:
+  - name: Editors
+    permissions: [read_stories]

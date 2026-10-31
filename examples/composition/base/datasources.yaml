@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=../../../space-setup-schema.json
+# Reusable datasources. Paths are relative to this file.
+version: 1
+
+datasources:
+  - slug: banner-themes
+    name: Banner themes
+    entries:
+      - name: light
+        value: "#f5f5f5"
+      - name: dark
+        value: "#1a1a1a"
+
+  - slug: countries
+    name: Countries
+    dimensions:
+      it: Italian
+      de: German
+    entries_file: ../../datasources/countries.csv

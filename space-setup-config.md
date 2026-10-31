@@ -81,6 +81,51 @@ php bin/blokctl space:setup-validate --config examples/demo-space.yaml
 
 `space:setup-export -S <space-id> -o space.yaml` writes the components, datasources, roles, and workflows of an existing space in this format, so a space built in the UI can be versioned and applied to other spaces. See the README for the options.
 
+## Composing configurations with `extends`
+
+Keep reusable parts in their own files (components, datasources, governance) and combine them in a short main file:
+
+```yaml
+# customer-acme.yaml
+version: 1
+extends:
+  - base/datasources.yaml
+  - base/components.yaml
+  - base/governance.yaml
+
+datasources:
+  - slug: banner-themes     # same slug as in the base: merged
+    entries:
+      - name: dark          # same entry: only its value changes
+        value: "#003366"
+
+components:
+  ensure:
+    - name: promo-banner    # same component: only the color changes
+      color: "#003366"
+```
+
+The files listed in `extends` are merged in order, then the main file. A later file wins. Paths in `extends` are relative to the file that lists them, and a base file can extend other files. A loop (a file that ends up extending itself) is an error.
+
+Merge rules:
+
+| What | How it merges | Examples |
+|---|---|---|
+| Maps | Key by key; a later value replaces an earlier one | `components.ensure[].color`, `space`, `inputs` |
+| Named lists | Items with the same name or slug are merged; new items are appended | components (`name`), component fields (`field`), `components.fields` (`component` + `field`), field `options` (`name`), datasources (`slug`), datasource entries (`name`), roles (`name`), workflows and stages (`name`), `folders.ensure` (`slug`), `stories.create` (`slug`) |
+| Other lists of objects | Concatenated: base items first, then the main file's | `stories.insert_component`, `stories.update`, `tags`, `workflow.assign` |
+| Lists of plain values | Replaced as a whole | `permissions`, `content_types`, `stories.publish.slugs`, `allowed_paths` |
+
+Items cannot be removed through `extends`; leave them out of the base file instead. File paths inside a base file (`entries_file`, `content_file`, `assets.upload_directory[].source`) are relative to that base file.
+
+Check the result before applying it:
+
+```bash
+php bin/blokctl space:setup-validate --config customer-acme.yaml --print-merged
+```
+
+See [examples/composition/](examples/composition/) for a complete example.
+
 ## File Format
 
 The config file can be YAML or JSON. YAML is recommended for templates because it is easier to read and edit.

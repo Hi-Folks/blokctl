@@ -1,0 +1,41 @@
+# yaml-language-server: $schema=../../space-setup-schema.json
+# Customer configuration: reuses the base files and adds only what is specific to Acme.
+# Check the merged result with:
+#   php bin/blokctl space:setup-validate --config examples/composition/customer-acme.yaml --print-merged
+version: 1
+
+extends:
+  - base/datasources.yaml
+  - base/components.yaml
+  - base/governance.yaml
+
+inputs:
+  customer_name:
+    default: Acme
+
+datasources:
+  - slug: banner-themes        # same slug as in the base: merged
+    entries:
+      - name: dark             # same entry name: only its value changes
+        value: "#003366"
+      - name: brand            # new entry: added
+        value: "#e30613"
+
+components:
+  ensure:
+    - name: promo-banner       # same component: only the color changes, fields are kept
+      color: "#003366"
+
+stories:
+  insert_component:
+    - slug: home
+      target:
+        path: content.body
+        index: 1
+      match: [title]
+      component:
+        component: promo-banner
+        title: "Welcome ${{ inputs.customer_name }}"
+        theme: brand
+  publish:
+    slugs: [home]

@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=../../../space-setup-schema.json
+# Reusable components (for example, from space:setup-export of a showcase space).
+version: 1
+
+components:
+  ensure:
+    - name: promo-banner
+      display_name: Promo banner
+      type: nestable
+      folder: Marketing/Banners
+      color: "#ff6600"
+      preview_field: title
+      fields:
+        - field: title
+          type: text
+          tab: Content
+          required: true
+        - field: text
+          type: textarea
+          tab: Content
+        - field: theme
+          type: option
+          tab: Design
+          source: internal
+          datasource_slug: banner-themes
+          default_value: light

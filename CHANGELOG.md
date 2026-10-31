@@ -4,6 +4,11 @@ All notable changes to `blokctl` will be documented in this file.
 
 ## Unreleased
 
+### Added
+
+- Added `extends` to `space:setup` configs: merge reusable config files in order (paths relative to each file, nested extends, loop detection). Named items (components, fields, options, datasources, entries, roles, workflows, stages, folders, created stories) merge by name or slug; operation lists are concatenated; plain value lists are replaced. File paths in base files stay relative to the base file. Added `SpaceSetupConfigMerger` and `examples/composition/`.
+- Added `--print-merged` to `space:setup-validate` to print the configuration after merging `extends`.
+
 ### Changed
 
 - `space:setup-export` hides secret values in field options, field properties, and datasource entries (including CSV files): they are replaced with a placeholder (default `####YOURSECRET####`) and listed as warnings. A value is secret when its name contains one of the configured names (default `token`, `access_token`, `secret`, `client_secret`, `password`, `passwd`, `api_key`, `private_key`, `access_key`, `credential`; matched ignoring case, `_`, and `-`). Configure with `--secret-name`/`--secret-placeholder` or `BLOKCTL_SECRET_NAMES`/`BLOKCTL_SECRET_PLACEHOLDER` in `.env`; `--include-secrets` keeps the values.

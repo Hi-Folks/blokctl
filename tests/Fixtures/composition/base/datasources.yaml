@@ -1,0 +1,5 @@
+version: 1
+extends: root.yaml
+datasources:
+  - slug: colors
+    entries_file: ../data/colors.csv

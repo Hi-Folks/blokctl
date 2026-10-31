@@ -138,7 +138,8 @@ $result = (new SpaceReadinessAction($client))->execute(
 
 The `space:setup` command is composed from services under `Blokctl\SpaceSetup`:
 
-- `SpaceSetupConfigLoader` and `SpaceSetupConfigValidator`
+- `SpaceSetupConfigLoader` (resolves `extends`) and `SpaceSetupConfigValidator`
+- `SpaceSetupConfigMerger` (merge rules for `extends`; `NAMED_LISTS` lists the named collections)
 - `SpaceSetupInputsResolver` and `SpaceSetupVariableResolver`
 - `SpaceSetupTargetResolver` and `SpaceSetupProvisioner`
 - `SpaceSetupReporter` and `SpaceSetupReportWriter`

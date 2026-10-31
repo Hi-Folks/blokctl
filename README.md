@@ -232,6 +232,19 @@ space:
 
 Reconcile mode is the default. Repeated setup runs preserve unmanaged resources, skip matching state, merge story tags and preview environments, and update only explicitly configured component field properties. Resources omitted from the config are never removed automatically.
 
+**Reusable config files.** A config can extend other config files with `extends`, so common parts (components, datasources, roles, workflows) live in their own files and each customer file adds only what is specific. Named items such as components, fields, datasources, entries, roles, and stages merge by name or slug; check the result with `space:setup-validate --print-merged`. See [examples/composition/](examples/composition/) and the merge rules in [space-setup-config.md](space-setup-config.md).
+
+```yaml
+version: 1
+extends:
+  - base/components.yaml
+  - base/datasources.yaml
+components:
+  ensure:
+    - name: promo-banner   # merged with the base definition
+      color: "#003366"
+```
+
 **Removals run last.** Something is removed only when the config asks for it explicitly, for example `space.languages.remove`, `stories.unpublish`, or `datasources[].remove_entries`. All removals run at the end of the setup, after every create and update. This order lets the same run move content away from what is being removed (for example, create a new stage and assign stories to it before an old one is removed), and if a step fails earlier, the run stops before anything is deleted. With `--continue-on-error` (or `execution.continue_on_error: true`) the run continues after a failure and still reaches the removals, so avoid it for configs that remove resources.
 
 When a removal must happen **first**, for example because a new resource needs a name, color, or content type that the removed resource still uses, split the work into two runs:

@@ -13,6 +13,22 @@
       "description": "Configuration schema version.",
       "const": 1
     },
+    "extends": {
+      "description": "Configuration files to merge before this one, in order (paths relative to this file). Named items (components, fields, datasources, entries, roles, workflows, stages, folders) merge by name or slug; operation lists are concatenated; plain value lists are replaced.",
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      ]
+    },
     "continue_on_error": {
       "description": "Continue running setup steps after a failed step.",
       "$ref": "#/$defs/booleanOrExpression",

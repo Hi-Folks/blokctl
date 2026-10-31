@@ -11,6 +11,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Yaml\Yaml;
 
 #[AsCommand(
     name: 'space:setup-validate',
@@ -26,6 +27,12 @@ class SpaceSetupValidateCommand extends Command
             'c',
             InputOption::VALUE_REQUIRED,
             'JSON or YAML setup configuration file',
+        );
+        $this->addOption(
+            'print-merged',
+            null,
+            InputOption::VALUE_NONE,
+            'Print the configuration after merging the files listed in extends',
         );
     }
 
@@ -53,6 +60,11 @@ class SpaceSetupValidateCommand extends Command
             }
 
             return self::FAILURE;
+        }
+
+        if ($input->getOption('print-merged')) {
+            $output->write(Yaml::dump($config, 10, 2, Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE | Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK | Yaml::DUMP_COMPACT_NESTED_MAPPING), false, OutputInterface::OUTPUT_RAW);
+            return self::SUCCESS;
         }
 
         $output->writeln('<info>Space setup configuration is valid.</info>');

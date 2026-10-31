@@ -243,7 +243,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 
 ## Priority 9: Template Composition
 
-- [ ] Allow one setup config to extend another.
+- [x] Allow one setup config to extend another (`extends`).
 
   ```yaml
   extends:
@@ -251,7 +251,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
     - retail-demo.yaml
   ```
 
-- [ ] Define predictable merge rules for maps, lists, and keyed resources.
+- [x] Define predictable merge rules for maps, lists, and keyed resources (documented in `space-setup-config.md`).
 - [ ] Allow reusable named profiles such as localization, commerce, governance, and AI.
 - [ ] Add conditional sections based on parameters.
 - [ ] Add plan-aware or capability-aware conditional steps.
@@ -310,6 +310,7 @@ Build a PHP-native schema authoring layer inspired by Storyblok's JavaScript `@s
 - [x] Datasources, dimensions, and entries with `datasources`
 - [x] Components with folder and fields with `components.ensure`
 - [x] Export of an existing space as a setup config with `space:setup-export`
+- [x] Config composition with `extends`
 - [x] Existing-space setup with `-S`
 - [x] Configuration-driven blank-space creation with `space.create_new: true`
 - [x] Configuration-driven duplicate-first setup with `space.duplicate_from`

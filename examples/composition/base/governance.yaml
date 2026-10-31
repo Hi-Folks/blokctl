@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=../../../space-setup-schema.json
+# Reusable roles and review workflow.
+version: 1
+
+roles:
+  - name: Editors
+    permissions: [read_stories, save_stories, view_content, view_folders]
+  - name: Reviewers
+    permissions: [read_stories, save_stories, publish_stories, view_content, view_folders]
+
+workflow:
+  ensure:
+    - name: Promo review
+      content_types: [promo-page]
+      stages:
+        - name: Writing
+          color: "#babcb6"
+          default: true
+          roles: [Editors, Reviewers]
+          next: [Approved]
+        - name: Approved
+          color: "#1bb300"
+          allow_publish: true
+          roles: [Reviewers]
+          next: [Writing]
+          after_publish: Writing
