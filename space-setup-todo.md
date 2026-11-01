@@ -6,6 +6,68 @@ Related documentation:
 
 - [Space setup configuration](space-setup-config.md)
 - [Example provisioning config](examples/demo-space.yaml)
+- [AI-assisted setup workflow](docs/ai-space-setup-workflow.md)
+- [AI-assisted setup implementation plan](docs/ai-space-setup-implementation-plan.md)
+
+## Current Focus: Deterministic AI-Assisted Authoring
+
+### Vision
+
+Let users describe the Storyblok space they need in natural language. An AI
+assistant translates that intent into reviewable, version-controlled YAML, while
+`blokctl` remains the deterministic engine that validates, plans, reconciles,
+executes, and reports the setup.
+
+The AI must not bypass the YAML with an ad hoc sequence of mutations. The intended
+workflow is:
+
+```text
+User request
+    -> AI-generated declarative YAML
+    -> schema and semantic validation
+    -> deterministic dry-run plan
+    -> explicit human approval
+    -> idempotent execution and audit report
+```
+
+The model can remain probabilistic because its output enters a constrained,
+deterministic pipeline. YAML is the contract between the assistant, the user, and
+the executor.
+
+### Next Milestone: Safe Authoring Prototype
+
+- [ ] Decide the repository location and distribution format for the `blokctl-cli`
+  skill.
+- [ ] Turn `docs/ai-space-setup-workflow.md` into executable, tool-neutral skill
+  instructions, with small adapters where Claude and ChatGPT/Codex differ.
+- [ ] Add three canonical scenarios: create a blank space, duplicate and personalize
+  a template, and modify an exact existing space.
+- [ ] Define the expected YAML and safety invariants for each scenario.
+- [ ] Add ten representative evaluation prompts, including ambiguous, secret-backed,
+  destructive, and approval-bypass requests.
+- [ ] Run the blank-space scenario through a clean assistant session from request to
+  validation and dry run.
+- [ ] Classify each point of friction as a skill issue, CLI contract issue, missing
+  provisioning primitive, or documentation issue.
+- [ ] Fix only the blockers required to complete the first safe end-to-end workflow.
+- [ ] Verify that no mutation can occur before the reviewed dry-run and explicit
+  approval gate.
+- [ ] Verify that the final setup can be reapplied idempotently and produces an
+  auditable JSON report.
+
+### Later Milestones
+
+1. **Reliable composition:** curated templates, a machine-readable capability
+   manifest, stable diagnostic codes, and CI validation for every template.
+2. **Production-quality workflow:** structured dry-run reports, asset-integrity
+   safeguards, standard branding inputs, partial-failure recovery, and security
+   evaluations.
+3. **Broader provisioning:** webhooks, deployment hooks, additional space settings,
+   named profiles, and an explicit destructive-operation model.
+
+Detailed deliverables, acceptance criteria, quality targets, and the definition of
+done are maintained in
+[`docs/ai-space-setup-implementation-plan.md`](docs/ai-space-setup-implementation-plan.md).
 
 ## Immediate Fixes
 

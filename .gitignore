@@ -13,6 +13,8 @@
 /tmp/test-results
 /docs/*
 !/docs/ai-space-setup-workflow.md
+!/docs/ai-space-setup-implementation-plan.md
+!/docs/command-reference.md
 test-push-results.sh
 .DS_Store
 examples/demos/
